@@ -13,6 +13,7 @@ from .dashboard import build_dashboard_json
 from .extract import download
 from .features import build_profiles
 from .normalize import normalize_frame, normalize_to_parquet
+from .quality import audit_quality
 from .search import build_fts, build_fts_from_parquet
 from .source_discovery import write_catalog
 
@@ -28,16 +29,15 @@ def run_sample(sample: str) -> None:
     raw = pd.read_csv(sample, dtype=str)
     df = normalize_frame(raw, source_file=Path(sample).name)
     Path("data/processed").mkdir(parents=True, exist_ok=True)
-    df.to_parquet("data/processed/transactions_sample.parquet", index=False)
+    parquet = "data/processed/transactions_sample.parquet"
+    df.to_parquet(parquet, index=False)
     signals = detect_all(df, load_config())
     Path("data/signals").mkdir(parents=True, exist_ok=True)
     signals.to_parquet("data/signals/risk_signals.parquet", index=False)
     build_fts(df, "data/index/search.sqlite")
-    build_profiles("data/processed/transactions_sample.parquet")
-    build_dashboard_json(
-        "data/processed/transactions_sample.parquet",
-        "data/signals/risk_signals.parquet",
-    )
+    build_profiles(parquet)
+    audit_quality(parquet)
+    build_dashboard_json(parquet, "data/signals/risk_signals.parquet")
 
 
 def run_years(years: list[int]) -> None:
@@ -71,6 +71,12 @@ def run_years(years: list[int]) -> None:
         )
 
     glob = "data/processed/transactions_*.parquet"
+    quality = audit_quality(glob)
+    print(
+        f"[OK] calidad: {quality['status']} | "
+        f"devengado={quality['coverage']['monto_devengado']:.1%} | "
+        f"RUT={quality['coverage']['rut']:.1%}"
+    )
     cfg = load_config()
     build_profiles(glob)
     build_signals(
