@@ -1,40 +1,13 @@
 {
   "generated_at": "2026-08-12T22:37:50+00:00",
-  "version": "0.3-operational",
-  "metrics": {
-    "transactions": 3067843,
-    "organizations": 1467,
-    "recipients": 189955,
-    "providers": 33513,
-    "amount_clp": 40555865898919.0,
-    "first_year": 2026,
-    "last_year": 2026,
-    "signals": 15670,
-    "priority_p1": 841,
-    "cgr_candidate_links": 93,
-    "cgr_links_with_findings": 93
-  },
-  "signal_types": {
-    "POTENTIAL_FRAGMENTATION": 7484,
-    "EXACT_DUPLICATE_CANDIDATE": 7002,
-    "AMOUNT_OUTLIER": 955,
-    "PROVIDER_CONCENTRATION": 229
-  },
+  "methodology": "Score 0-100 de prioridad investigativa explicable; combina severidad, tipo de patrón, coocurrencia de señales, evidencia externa CGR, accionabilidad documental y materialidad. No es un score de culpabilidad ni de lavado de activos.",
+  "total_signals": 15670,
   "priority_tiers": {
     "P1": 841,
-    "P2": 6193,
-    "P3": 8636
+    "P3": 8636,
+    "P2": 6193
   },
-  "cgr_correlation": {
-    "status": "OK",
-    "links": 93,
-    "provider_links": 3,
-    "organization_links": 90,
-    "links_with_findings": 93,
-    "high_confidence_links": 29,
-    "methodology": "Cruce conservador por nombre normalizado y, cuando está disponible, región. Cada enlace permanece CANDIDATE; no atribuye un hallazgo CGR a una transacción específica."
-  },
-  "signals": [
+  "queue": [
     {
       "signal_id": "SIG-PA-EXACT_DUPLICATE-D3BC74E9413BDE4F2585",
       "signal_type": "EXACT_DUPLICATE_CANDIDATE",
@@ -10535,6 +10508,5 @@
       "priority_tier": "P1",
       "priority_explanation": "severidad=30 | señal=15 | coocurrencia=17 | evidencia_CGR=0 | accionabilidad=5 | materialidad=7"
     }
-  ],
-  "methodology_note": "Las señales son patrones estadísticos para priorizar revisión; no constituyen hallazgos de ilegalidad ni imputaciones AML. El score 0-100 es prioridad investigativa explicable, no probabilidad de delito. Los cruces CGR son coincidencias de entidad candidatas y requieren verificación documental."
+  ]
 }

@@ -1,9 +1,13 @@
 {
-  "generated_at": "2026-08-12T18:55:05+00:00",
+  "generated_at": "2026-08-12T22:36:36+00:00",
   "status": "PASS",
   "rows": 3067843,
-  "distinct_transaction_ids": 3055428,
-  "duplicate_transaction_id_ratio": 0.00404682,
+  "distinct_transaction_ids": 3067843,
+  "transaction_id_collision_ratio": 0.0,
+  "duplicate_transaction_id_ratio": 0.0,
+  "distinct_transaction_fingerprints": 3055428,
+  "repeated_fingerprint_rows": 12415,
+  "source_fact_repeat_ratio": 0.00404682,
   "invalid_period_rows": 0,
   "negative_devengado_rows": 107,
   "first_year": 2026,
@@ -25,5 +29,5 @@
     "sector": 0.50672
   },
   "warnings": [],
-  "interpretation": "RUT válido se informa solo tras validar dígito verificador. Identidades HASH_SHA1 se conservan como claves pseudónimas de fuente, no como RUT. Cobertura no equivale a riesgo."
+  "interpretation": "transaction_id identifica una fila física única del bulk; transaction_fingerprint identifica el mismo hecho documental/económico y puede repetirse legítimamente o constituir un candidato de duplicidad. RUT válido se informa solo tras validar dígito verificador. Identidades HASH_SHA1 se conservan como claves pseudónimas de fuente."
 }

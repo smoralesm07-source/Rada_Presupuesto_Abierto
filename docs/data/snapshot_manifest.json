@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-12T18:55:05+00:00",
+  "generated_at": "2026-08-12T22:36:36+00:00",
   "source_system": "PRESUPUESTO_ABIERTO",
   "snapshots": [
     {
@@ -8,7 +8,7 @@
       "source_status": "probed_available",
       "sha256": "0328c5d065240509312f9f9ba72781575f357e5ea6c7ad18213238f91b3ebd71",
       "bytes": 96674111,
-      "downloaded_at": "2026-08-12T18:49:29+00:00",
+      "downloaded_at": "2026-08-12T22:30:34+00:00",
       "normalized_rows": 3067843,
       "delimiter": "\t",
       "normalized_output": "transactions_2026.parquet"
