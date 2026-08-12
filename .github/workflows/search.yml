@@ -69,6 +69,7 @@ jobs:
       - run: python -m pip install -r requirements.txt
       - name: Execute auditable search
         env:
+          PYTHONPATH: src
           YEAR: ${{ inputs.year }}
           TEXT: ${{ inputs.text }}
           RUT: ${{ inputs.rut }}
@@ -86,39 +87,36 @@ jobs:
           python - <<'PY'
           import os
           from radar_presupuesto.query_job import run_query
+
           def s(name):
-              v=os.getenv(name,'').strip()
-              return v or None
+              value = os.getenv(name, '').strip()
+              return value or None
+
           def i(name):
-              v=s(name); return int(v) if v else None
+              value = s(name)
+              return int(value) if value else None
+
           def f(name):
-              v=s(name); return float(v) if v else None
-          meta=run_query(
+              value = s(name)
+              return float(value) if value else None
+
+          meta = run_query(
               year=int(os.environ['YEAR']),
-              text=s('TEXT'), rut=s('RUT'), organization_id=s('ORGANIZATION_ID'),
-              provider_id=s('PROVIDER_ID'), month=i('MONTH'),
-              min_amount=f('MIN_AMOUNT'), max_amount=f('MAX_AMOUNT'),
-              purchase_order=s('PURCHASE_ORDER'), bip=s('BIP'),
-              location=s('LOCATION'), budget_code=s('BUDGET_CODE'),
-              limit=int(os.environ.get('LIMIT','1000')),
+              text=s('TEXT'),
+              rut=s('RUT'),
+              organization_id=s('ORGANIZATION_ID'),
+              provider_id=s('PROVIDER_ID'),
+              month=i('MONTH'),
+              min_amount=f('MIN_AMOUNT'),
+              max_amount=f('MAX_AMOUNT'),
+              purchase_order=s('PURCHASE_ORDER'),
+              bip=s('BIP'),
+              location=s('LOCATION'),
+              budget_code=s('BUDGET_CODE'),
+              limit=int(os.environ.get('LIMIT', '1000')),
           )
           print(meta)
           PY
-        env:
-          PYTHONPATH: src
-          YEAR: ${{ inputs.year }}
-          TEXT: ${{ inputs.text }}
-          RUT: ${{ inputs.rut }}
-          ORGANIZATION_ID: ${{ inputs.organization_id }}
-          PROVIDER_ID: ${{ inputs.provider_id }}
-          MONTH: ${{ inputs.month }}
-          MIN_AMOUNT: ${{ inputs.min_amount }}
-          MAX_AMOUNT: ${{ inputs.max_amount }}
-          PURCHASE_ORDER: ${{ inputs.purchase_order }}
-          BIP: ${{ inputs.bip }}
-          LOCATION: ${{ inputs.location }}
-          BUDGET_CODE: ${{ inputs.budget_code }}
-          LIMIT: ${{ inputs.limit }}
       - name: Upload query result
         uses: actions/upload-artifact@v4
         with:
