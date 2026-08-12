@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-12T18:17:29+00:00",
+  "generated_at": "2026-08-12T18:29:19+00:00",
   "year": 2026,
   "source": {
     "year": 2026,
@@ -71,7 +71,7 @@
     "nombre_area": "nombre_area",
     "subtitulo": "subtitulo",
     "nombre_subtitulo": "nombre_subtitulo",
-    "beneficiario": "rut_beneficiario",
+    "beneficiario": "beneficiario_source_id",
     "nombre_beneficiario": "nombre_beneficiario",
     "numero_documento": "numero_documento",
     "fecha_documento": "fecha_documento",
@@ -133,43 +133,13 @@
       "1": 3415
     }
   },
-  "beneficiary_clean_length_counts": {
-    "0": 3415,
-    "4": 4,
-    "5": 263,
-    "6": 135,
-    "7": 151,
-    "8": 3534,
-    "9": 148746,
-    "10": 628,
-    "11": 12265,
-    "12": 13,
-    "13": 26,
-    "14": 11,
-    "15": 37,
-    "16": 154,
-    "17": 216,
-    "18": 563,
-    "19": 1140,
-    "20": 2301,
-    "21": 4653,
-    "22": 5616,
-    "23": 7550,
-    "24": 8759,
-    "25": 9904,
-    "26": 10833,
-    "27": 12279,
-    "28": 7570,
-    "29": 4139,
-    "30": 2742,
-    "31": 1240,
-    "32": 767,
-    "33": 238,
-    "34": 56,
-    "35": 52
+  "beneficiary_identity_type_counts": {
+    "RUT": 152133,
+    "HASH_SHA1": 80858,
+    "SOURCE_ID": 13594,
+    "MISSING": 3415
   },
-  "synthetic_beneficiary_rows": 93752,
-  "synthetic_beneficiary_examples": [
+  "hashed_identity_examples": [
     {
       "raw": "d58d17bb171b8f33cb09ef4eadb4dfe0f34921ae",
       "name": "LIZA MARINA FLORES XXX"
@@ -291,5 +261,5 @@
       "name": "RODRIGO PEDRO PEREZ  STIEPOVIC"
     }
   ],
-  "note": "Perfil descriptivo de la fuente. No convierte identificadores sintéticos en RUT ni asigna riesgo."
+  "note": "BENEFICIARIO es una clave de identidad de fuente: puede ser RUT válido o identificador SHA1 pseudónimo. El radar los mantiene separados."
 }
