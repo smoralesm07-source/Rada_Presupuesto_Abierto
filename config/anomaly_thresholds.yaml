@@ -1,0 +1,8 @@
+amount_outlier:
+  threshold: 4.5
+  min_group: 8
+potential_fragmentation:
+  min_count: 3
+  max_cv: 0.15
+year_end_spike:
+  ratio_threshold: 2.5

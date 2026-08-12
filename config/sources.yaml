@@ -1,0 +1,14 @@
+primary:
+  portal: https://presupuestoabierto.gob.cl
+  api_host: https://api.presupuestoabierto.gob.cl
+  about_data: /about-data
+  status: /status
+  providers: /providers
+  institutions: /institutions
+  sectors: /sectors
+  states: /states
+bulk:
+  canonical_pattern: https://api.presupuestoabierto.gob.cl/data/pagos-{year}.gz
+  first_year: 2016
+methodology:
+  integration_rules_pdf: https://api.presupuestoabierto.gob.cl/files/Integracion_Portal_Ciudadano_2.5.pdf
