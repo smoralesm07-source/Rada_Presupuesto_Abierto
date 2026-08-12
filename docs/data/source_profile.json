@@ -1,0 +1,295 @@
+{
+  "generated_at": "2026-08-12T18:17:29+00:00",
+  "year": 2026,
+  "source": {
+    "year": 2026,
+    "url": "https://api.presupuestoabierto.gob.cl/data/pagos-2026.gz",
+    "http_status": 200,
+    "content_type": "application/gzip",
+    "content_length": "96674111",
+    "probe_method": "HEAD",
+    "final_url": "https://api.presupuestoabierto.gob.cl/data/pagos-2026.gz",
+    "status": "probed_available"
+  },
+  "sample_rows": 250000,
+  "delimiter": "\t",
+  "original_columns": [
+    "periodo",
+    "mes",
+    "partida",
+    "nombre_partida",
+    "capitulo",
+    "nombre_capitulo",
+    "area",
+    "nombre_area",
+    "subtitulo",
+    "nombre_subtitulo",
+    "beneficiario",
+    "nombre_beneficiario",
+    "numero_documento",
+    "fecha_documento",
+    "tipo_documento",
+    "orden_de_compra",
+    "fecha_ingreso",
+    "fecha_recepcion_conforme",
+    "fecha_pago",
+    "moneda",
+    "monto_original",
+    "monto",
+    "devengo_original",
+    "devengo",
+    "honorario",
+    "proveedor",
+    "sector",
+    "region",
+    "agregado",
+    "persona",
+    "intraestado",
+    "bloqueo_oc",
+    "item",
+    "nombre_item",
+    "asignacion",
+    "nombre_asignacion",
+    "codigo_bip",
+    "nombre_bip",
+    "codigo_ubicacion_geografica",
+    "nombre_ubicacion_geografica",
+    "codigo_programa_presupuestario",
+    "nombre_programa_presupuestario",
+    "dias_de_pago",
+    "dias_de_pago_cat",
+    "deuda_flotante"
+  ],
+  "canonical_column_mapping": {
+    "periodo": "periodo",
+    "mes": "mes",
+    "partida": "partida",
+    "nombre_partida": "nombre_partida",
+    "capitulo": "capitulo",
+    "nombre_capitulo": "nombre_capitulo",
+    "area": "area",
+    "nombre_area": "nombre_area",
+    "subtitulo": "subtitulo",
+    "nombre_subtitulo": "nombre_subtitulo",
+    "beneficiario": "rut_beneficiario",
+    "nombre_beneficiario": "nombre_beneficiario",
+    "numero_documento": "numero_documento",
+    "fecha_documento": "fecha_documento",
+    "tipo_documento": "tipo_documento",
+    "orden_de_compra": "orden_compra",
+    "fecha_ingreso": "fecha_ingreso",
+    "fecha_recepcion_conforme": "fecha_recepcion_conforme",
+    "fecha_pago": "fecha_pago",
+    "moneda": "moneda_presupuestaria",
+    "monto_original": "monto_pago_original",
+    "monto": "monto_pago",
+    "devengo_original": "monto_devengado_original",
+    "devengo": "monto_devengado",
+    "honorario": "honorario",
+    "proveedor": "proveedor",
+    "sector": "sector",
+    "region": "region",
+    "agregado": "agregado",
+    "persona": "persona",
+    "intraestado": "intraestado",
+    "bloqueo_oc": "bloqueo_oc",
+    "item": "item",
+    "nombre_item": "nombre_item",
+    "asignacion": "asignacion",
+    "nombre_asignacion": "nombre_asignacion",
+    "codigo_bip": "codigo_bip",
+    "nombre_bip": "nombre_bip",
+    "codigo_ubicacion_geografica": "codigo_ubicacion_geografica",
+    "nombre_ubicacion_geografica": "nombre_ubicacion_geografica",
+    "codigo_programa_presupuestario": "codigo_programa_presupuestario",
+    "nombre_programa_presupuestario": "nombre_programa_presupuestario",
+    "dias_de_pago": "dias_de_pago",
+    "dias_de_pago_cat": "dias_de_pago_cat",
+    "deuda_flotante": "deuda_flotante"
+  },
+  "value_counts": {
+    "proveedor": {
+      "0": 138575,
+      "1": 111425
+    },
+    "persona": {
+      "0": 169142,
+      "1": 80858
+    },
+    "honorario": {
+      "0": 246095,
+      "1": 3905
+    },
+    "intraestado": {
+      "0": 227414,
+      "1": 22586
+    },
+    "deuda_flotante": {
+      "0": 239507,
+      "1": 10493
+    },
+    "agregado": {
+      "0": 246585,
+      "1": 3415
+    }
+  },
+  "beneficiary_clean_length_counts": {
+    "0": 3415,
+    "4": 4,
+    "5": 263,
+    "6": 135,
+    "7": 151,
+    "8": 3534,
+    "9": 148746,
+    "10": 628,
+    "11": 12265,
+    "12": 13,
+    "13": 26,
+    "14": 11,
+    "15": 37,
+    "16": 154,
+    "17": 216,
+    "18": 563,
+    "19": 1140,
+    "20": 2301,
+    "21": 4653,
+    "22": 5616,
+    "23": 7550,
+    "24": 8759,
+    "25": 9904,
+    "26": 10833,
+    "27": 12279,
+    "28": 7570,
+    "29": 4139,
+    "30": 2742,
+    "31": 1240,
+    "32": 767,
+    "33": 238,
+    "34": 56,
+    "35": 52
+  },
+  "synthetic_beneficiary_rows": 93752,
+  "synthetic_beneficiary_examples": [
+    {
+      "raw": "d58d17bb171b8f33cb09ef4eadb4dfe0f34921ae",
+      "name": "LIZA MARINA FLORES XXX"
+    },
+    {
+      "raw": "8130625f98e608513980da3b976a2703692c1775",
+      "name": "FRANCISCO LEONEL RIVEROS CANTUARIAS"
+    },
+    {
+      "raw": "4f927179765c7fb00f42cd8fa558e529d73ae3c4",
+      "name": "SERGIO HERRERA VALDES"
+    },
+    {
+      "raw": "7c2bc9b9985e75369ab6df45a030b11f565d53fe",
+      "name": "ROMER ANGEL RUBIO FLORES"
+    },
+    {
+      "raw": "fda878ea3c3f16d3c5f682ec0be483a1188811cc",
+      "name": "SOLANA TERRAZAS MARTINS"
+    },
+    {
+      "raw": "9b75f0e8e475a8144997aa163bfc93a355243dac",
+      "name": "FELIPE ANDRÉS NAVARRETE ACUÑA"
+    },
+    {
+      "raw": "bef67e987d056d138bc69fee631f3fab614d6462",
+      "name": "BERNARDITA MARÍA ROSALES CORREA"
+    },
+    {
+      "raw": "a7330c1cca32b2f9e84b0d1e8bdacce53633a843",
+      "name": "CATALINA ARIZTIA VIAS"
+    },
+    {
+      "raw": "8bbdd365fd7769c92a6fbca962a461ddea06992b",
+      "name": "MARIA PAZ FADEL ARCUCH"
+    },
+    {
+      "raw": "2602536e7bd26d4fde145441e8829dddfd9628a2",
+      "name": "CRISTIAN RICARDO VALENZUELA BUSTOS"
+    },
+    {
+      "raw": "aca3d061cf13d417299ebec88f4e38e6f3327ce6",
+      "name": "DOMINGO  CLARO CORREA"
+    },
+    {
+      "raw": "53c4220957698edcf70e68642241334d131ff49a",
+      "name": "JUAN DE DIOS SEPÚLVEDA SEPÚLVEDA"
+    },
+    {
+      "raw": "5e0107752e8066ab4f51e180554ad831e1e0bfb2",
+      "name": "FREDERICK JESUS REYES SANCHEZ"
+    },
+    {
+      "raw": "14dfffe10443b5661a45896006909d9a3b745266",
+      "name": "UZIEL GOMEZ PADRON"
+    },
+    {
+      "raw": "7d41ad94324356533a0110ed25906e3079a52e8d",
+      "name": "NELSON CRISTIAN BETANCOUR MORALES"
+    },
+    {
+      "raw": "b58f200d84bd7317369acc0e7eaf42e7be9cc016",
+      "name": "PAULA DIAZ PAREDES"
+    },
+    {
+      "raw": "098c72045b5211b962468df2507882f7c1826330",
+      "name": "CLAUDIO PONTILLO RAMIREZ"
+    },
+    {
+      "raw": "bf3fef703d980e5f9310f2ed803f7ed0dd143de3",
+      "name": "SERGIO ANDRÉS TURRA DIVAS"
+    },
+    {
+      "raw": "d464c5ecf43d6fbc856298a77d0ab4f2a22c397c",
+      "name": "MARIA-IGNACIA PORCILE SALINAS"
+    },
+    {
+      "raw": "c2a15c0f2e209d9a351db732ec76bc93b5bd80a4",
+      "name": "MARTIN IGNACIO BAUDET RIQUELME"
+    },
+    {
+      "raw": "e68632c86671acdd702597852a6a31876faad284",
+      "name": "SEBASTIÁN TORREALBA DEL RÍO"
+    },
+    {
+      "raw": "0e9e9bef586e15b56d2e94d57e553456e56e1467",
+      "name": "CARLA FRANCISCA MIX BARRUETO"
+    },
+    {
+      "raw": "7a628ddfffcf58187edd8b7a8be14fa9dea2706a",
+      "name": "TOMAS CELEDON  VALDES"
+    },
+    {
+      "raw": "a6eb130b255e7e9fece889513102141de4c16e46",
+      "name": "JOSE MIGUEL ALDUNATE HUIDOBRO"
+    },
+    {
+      "raw": "6ac39135c2d38cb0d54822f8c745bf72c09e4f36",
+      "name": "JOSE IGNACIO  PALMA  ARANCIBIA"
+    },
+    {
+      "raw": "aaf299acc2c4fe09fe5875dd7d4ffc0033cfb144",
+      "name": "KAREN ELISA MORALES GAETE"
+    },
+    {
+      "raw": "73413020a8607476345ac1229557bd646dbf7a66",
+      "name": "MAURICE ANDRE POIRRIER CHUDEN"
+    },
+    {
+      "raw": "bd697371a508b66f4235ede641eb57220d6cb960",
+      "name": "ROBERTO MACCHIAVELLO MARCELI"
+    },
+    {
+      "raw": "2162245152886b85bb1caea492a667e2f36e9c66",
+      "name": "LUZ EBENSPERGUER ORREGO"
+    },
+    {
+      "raw": "84e0ed66a7cf46ae4f930b027b79a87a48b61005",
+      "name": "RODRIGO PEDRO PEREZ  STIEPOVIC"
+    }
+  ],
+  "note": "Perfil descriptivo de la fuente. No convierte identificadores sintéticos en RUT ni asigna riesgo."
+}
