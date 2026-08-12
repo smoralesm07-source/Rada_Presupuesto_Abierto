@@ -90,7 +90,7 @@ def extend_signals(
     con.execute(f"""
         INSERT INTO merged
         WITH meta AS (
-          SELECT count(DISTINCT periodo) years,max(periodo) max_year FROM facts
+          SELECT count(DISTINCT periodo) AS series_years,max(periodo) max_year FROM facts
         ), firsts AS (
           SELECT provider_id,min(periodo) first_year FROM facts
           WHERE is_provider=TRUE AND coalesce(provider_id,'')<>'' GROUP BY 1
@@ -116,7 +116,7 @@ def extend_signals(
                'Nuevo en la serie no significa nueva empresa ni irregularidad; puede reflejar cambio de proveedor, licitación reciente o cobertura histórica incompleta.',
                '["Confirmar primera aparición en serie completa","Revisar adjudicación inicial y OC","Comparar monto con proveedores nuevos pares","Contrastar antigüedad societaria en fuentes externas"]'
         FROM cur,threshold,meta
-        WHERE meta.years>=2 AND cur.tx>=3
+        WHERE meta.series_years>=2 AND cur.tx>=3
           AND cur.amount>=greatest({float(new_series_min_amount)},coalesce(threshold.q,0))
     """)
 
