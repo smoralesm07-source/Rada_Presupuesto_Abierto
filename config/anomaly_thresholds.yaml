@@ -10,3 +10,15 @@ potential_fragmentation:
   max_cv: 0.15
 year_end_spike:
   ratio_threshold: 2.5
+provider_concentration:
+  min_providers: 8
+  min_share: 0.45
+  min_hhi: 0.25
+  min_amount: 10000000
+payment_delay_outlier:
+  min_days: 60
+  min_group: 20
+  quantile_floor: 0.99
+new_to_series_high_spend:
+  min_amount: 50000000
+  quantile_floor: 0.99

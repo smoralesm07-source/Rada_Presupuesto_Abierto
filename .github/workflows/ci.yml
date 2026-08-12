@@ -16,10 +16,22 @@ jobs:
           python-version: '3.12'
           cache: pip
       - run: python -m pip install -r requirements.txt
-      - name: Unit + scalable engine tests
+      - name: Unit + operational engine tests
         run: PYTHONPATH=src pytest -q
       - name: End-to-end sample pipeline
-        run: PYTHONPATH=src python -m radar_presupuesto.pipeline --sample tests/fixtures/sample_transactions.csv
+        run: PYTHONPATH=src python -m radar_presupuesto.pipeline --sample tests/fixtures/sample_transactions.csv --cgr-dir /tmp/no-cgr
+      - name: Validate sample integrity and queue
+        run: |
+          python - <<'PY'
+          import json
+          q=json.load(open('docs/data/quality.json'))
+          d=json.load(open('docs/data/dashboard.json'))
+          iq=json.load(open('docs/data/investigation_queue.json'))
+          assert q['transaction_id_collision_ratio'] == 0
+          assert q['distinct_transaction_ids'] == q['rows']
+          assert iq['total_signals'] == d['metrics']['signals']
+          print('Priority tiers:', iq['priority_tiers'])
+          PY
       - name: Official source smoke test
         run: |
           PYTHONPATH=src python -m radar_presupuesto.cli probe --catalog /tmp/source_catalog.json --coverage /tmp/coverage.json

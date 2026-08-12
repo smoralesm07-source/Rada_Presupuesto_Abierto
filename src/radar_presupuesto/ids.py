@@ -33,11 +33,9 @@ def _rut_dv(body: str) -> str:
 
 @lru_cache(maxsize=500_000)
 def _normalize_rut_text(text: str) -> str:
-    """Cached RUT normalization for repeated source identity keys."""
     text = text.strip()
     if not text or SHA1_RE.fullmatch(text):
         return ""
-    # Only digits, punctuation/space and K are legal in a candidate RUT.
     if re.search(r"[A-JL-Za-jl-z]", text):
         return ""
     compact = re.sub(r"[^0-9Kk]", "", text).upper()
@@ -51,13 +49,7 @@ def _normalize_rut_text(text: str) -> str:
 
 
 def normalize_rut(value: object) -> str:
-    """Return a canonical Chilean RUT only when format and check digit are valid.
-
-    Current Presupuesto Abierto bulk files also use 40-char SHA1-like identifiers for
-    some natural persons/aggregates. Those must never be converted into pseudo-RUTs.
-    Repeated identifiers are cached because the same recipients appear across many
-    transactions in annual bulk files.
-    """
+    """Return a canonical Chilean RUT only after check-digit validation."""
     text = "" if value is None else str(value).strip()
     return _normalize_rut_text(text)
 
@@ -109,7 +101,6 @@ def provider_id(
     provider_flag: object = False,
     organization: object = "",
 ) -> str:
-    """Create supplier ID only when the bulk `proveedor` flag says it is a supplier."""
     if not flag_is_true(provider_flag):
         return ""
     raw = "" if source_identifier is None else str(source_identifier).strip()
@@ -121,8 +112,14 @@ def provider_id(
     return f"PRV-PA-{_digest(raw, name, organization, length=24)}"
 
 
-def transaction_id(row: dict) -> str:
-    return "TRX-PA-" + _digest(
+def transaction_fingerprint(row: dict) -> str:
+    """Business/document fingerprint used to detect repeated source facts.
+
+    It deliberately excludes physical row position. Two source rows describing the
+    same document/economic fact therefore share the same fingerprint and can be
+    reviewed as a duplicate candidate without colliding in transaction identity.
+    """
+    return "FP-PA-" + _digest(
         row.get("periodo"),
         row.get("mes"),
         row.get("partida"),
@@ -137,3 +134,20 @@ def transaction_id(row: dict) -> str:
         row.get("monto_pago"),
         length=24,
     )
+
+
+def transaction_id(row: dict) -> str:
+    """Unique identity for a physical row in an official source snapshot.
+
+    `transaction_fingerprint` captures economic/document identity; `transaction_id`
+    adds the source file and stable 1-based row number. This prevents a documentary
+    duplicate from becoming a primary-key collision in the radar itself.
+    """
+    fingerprint = row.get("transaction_fingerprint") or transaction_fingerprint(row)
+    source_file = row.get("source_file") or ""
+    source_row_number = row.get("source_row_number")
+    if source_file or source_row_number not in (None, ""):
+        return "TRX-PA-" + _digest(
+            source_file, source_row_number, fingerprint, length=24
+        )
+    return "TRX-PA-" + _digest(fingerprint, length=24)

@@ -16,6 +16,12 @@ jobs:
     timeout-minutes: 330
     steps:
       - uses: actions/checkout@v6
+      - name: Checkout Radar CGR evidence
+        uses: actions/checkout@v6
+        with:
+          repository: smoralesm07-source/Radar-CGR
+          path: external/radar-cgr
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -38,7 +44,7 @@ jobs:
           PY
           )
           echo "years=$YEARS" >> "$GITHUB_OUTPUT"
-      - name: Run radar
+      - name: Run operational radar
         run: |
           test -n "${{ steps.years.outputs.years }}"
           PYTHONPATH=src python -m radar_presupuesto.pipeline --years ${{ steps.years.outputs.years }}
@@ -46,7 +52,7 @@ jobs:
         run: |
           git config user.name "radar-presupuesto-bot"
           git config user.email "radar-presupuesto-bot@users.noreply.github.com"
-          git add docs/data/dashboard.json docs/data/source_catalog.json docs/data/coverage.json docs/data/quality.json docs/data/snapshot_manifest.json
+          git add docs/data/dashboard.json docs/data/investigation_queue.json docs/data/cgr_correlation.json docs/data/source_catalog.json docs/data/coverage.json docs/data/quality.json docs/data/snapshot_manifest.json
           if git diff --cached --quiet; then exit 0; fi
           git commit -m "radar: corrida analítica $(date -u +%F)"
           git pull --rebase origin main

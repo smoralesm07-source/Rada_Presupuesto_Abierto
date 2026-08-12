@@ -1,67 +1,47 @@
-# Catálogo de señales v0.1.4
+# Catálogo de señales v0.3 operacional
 
 ## Principios
 
 - Una señal **prioriza revisión**; no presume delito, fraude, corrupción ni lavado de activos.
-- `recipient_id` y `provider_id` se tratan como dimensiones distintas.
+- `recipient_id` y `provider_id` son dimensiones distintas.
+- `transaction_id` identifica una fila física única; `transaction_fingerprint` identifica una huella documental/económica potencialmente repetible.
 - El RUT solo se usa cuando supera validación de dígito verificador; identidades SHA1 permanecen pseudonimizadas.
-- La comparación usa historia o pares antes que umbrales absolutos.
-- La significancia estadística debe acompañarse de **materialidad económica** cuando corresponda.
-- Toda señal conserva valor observado, esperado, desviación, actor(es), período y chequeos sugeridos.
+- La significancia estadística se combina con **materialidad económica** cuando corresponde.
 - La ausencia de Orden de Compra no constituye por sí sola una señal.
-- El porcentaje de datos disponibles se evalúa en `quality.json` antes de interpretar una anomalía.
+- Los enlaces con Radar CGR son evidencia candidata de identidad y nunca atribuyen automáticamente un hallazgo a una transacción.
 
 ## AMOUNT_OUTLIER
 
-Detecta la **cola alta material del monto devengado de proveedores** dentro de un grupo comparable `organismo + subtítulo + ítem`. El monto se transforma con `log1p` y se calcula un z robusto basado en mediana/MAD.
-
-La configuración v0.1.4 exige simultáneamente:
-
-- registro marcado por la fuente como `proveedor=1`;
-- registro no agregado;
-- al menos 20 operaciones en el grupo comparable;
-- z robusto >= 4,5;
-- monto en o sobre el percentil 99 del grupo;
-- monto al menos 3 veces superior a la mediana del grupo.
-
-Estas condiciones surgieron de una calibración sobre el bulk real 2026: un MAD muy pequeño podía producir z-scores extremos para pagos de baja cuantía y receptores personales, generando ruido analítico. La regla actual combina excepcionalidad estadística y materialidad relativa.
-
-**Qué significa:** el pago a un proveedor es excepcional y material respecto del comportamiento de su grupo comparable.
-
-**Qué no significa:** que el pago sea improcedente.
-
-**Chequeos propuestos:** documento, OC cuando exista, objeto/ítem, historial del proveedor, hitos contractuales y operaciones comparables.
+Detecta la cola alta material del monto devengado de proveedores dentro de un grupo comparable `organismo + subtítulo + ítem`, usando mediana/MAD, percentil superior y múltiplo mínimo de la mediana.
 
 ## POTENTIAL_FRAGMENTATION
 
-Opera **solo sobre registros marcados por la fuente como proveedor** y excluye registros agregados. Busca tres o más documentos del mismo `organismo + proveedor + ítem` dentro de una ventana semanal con baja variación relativa de montos.
-
-**Hipótesis:** posible desagregación de un mismo objeto o patrón de pagos que requiere explicación.
-
-**Descartes necesarios:** facturación periódica legítima, estados de pago, hitos contractuales, pagos parciales y contratos diferentes.
+Busca tres o más documentos del mismo `organismo + proveedor + ítem` dentro de una ventana semanal con baja variación relativa de montos. Deben descartarse facturación periódica, estados de pago, hitos contractuales y contratos distintos.
 
 ## YEAR_END_SPIKE
 
-Compara el promedio mensual de noviembre-diciembre con enero-octubre por organismo.
-
-**Uso:** identificar aceleraciones de cierre presupuestario que merecen análisis de composición por proveedor, subtítulo y nuevas OC/modificaciones.
-
-**Restricción:** no debe interpretarse cuando el año aún no contiene noviembre y diciembre. El año 2026 está actualmente incompleto para esta señal.
+Compara noviembre-diciembre con enero-octubre por organismo. No se interpreta si el año no contiene noviembre y diciembre.
 
 ## EXACT_DUPLICATE_CANDIDATE
 
-Busca coincidencias en claves documentales principales usando `recipient_id`, documento, fecha, monto, folio y período. Los registros agregados se excluyen de esta detección.
+Agrupa filas por claves documentales/económicas. En v0.3 las filas mantienen `transaction_id` distintos aunque compartan `transaction_fingerprint`.
 
-**Hipótesis:** posible duplicación de origen o evento documental repetido.
+## PROVIDER_CONCENTRATION
 
-**Descartes:** ajustes, reversos, pagos parciales, registros contables complementarios o particularidades del sistema de origen.
+Calcula participación del proveedor dominante y HHI por `organismo + año`. Configuración inicial: al menos 8 proveedores, participación >=45%, HHI >=0,25 y gasto dominante >=$10 millones. Deben descartarse monopolios técnicos, contratos marco, concesiones y proyectos de gran escala.
 
-## Flujo analítico esperado
+## PAYMENT_DELAY_OUTLIER
 
-`SIGNAL -> supporting transactions -> contexto del receptor/proveedor -> comparación histórica/pares -> evidencia documental -> investigación propuesta`
+Utiliza `dias_de_pago` cuando es numérico y exige un grupo institucional suficiente, plazo >=60 días y ubicación en la cola extrema. Deben revisarse recepción conforme, notas de crédito y controversias contractuales.
 
-La salida deseada no es “actor sospechoso”, sino una ficha reproducible que explique **qué patrón cambió, cuánto se desvía, qué lo soporta y qué debería revisarse**.
+## NEW_TO_SERIES_HIGH_SPEND
 
-## Próxima calibración
+Opera solo con al menos dos años procesados. Identifica proveedores cuya primera aparición se produce en el último año de la **serie observada** y cuyo gasto acumulado está en la cola superior. “Nuevo en la serie” no significa “empresa nueva”.
 
-Se priorizarán señales de concentración HHI por organismo/categoría, proveedor nuevo con salto abrupto, expansión acelerada a múltiples organismos, cambio estructural organismo–proveedor, recurrencia extraordinariamente regular, anomalía geográfica, tiempos de pago atípicos y coocurrencia en OC/BIP/organismos.
+## Coocurrencia y prioridad
+
+La coocurrencia se usa para ordenar revisión, no como prueba. El score 0–100 incorpora severidad, tipo de patrón, coocurrencia, evidencia candidata Radar CGR, accionabilidad documental y materialidad.
+
+La salida es:
+
+`SIGNAL -> supporting facts -> contexto del actor -> comparación histórica/pares -> evidencia externa -> investigación propuesta`
