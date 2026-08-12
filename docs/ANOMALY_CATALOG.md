@@ -1,4 +1,4 @@
-# Catálogo de señales v0.1.3
+# Catálogo de señales v0.1.4
 
 ## Principios
 
@@ -6,23 +6,35 @@
 - `recipient_id` y `provider_id` se tratan como dimensiones distintas.
 - El RUT solo se usa cuando supera validación de dígito verificador; identidades SHA1 permanecen pseudonimizadas.
 - La comparación usa historia o pares antes que umbrales absolutos.
+- La significancia estadística debe acompañarse de **materialidad económica** cuando corresponda.
 - Toda señal conserva valor observado, esperado, desviación, actor(es), período y chequeos sugeridos.
 - La ausencia de Orden de Compra no constituye por sí sola una señal.
 - El porcentaje de datos disponibles se evalúa en `quality.json` antes de interpretar una anomalía.
 
 ## AMOUNT_OUTLIER
 
-Detecta la **cola alta** del monto devengado dentro de un grupo comparable `organismo + subtítulo + ítem`. El monto se transforma con `log1p` y se calcula un z robusto basado en mediana/MAD.
+Detecta la **cola alta material del monto devengado de proveedores** dentro de un grupo comparable `organismo + subtítulo + ítem`. El monto se transforma con `log1p` y se calcula un z robusto basado en mediana/MAD.
 
-**Qué significa:** el monto es excepcional respecto del comportamiento de su grupo.
+La configuración v0.1.4 exige simultáneamente:
+
+- registro marcado por la fuente como `proveedor=1`;
+- registro no agregado;
+- al menos 20 operaciones en el grupo comparable;
+- z robusto >= 4,5;
+- monto en o sobre el percentil 99 del grupo;
+- monto al menos 3 veces superior a la mediana del grupo.
+
+Estas condiciones surgieron de una calibración sobre el bulk real 2026: un MAD muy pequeño podía producir z-scores extremos para pagos de baja cuantía y receptores personales, generando ruido analítico. La regla actual combina excepcionalidad estadística y materialidad relativa.
+
+**Qué significa:** el pago a un proveedor es excepcional y material respecto del comportamiento de su grupo comparable.
 
 **Qué no significa:** que el pago sea improcedente.
 
-**Chequeos propuestos:** documento, OC cuando exista, objeto/ítem, historial del receptor/proveedor y comparación con operaciones similares.
+**Chequeos propuestos:** documento, OC cuando exista, objeto/ítem, historial del proveedor, hitos contractuales y operaciones comparables.
 
 ## POTENTIAL_FRAGMENTATION
 
-Opera **solo sobre registros marcados por la fuente como proveedor**. Busca tres o más documentos del mismo `organismo + proveedor + ítem` dentro de una ventana semanal con baja variación relativa de montos.
+Opera **solo sobre registros marcados por la fuente como proveedor** y excluye registros agregados. Busca tres o más documentos del mismo `organismo + proveedor + ítem` dentro de una ventana semanal con baja variación relativa de montos.
 
 **Hipótesis:** posible desagregación de un mismo objeto o patrón de pagos que requiere explicación.
 
@@ -38,7 +50,7 @@ Compara el promedio mensual de noviembre-diciembre con enero-octubre por organis
 
 ## EXACT_DUPLICATE_CANDIDATE
 
-Busca coincidencias en claves documentales principales usando `recipient_id`, documento, fecha, monto, folio y período.
+Busca coincidencias en claves documentales principales usando `recipient_id`, documento, fecha, monto, folio y período. Los registros agregados se excluyen de esta detección.
 
 **Hipótesis:** posible duplicación de origen o evento documental repetido.
 
