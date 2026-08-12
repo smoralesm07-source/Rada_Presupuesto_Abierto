@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import re
 import unicodedata
+from functools import lru_cache
 
 SHA1_RE = re.compile(r"^[0-9a-fA-F]{40}$")
 
@@ -30,13 +31,10 @@ def _rut_dv(body: str) -> str:
     return str(result)
 
 
-def normalize_rut(value: object) -> str:
-    """Return a canonical Chilean RUT only when format and check digit are valid.
-
-    Current Presupuesto Abierto bulk files also use 40-char SHA1-like identifiers for
-    some natural persons/aggregates. Those must never be converted into pseudo-RUTs.
-    """
-    text = str(value or "").strip()
+@lru_cache(maxsize=500_000)
+def _normalize_rut_text(text: str) -> str:
+    """Cached RUT normalization for repeated source identity keys."""
+    text = text.strip()
     if not text or SHA1_RE.fullmatch(text):
         return ""
     # Only digits, punctuation/space and K are legal in a candidate RUT.
@@ -52,8 +50,20 @@ def normalize_rut(value: object) -> str:
     return f"{canonical_body}-{dv}"
 
 
+def normalize_rut(value: object) -> str:
+    """Return a canonical Chilean RUT only when format and check digit are valid.
+
+    Current Presupuesto Abierto bulk files also use 40-char SHA1-like identifiers for
+    some natural persons/aggregates. Those must never be converted into pseudo-RUTs.
+    Repeated identifiers are cached because the same recipients appear across many
+    transactions in annual bulk files.
+    """
+    text = "" if value is None else str(value).strip()
+    return _normalize_rut_text(text)
+
+
 def source_identifier_type(value: object) -> str:
-    raw = str(value or "").strip()
+    raw = "" if value is None else str(value).strip()
     if not raw:
         return "MISSING"
     if normalize_rut(raw):
@@ -82,7 +92,7 @@ def organization_id(partida: object, capitulo: object, area: object, name: objec
 
 
 def recipient_id(source_identifier: object, name: object = "", organization: object = "") -> str:
-    raw = str(source_identifier or "").strip()
+    raw = "" if source_identifier is None else str(source_identifier).strip()
     rut = normalize_rut(raw)
     if rut:
         return f"RCV-RUT-{rut}"
@@ -102,7 +112,7 @@ def provider_id(
     """Create supplier ID only when the bulk `proveedor` flag says it is a supplier."""
     if not flag_is_true(provider_flag):
         return ""
-    raw = str(source_identifier or "").strip()
+    raw = "" if source_identifier is None else str(source_identifier).strip()
     rut = normalize_rut(raw)
     if rut:
         return f"PRV-RUT-{rut}"
