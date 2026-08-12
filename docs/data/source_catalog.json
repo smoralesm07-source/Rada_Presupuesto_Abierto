@@ -1,1 +1,122 @@
-{"generated_at":null,"source":"Presupuesto Abierto - DIPRES","downloads":[]}
+{
+  "generated_at": "2026-08-12T18:05:44+00:00",
+  "source": "Presupuesto Abierto - DIPRES",
+  "downloads": [
+    {
+      "year": 2016,
+      "url": "https://api.presupuestoabierto.gob.cl/data/pagos-2016.gz",
+      "status": "linked_available",
+      "source_page": "https://api.presupuestoabierto.gob.cl/about-data",
+      "http_status": 200,
+      "content_type": "application/gzip",
+      "content_length": "194645248",
+      "probe_method": "HEAD",
+      "final_url": "https://api.presupuestoabierto.gob.cl/data/pagos-2016.gz"
+    },
+    {
+      "year": 2017,
+      "url": "https://api.presupuestoabierto.gob.cl/data/pagos-2017.gz",
+      "status": "linked_available",
+      "source_page": "https://api.presupuestoabierto.gob.cl/about-data",
+      "http_status": 200,
+      "content_type": "application/gzip",
+      "content_length": "198519456",
+      "probe_method": "HEAD",
+      "final_url": "https://api.presupuestoabierto.gob.cl/data/pagos-2017.gz"
+    },
+    {
+      "year": 2018,
+      "url": "https://api.presupuestoabierto.gob.cl/data/pagos-2018.gz",
+      "status": "linked_available",
+      "source_page": "https://api.presupuestoabierto.gob.cl/about-data",
+      "http_status": 200,
+      "content_type": "application/gzip",
+      "content_length": "196759199",
+      "probe_method": "HEAD",
+      "final_url": "https://api.presupuestoabierto.gob.cl/data/pagos-2018.gz"
+    },
+    {
+      "year": 2019,
+      "url": "https://api.presupuestoabierto.gob.cl/data/pagos-2019.gz",
+      "status": "linked_available",
+      "source_page": "https://api.presupuestoabierto.gob.cl/about-data",
+      "http_status": 200,
+      "content_type": "application/gzip",
+      "content_length": "250812513",
+      "probe_method": "HEAD",
+      "final_url": "https://api.presupuestoabierto.gob.cl/data/pagos-2019.gz"
+    },
+    {
+      "year": 2020,
+      "url": "https://api.presupuestoabierto.gob.cl/data/pagos-2020.gz",
+      "status": "linked_available",
+      "source_page": "https://api.presupuestoabierto.gob.cl/about-data",
+      "http_status": 200,
+      "content_type": "application/gzip",
+      "content_length": "190211171",
+      "probe_method": "HEAD",
+      "final_url": "https://api.presupuestoabierto.gob.cl/data/pagos-2020.gz"
+    },
+    {
+      "year": 2021,
+      "url": "https://api.presupuestoabierto.gob.cl/data/pagos-2021.gz",
+      "status": "linked_available",
+      "source_page": "https://api.presupuestoabierto.gob.cl/about-data",
+      "http_status": 200,
+      "content_type": "application/gzip",
+      "content_length": "258012126",
+      "probe_method": "HEAD",
+      "final_url": "https://api.presupuestoabierto.gob.cl/data/pagos-2021.gz"
+    },
+    {
+      "year": 2022,
+      "url": "https://api.presupuestoabierto.gob.cl/data/pagos-2022.gz",
+      "http_status": 200,
+      "content_type": "application/gzip",
+      "content_length": "272860951",
+      "probe_method": "HEAD",
+      "final_url": "https://api.presupuestoabierto.gob.cl/data/pagos-2022.gz",
+      "status": "probed_available"
+    },
+    {
+      "year": 2023,
+      "url": "https://api.presupuestoabierto.gob.cl/data/pagos-2023.gz",
+      "http_status": 200,
+      "content_type": "application/gzip",
+      "content_length": "223803986",
+      "probe_method": "HEAD",
+      "final_url": "https://api.presupuestoabierto.gob.cl/data/pagos-2023.gz",
+      "status": "probed_available"
+    },
+    {
+      "year": 2024,
+      "url": "https://api.presupuestoabierto.gob.cl/data/pagos-2024.gz",
+      "http_status": 200,
+      "content_type": "application/gzip",
+      "content_length": "217663314",
+      "probe_method": "HEAD",
+      "final_url": "https://api.presupuestoabierto.gob.cl/data/pagos-2024.gz",
+      "status": "probed_available"
+    },
+    {
+      "year": 2025,
+      "url": "https://api.presupuestoabierto.gob.cl/data/pagos-2025.gz",
+      "http_status": 200,
+      "content_type": "application/gzip",
+      "content_length": "215651424",
+      "probe_method": "HEAD",
+      "final_url": "https://api.presupuestoabierto.gob.cl/data/pagos-2025.gz",
+      "status": "probed_available"
+    },
+    {
+      "year": 2026,
+      "url": "https://api.presupuestoabierto.gob.cl/data/pagos-2026.gz",
+      "http_status": 200,
+      "content_type": "application/gzip",
+      "content_length": "96674111",
+      "probe_method": "HEAD",
+      "final_url": "https://api.presupuestoabierto.gob.cl/data/pagos-2026.gz",
+      "status": "probed_available"
+    }
+  ]
+}
