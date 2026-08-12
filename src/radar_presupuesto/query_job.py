@@ -15,32 +15,15 @@ from .search import hybrid_search
 from .source_discovery import discover_downloads
 
 ALLOWED_FILTERS = {
-    "rut",
-    "source_id",
-    "organization_id",
-    "recipient_id",
-    "provider_id",
-    "month",
-    "date_from",
-    "date_to",
-    "min_amount",
-    "max_amount",
-    "min_paid_amount",
-    "max_paid_amount",
-    "purchase_order",
-    "bip",
-    "location",
-    "region",
-    "sector",
-    "budget_code",
-    "document_number",
-    "document_type",
-    "provider_only",
-    "person_only",
-    "honorarium_only",
-    "intra_state_only",
-    "floating_debt_only",
-    "max_payment_days",
+    "rut", "source_id", "identity_type",
+    "organization_id", "recipient_id", "provider_id",
+    "partida", "capitulo", "area", "month", "date_from", "date_to",
+    "min_amount", "max_amount", "min_paid_amount", "max_paid_amount",
+    "currency", "purchase_order", "has_purchase_order", "bip", "has_bip",
+    "has_valid_rut", "location", "region", "sector", "budget_code",
+    "document_number", "document_type", "provider_only", "person_only",
+    "honorarium_only", "intra_state_only", "floating_debt_only",
+    "aggregated_only", "min_payment_days", "max_payment_days",
 }
 
 
@@ -142,7 +125,7 @@ def run_query_years(
                     "matched_rows_before_global_limit": int(len(result)),
                 }
             )
-        except Exception as exc:  # recorded per year; other years can still complete
+        except Exception as exc:
             gaps.append(
                 {
                     "year": year,
