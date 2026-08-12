@@ -10,29 +10,71 @@ import pandas as pd
 
 from .ids import normalize_rut, normalize_text, organization_id, provider_id, transaction_id
 
+# Presupuesto Abierto has used both dictionary-style names and shorter bulk-export
+# names. All aliases converge on one stable analytical contract.
 ALIASES = {
-    "PERIODO": "periodo", "MES": "mes", "PARTIDA": "partida", "NOMBRE_PARTIDA": "nombre_partida",
-    "CAPITULO": "capitulo", "NOMBRE_CAPITULO": "nombre_capitulo", "AREA": "area", "NOMBRE_AREA": "nombre_area",
-    "SUBTITULO": "subtitulo", "NOMBRE_SUBTITULO": "nombre_subtitulo", "ITEM": "item", "NOMBRE_ITEM": "nombre_item",
-    "ASIGNACION": "asignacion", "NOMBRE_ASIGNACION": "nombre_asignacion", "RUT_BENEFICIARIO": "rut_beneficiario",
-    "NOMBRE_BENEFICIARIO": "nombre_beneficiario", "NUMERO_DOCUMENTO": "numero_documento",
-    "FECHA_DOCUMENTO": "fecha_documento", "TIPO_DOCUMENTO": "tipo_documento", "ORDEN_DE_COMPRA": "orden_compra",
-    "FECHA_INGRESO": "fecha_ingreso", "FECHA_RECEPCION_CONFORME": "fecha_recepcion_conforme",
-    "MONEDA_PRESUPUESTARIA": "moneda_presupuestaria", "MONTO_DEVENGADO": "monto_devengado",
-    "FECHA_PAGO": "fecha_pago", "MONTO_PAGO": "monto_pago", "RUT_PRINCIPAL": "rut_principal",
-    "NOMBRE_PRINCIPAL": "nombre_principal", "FOLIO": "folio", "USUARIO_APROBADOR": "usuario_aprobador",
-    "AGREGADO": "agregado", "BLOQUEO_OC": "bloqueo_oc", "CODIGO_BIP": "codigo_bip", "NOMBRE_BIP": "nombre_bip",
+    "PERIODO": "periodo",
+    "MES": "mes",
+    "PARTIDA": "partida",
+    "NOMBRE_PARTIDA": "nombre_partida",
+    "CAPITULO": "capitulo",
+    "NOMBRE_CAPITULO": "nombre_capitulo",
+    "AREA": "area",
+    "NOMBRE_AREA": "nombre_area",
+    "SUBTITULO": "subtitulo",
+    "NOMBRE_SUBTITULO": "nombre_subtitulo",
+    "ITEM": "item",
+    "NOMBRE_ITEM": "nombre_item",
+    "ASIGNACION": "asignacion",
+    "NOMBRE_ASIGNACION": "nombre_asignacion",
+    # Current bulk export (observed in pagos-2026.gz) uses BENEFICIARIO for RUT.
+    "BENEFICIARIO": "rut_beneficiario",
+    "RUT_BENEFICIARIO": "rut_beneficiario",
+    "NOMBRE_BENEFICIARIO": "nombre_beneficiario",
+    "NUMERO_DOCUMENTO": "numero_documento",
+    "FECHA_DOCUMENTO": "fecha_documento",
+    "TIPO_DOCUMENTO": "tipo_documento",
+    "ORDEN_DE_COMPRA": "orden_compra",
+    "FECHA_INGRESO": "fecha_ingreso",
+    "FECHA_RECEPCION_CONFORME": "fecha_recepcion_conforme",
+    "FECHA_PAGO": "fecha_pago",
+    # Current bulk export keeps original-currency and CLP-normalized values.
+    "MONEDA": "moneda_presupuestaria",
+    "MONEDA_PRESUPUESTARIA": "moneda_presupuestaria",
+    "MONTO": "monto_pago",
+    "MONTO_PAGO": "monto_pago",
+    "MONTO_ORIGINAL": "monto_pago_original",
+    "DEVENGO": "monto_devengado",
+    "MONTO_DEVENGADO": "monto_devengado",
+    "DEVENGO_ORIGINAL": "monto_devengado_original",
+    "RUT_PRINCIPAL": "rut_principal",
+    "NOMBRE_PRINCIPAL": "nombre_principal",
+    "FOLIO": "folio",
+    "USUARIO_APROBADOR": "usuario_aprobador",
+    "AGREGADO": "agregado",
+    "BLOQUEO_OC": "bloqueo_oc",
+    "CODIGO_BIP": "codigo_bip",
+    "NOMBRE_BIP": "nombre_bip",
     "CODIGO_UBICACION_GEOGRAFICA": "codigo_ubicacion_geografica",
     "NOMBRE_UBICACION_GEOGRAFICA": "nombre_ubicacion_geografica",
     "CODIGO_PROGRAMA_PRESUPUESTARIO": "codigo_programa_presupuestario",
     "NOMBRE_PROGRAMA_PRESUPUESTARIO": "nombre_programa_presupuestario",
+    # Enriched bulk attributes observed in the production file are retained.
+    "HONORARIO": "honorario",
+    "PROVEEDOR": "proveedor",
+    "SECTOR": "sector",
+    "REGION": "region",
+    "PERSONA": "persona",
+    "INTRAESTADO": "intraestado",
+    "DIAS_DE_PAGO": "dias_de_pago",
+    "DIAS_DE_PAGO_CAT": "dias_de_pago_cat",
+    "DEUDA_FLOTANTE": "deuda_flotante",
 }
 
 CANONICAL_SOURCE_COLUMNS = list(dict.fromkeys(ALIASES.values()))
 DATE_COLS = ["fecha_documento", "fecha_ingreso", "fecha_recepcion_conforme", "fecha_pago"]
-AMOUNT_COLS = ["monto_devengado", "monto_pago"]
+AMOUNT_COLS = ["monto_devengado", "monto_pago", "monto_devengado_original", "monto_pago_original"]
 INT_COLS = ["periodo", "mes"]
-TEXT_COLS = [c for c in CANONICAL_SOURCE_COLUMNS if c not in set(DATE_COLS + AMOUNT_COLS + INT_COLS)]
 
 
 def canonical_column(name: str) -> str:
@@ -41,20 +83,55 @@ def canonical_column(name: str) -> str:
     return ALIASES.get(key, key.lower())
 
 
+def _canonicalize_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Rename aliases and coalesce collisions instead of creating duplicate labels."""
+    renamed = df.rename(columns={c: canonical_column(c) for c in df.columns})
+    if not renamed.columns.duplicated().any():
+        return renamed.copy()
+
+    out = pd.DataFrame(index=renamed.index)
+    for name in dict.fromkeys(renamed.columns):
+        matching = renamed.loc[:, renamed.columns == name]
+        if matching.shape[1] == 1:
+            out[name] = matching.iloc[:, 0]
+        else:
+            # Prefer the first non-empty representation among equivalent aliases.
+            work = matching.replace(r"^\s*$", pd.NA, regex=True)
+            out[name] = work.bfill(axis=1).iloc[:, 0]
+    return out
+
+
+def _parse_date(series: pd.Series) -> pd.Series:
+    values = series.fillna("").astype(str).str.strip()
+    nonempty = values[values.ne("")]
+    if nonempty.empty:
+        return pd.to_datetime(series, errors="coerce")
+    iso_share = nonempty.str.match(r"^\d{4}-\d{2}-\d{2}(?:[ T].*)?$").mean()
+    if iso_share >= 0.95:
+        return pd.to_datetime(series, errors="coerce", yearfirst=True)
+    return pd.to_datetime(series, errors="coerce", dayfirst=True)
+
+
 def normalize_frame(df: pd.DataFrame, source_url: str = "", source_file: str = "") -> pd.DataFrame:
     """Apply a stable canonical contract even when optional source columns are absent."""
-    out = df.rename(columns={c: canonical_column(c) for c in df.columns}).copy()
+    out = _canonicalize_columns(df)
 
-    # Schema drift is expected across years/systems. Missing official fields remain null/blank,
-    # but the normalized Parquet contract is stable for analytics and search.
+    # Schema drift is expected across years/systems. Missing known fields are created
+    # so DuckDB/Parquet queries see a stable contract.
     for col in CANONICAL_SOURCE_COLUMNS:
         if col not in out:
             out[col] = pd.NA
 
-    for col in TEXT_COLS:
-        out[col] = out[col].fillna("").astype(str)
+    # Force every non-special field (including unknown future source fields) to a
+    # string dtype. This prevents a completely empty chunk from becoming Arrow
+    # `null` while a later chunk becomes `string`.
+    special = set(DATE_COLS + AMOUNT_COLS + INT_COLS)
+    for col in list(out.columns):
+        if col not in special:
+            out[col] = out[col].fillna("").astype(str)
+
     for col in DATE_COLS:
-        out[col] = pd.to_datetime(out[col], dayfirst=True, errors="coerce")
+        out[col] = _parse_date(out[col])
     for col in AMOUNT_COLS:
         out[col] = pd.to_numeric(out[col], errors="coerce").astype("Float64")
     for col in INT_COLS:
@@ -87,7 +164,6 @@ def detect_delimiter(path: str | Path) -> str:
     try:
         return csv.Sniffer().sniff(sample, delimiters=",;|\t").delimiter
     except csv.Error:
-        # Comma is the documented/most common CSV default; schema validation will catch a bad parse.
         return ","
 
 
@@ -115,11 +191,15 @@ def normalize_to_parquet(path: str | Path, output_path: str | Path, chunksize: i
     output_path.parent.mkdir(parents=True, exist_ok=True)
     writer = None
     rows = 0
+    arrow_schema = None
     try:
         for chunk in read_normalized(path, chunksize=chunksize):
             table = pa.Table.from_pandas(chunk, preserve_index=False)
             if writer is None:
-                writer = pq.ParquetWriter(output_path, table.schema, compression="zstd")
+                # Remove pandas per-chunk metadata; logical column types are the contract.
+                arrow_schema = table.schema.remove_metadata()
+                writer = pq.ParquetWriter(output_path, arrow_schema, compression="zstd")
+            table = table.cast(arrow_schema, safe=False).replace_schema_metadata(None)
             writer.write_table(table)
             rows += len(chunk)
     finally:
