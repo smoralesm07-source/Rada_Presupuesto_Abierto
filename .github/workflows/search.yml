@@ -10,10 +10,26 @@ on:
         description: 'Texto libre (receptor, organismo, gasto, documento, OC, BIP)'
         required: false
         default: ''
+      text_mode:
+        description: 'Modo textual: all | any | phrase'
+        required: true
+        default: 'all'
+      exclude_text:
+        description: 'Términos a excluir, separados por espacios'
+        required: false
+        default: ''
+      search_fields:
+        description: 'Campos JSON, ej. ["beneficiary","institution","budget"]'
+        required: false
+        default: '[]'
       filters_json:
         description: 'Filtros JSON, ej. {"rut":"96875230-8","provider_only":true,"min_amount":1000000}'
         required: false
         default: '{}'
+      sort_by:
+        description: 'Orden: date_amount | amount_desc | amount_asc | oldest'
+        required: true
+        default: 'date_amount'
       limit:
         description: 'Máximo resultados global (1-10000)'
         required: true
@@ -31,15 +47,29 @@ jobs:
           python-version: '3.12'
           cache: pip
       - run: python -m pip install -r requirements.txt
-      - name: Execute auditable historical search
+      - name: Execute auditable historical search v0.2
         env:
           PYTHONPATH: src
           YEARS: ${{ inputs.years }}
           TEXT: ${{ inputs.text }}
+          TEXT_MODE: ${{ inputs.text_mode }}
+          EXCLUDE_TEXT: ${{ inputs.exclude_text }}
+          SEARCH_FIELDS: ${{ inputs.search_fields }}
           FILTERS: ${{ inputs.filters_json }}
+          SORT_BY: ${{ inputs.sort_by }}
           LIMIT: ${{ inputs.limit }}
         run: |
-          python -m radar_presupuesto.query_job --years "$YEARS" --text "$TEXT" --filters-json "$FILTERS" --limit "$LIMIT"
+          python - <<'PY'
+          import json, os, subprocess
+          filters=json.loads(os.environ['FILTERS'])
+          filters['text_mode']=os.environ['TEXT_MODE']
+          filters['sort_by']=os.environ['SORT_BY']
+          if os.environ.get('EXCLUDE_TEXT','').strip(): filters['exclude_text']=os.environ['EXCLUDE_TEXT'].strip()
+          fields=json.loads(os.environ.get('SEARCH_FIELDS','[]') or '[]')
+          if fields: filters['search_fields']=fields
+          cmd=['python','-m','radar_presupuesto.query_job','--years',os.environ['YEARS'],'--text',os.environ.get('TEXT',''),'--filters-json',json.dumps(filters,ensure_ascii=False),'--limit',os.environ['LIMIT']]
+          subprocess.run(cmd,check=True)
+          PY
       - name: Upload query result
         uses: actions/upload-artifact@v4
         with:
@@ -50,3 +80,5 @@ jobs:
             data/query/result.csv
             data/query/result.json
             data/query/query_metadata.json
+            data/query/summary_recipients.csv
+            data/query/summary_organizations.csv
