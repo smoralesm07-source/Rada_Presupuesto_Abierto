@@ -1,0 +1,131 @@
+name: Search Presupuesto Abierto
+on:
+  workflow_dispatch:
+    inputs:
+      year:
+        description: 'Año a consultar'
+        required: true
+        default: '2026'
+      text:
+        description: 'Texto libre: proveedor, organismo, gasto, documento, OC, BIP'
+        required: false
+        default: ''
+      rut:
+        description: 'RUT proveedor/receptor'
+        required: false
+        default: ''
+      organization_id:
+        description: 'ID canónico de organismo'
+        required: false
+        default: ''
+      provider_id:
+        description: 'ID canónico de proveedor'
+        required: false
+        default: ''
+      month:
+        description: 'Mes 1-12 (opcional)'
+        required: false
+        default: ''
+      min_amount:
+        description: 'Monto devengado mínimo CLP'
+        required: false
+        default: ''
+      max_amount:
+        description: 'Monto devengado máximo CLP'
+        required: false
+        default: ''
+      purchase_order:
+        description: 'Orden de Compra exacta'
+        required: false
+        default: ''
+      bip:
+        description: 'Código BIP exacto'
+        required: false
+        default: ''
+      location:
+        description: 'Ubicación geográfica contiene'
+        required: false
+        default: ''
+      budget_code:
+        description: 'Prefijo presupuestario subtítulo.item.asignación'
+        required: false
+        default: ''
+      limit:
+        description: 'Máximo resultados (1-10000)'
+        required: true
+        default: '1000'
+permissions:
+  contents: read
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Execute auditable search
+        env:
+          YEAR: ${{ inputs.year }}
+          TEXT: ${{ inputs.text }}
+          RUT: ${{ inputs.rut }}
+          ORGANIZATION_ID: ${{ inputs.organization_id }}
+          PROVIDER_ID: ${{ inputs.provider_id }}
+          MONTH: ${{ inputs.month }}
+          MIN_AMOUNT: ${{ inputs.min_amount }}
+          MAX_AMOUNT: ${{ inputs.max_amount }}
+          PURCHASE_ORDER: ${{ inputs.purchase_order }}
+          BIP: ${{ inputs.bip }}
+          LOCATION: ${{ inputs.location }}
+          BUDGET_CODE: ${{ inputs.budget_code }}
+          LIMIT: ${{ inputs.limit }}
+        run: |
+          python - <<'PY'
+          import os
+          from radar_presupuesto.query_job import run_query
+          def s(name):
+              v=os.getenv(name,'').strip()
+              return v or None
+          def i(name):
+              v=s(name); return int(v) if v else None
+          def f(name):
+              v=s(name); return float(v) if v else None
+          meta=run_query(
+              year=int(os.environ['YEAR']),
+              text=s('TEXT'), rut=s('RUT'), organization_id=s('ORGANIZATION_ID'),
+              provider_id=s('PROVIDER_ID'), month=i('MONTH'),
+              min_amount=f('MIN_AMOUNT'), max_amount=f('MAX_AMOUNT'),
+              purchase_order=s('PURCHASE_ORDER'), bip=s('BIP'),
+              location=s('LOCATION'), budget_code=s('BUDGET_CODE'),
+              limit=int(os.environ.get('LIMIT','1000')),
+          )
+          print(meta)
+          PY
+        env:
+          PYTHONPATH: src
+          YEAR: ${{ inputs.year }}
+          TEXT: ${{ inputs.text }}
+          RUT: ${{ inputs.rut }}
+          ORGANIZATION_ID: ${{ inputs.organization_id }}
+          PROVIDER_ID: ${{ inputs.provider_id }}
+          MONTH: ${{ inputs.month }}
+          MIN_AMOUNT: ${{ inputs.min_amount }}
+          MAX_AMOUNT: ${{ inputs.max_amount }}
+          PURCHASE_ORDER: ${{ inputs.purchase_order }}
+          BIP: ${{ inputs.bip }}
+          LOCATION: ${{ inputs.location }}
+          BUDGET_CODE: ${{ inputs.budget_code }}
+          LIMIT: ${{ inputs.limit }}
+      - name: Upload query result
+        uses: actions/upload-artifact@v4
+        with:
+          name: presupuesto-abierto-search-${{ inputs.year }}
+          retention-days: 30
+          if-no-files-found: error
+          path: |
+            data/query/result.csv
+            data/query/result.json
+            data/query/query_metadata.json
