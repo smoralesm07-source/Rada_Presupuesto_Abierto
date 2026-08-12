@@ -1,1 +1,18 @@
-{"generated_at":null,"source_system":"PRESUPUESTO_ABIERTO","snapshots":[],"note":"SHA-256 identifica exactamente el bulk utilizado en cada corrida; los archivos masivos no se versionan en Git."}
+{
+  "generated_at": "2026-08-12T18:55:05+00:00",
+  "source_system": "PRESUPUESTO_ABIERTO",
+  "snapshots": [
+    {
+      "year": 2026,
+      "source_url": "https://api.presupuestoabierto.gob.cl/data/pagos-2026.gz",
+      "source_status": "probed_available",
+      "sha256": "0328c5d065240509312f9f9ba72781575f357e5ea6c7ad18213238f91b3ebd71",
+      "bytes": 96674111,
+      "downloaded_at": "2026-08-12T18:49:29+00:00",
+      "normalized_rows": 3067843,
+      "delimiter": "\t",
+      "normalized_output": "transactions_2026.parquet"
+    }
+  ],
+  "note": "SHA-256 identifica exactamente el bulk utilizado en la corrida; los archivos masivos no se versionan en Git."
+}
