@@ -45,6 +45,24 @@ def _write_snapshot_manifest(rows: list[dict]) -> None:
     )
 
 
+def _build_signals_from_config(parquet_glob: str, cfg: dict) -> dict:
+    amount = cfg.get("amount_outlier", {})
+    frag = cfg.get("potential_fragmentation", {})
+    year_end = cfg.get("year_end_spike", {})
+    return build_signals(
+        parquet_glob,
+        amount_z=amount.get("threshold", 4.5),
+        min_group=amount.get("min_group", 20),
+        amount_min_ratio=amount.get("min_ratio", 3.0),
+        amount_quantile=amount.get("quantile_floor", 0.99),
+        amount_provider_only=amount.get("provider_only", True),
+        amount_exclude_aggregated=amount.get("exclude_aggregated", True),
+        frag_min=frag.get("min_count", 3),
+        frag_cv=frag.get("max_cv", 0.15),
+        year_end_ratio=year_end.get("ratio_threshold", 2.5),
+    )
+
+
 def run_sample(sample: str) -> None:
     raw = pd.read_csv(sample, dtype=str)
     df = normalize_frame(raw, source_file=Path(sample).name)
@@ -60,7 +78,7 @@ def run_sample(sample: str) -> None:
     build_dashboard_json(parquet, "data/signals/risk_signals.parquet")
 
 
-def run_years(years: list[int]) -> None:
+def run_years(years: list[int], build_search_index: bool = True) -> None:
     catalog_rows = write_catalog("docs/data/source_catalog.json")
     write_coverage("docs/data/coverage.json")
     catalog = {
@@ -115,16 +133,13 @@ def run_years(years: list[int]) -> None:
     )
     cfg = load_config()
     build_profiles(glob)
-    build_signals(
-        glob,
-        amount_z=cfg.get("amount_outlier", {}).get("threshold", 4.5),
-        min_group=cfg.get("amount_outlier", {}).get("min_group", 8),
-        frag_min=cfg.get("potential_fragmentation", {}).get("min_count", 3),
-        frag_cv=cfg.get("potential_fragmentation", {}).get("max_cv", 0.15),
-        year_end_ratio=cfg.get("year_end_spike", {}).get("ratio_threshold", 2.5),
-    )
-    indexed = build_fts_from_parquet(glob, "data/index/search.sqlite")
-    print(f"[OK] índice FTS: {indexed:,} transacciones")
+    signal_result = _build_signals_from_config(glob, cfg)
+    print(f"[OK] señales: {signal_result['signals']:,} | {signal_result['by_type']}")
+    if build_search_index:
+        indexed = build_fts_from_parquet(glob, "data/index/search.sqlite")
+        print(f"[OK] índice FTS: {indexed:,} transacciones")
+    else:
+        print("[OK] índice FTS omitido para esta corrida de recalibración")
     build_dashboard_json(glob, "data/signals/risk_signals.parquet")
 
 
@@ -132,11 +147,16 @@ def main() -> None:
     p = argparse.ArgumentParser(description="Radar Presupuesto Abierto pipeline")
     p.add_argument("--years", nargs="*", type=int)
     p.add_argument("--sample")
+    p.add_argument(
+        "--skip-index",
+        action="store_true",
+        help="Omite la reconstrucción FTS; útil para recalibración del motor analítico.",
+    )
     args = p.parse_args()
     if args.sample:
         run_sample(args.sample)
     elif args.years:
-        run_years(args.years)
+        run_years(args.years, build_search_index=not args.skip_index)
     else:
         p.error("use --sample FILE or --years YYYY ...")
 
