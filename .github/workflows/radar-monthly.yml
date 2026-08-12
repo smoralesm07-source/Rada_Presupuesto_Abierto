@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 330
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -32,7 +32,8 @@ jobs:
           YEARS=$(python - <<'PY'
           import json
           d=json.load(open('docs/data/source_catalog.json'))
-          ys=[str(x['year']) for x in d.get('downloads',[]) if x.get('status') in ('linked','probed_available')]
+          ok=('linked','linked_available','probed_available')
+          ys=[str(x['year']) for x in d.get('downloads',[]) if x.get('status') in ok]
           print(' '.join(ys[-3:]))
           PY
           )
