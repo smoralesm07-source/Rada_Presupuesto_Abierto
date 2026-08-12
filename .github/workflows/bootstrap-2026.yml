@@ -1,0 +1,57 @@
+name: Bootstrap real 2026
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bootstrap-2026.yml'
+permissions:
+  contents: write
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Run real 2026 radar
+        run: PYTHONPATH=src python -m radar_presupuesto.pipeline --years 2026
+      - name: Validate real outputs
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.load(open('docs/data/dashboard.json'))
+          assert d['metrics']['transactions'] > 0
+          assert d['metrics']['providers'] > 0
+          assert Path('data/index/search.sqlite').exists()
+          assert Path('data/signals/risk_signals.parquet').exists()
+          print(json.dumps(d['metrics'], ensure_ascii=False, indent=2))
+          print('Signal types:', d.get('signal_types', {}))
+          PY
+      - name: Upload analytical artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: radar-pa-2026-analysis
+          retention-days: 30
+          if-no-files-found: error
+          path: |
+            data/index/search.sqlite
+            data/signals/risk_signals.parquet
+            data/processed/provider_profiles.parquet
+            data/processed/organization_profiles.parquet
+            docs/data/dashboard.json
+            docs/data/source_catalog.json
+            docs/data/coverage.json
+      - name: Publish compact dashboard data
+        run: |
+          git config user.name "radar-presupuesto-bot"
+          git config user.email "radar-presupuesto-bot@users.noreply.github.com"
+          git add docs/data/dashboard.json docs/data/source_catalog.json docs/data/coverage.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "radar: bootstrap real 2026"
+          git pull --rebase origin main
+          git push origin main
