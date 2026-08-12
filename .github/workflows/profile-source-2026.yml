@@ -1,0 +1,30 @@
+name: Profile bulk semantics 2026
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/profile-source-2026.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  profile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Profile source semantics
+        run: PYTHONPATH=src python -m radar_presupuesto.source_profile --year 2026 --nrows 250000
+      - name: Persist source profile
+        run: |
+          git config user.name "radar-presupuesto-bot"
+          git config user.email "radar-presupuesto-bot@users.noreply.github.com"
+          git add docs/data/source_profile.json
+          git commit -m "radar: perfil semantico bulk 2026"
+          git pull --rebase origin main
+          git push origin main
