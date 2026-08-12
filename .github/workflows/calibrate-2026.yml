@@ -1,0 +1,70 @@
+name: Calibrate real 2026
+run-name: Calibrate 2026 - materiality v0.1.4
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/calibrate-2026.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  calibrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Recalculate real 2026 signals without FTS rebuild
+        run: PYTHONPATH=src python -m radar_presupuesto.pipeline --years 2026 --skip-index
+      - name: Validate calibrated outputs
+        run: |
+          python - <<'PY'
+          import json
+          import pandas as pd
+          d=json.load(open('docs/data/dashboard.json'))
+          q=json.load(open('docs/data/quality.json'))
+          s=pd.read_parquet('data/signals/risk_signals.parquet')
+          assert d['metrics']['transactions'] > 0
+          assert d['metrics']['providers'] > 0
+          assert q['coverage']['valid_rut'] > 0
+          if 'AMOUNT_OUTLIER' in set(s['signal_type']):
+              out=s[s['signal_type']=='AMOUNT_OUTLIER']
+              assert out['provider_id'].fillna('').ne('').all(), 'Amount outliers must have provider_id'
+              assert (out['observed_value'] >= out['expected_value'] * 3).all(), 'Amount outliers must be >=3x group median'
+          print(json.dumps(d['metrics'], ensure_ascii=False, indent=2))
+          print('Signal types:', d.get('signal_types', {}))
+          print('Quality:', q.get('coverage', {}))
+          print('\nTop calibrated signals:')
+          cols=['signal_type','severity','organization_id','recipient_id','provider_id','observed_value','expected_value','deviation','why_flagged']
+          print(s.sort_values(['severity','observed_value'],ascending=[True,False])[cols].head(20).to_string(index=False))
+          PY
+      - name: Upload compact calibration artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: radar-pa-2026-calibrated-v014
+          retention-days: 30
+          if-no-files-found: error
+          path: |
+            data/signals/risk_signals.parquet
+            data/processed/provider_profiles.parquet
+            data/processed/recipient_profiles.parquet
+            data/processed/organization_profiles.parquet
+            docs/data/dashboard.json
+            docs/data/quality.json
+            docs/data/source_catalog.json
+            docs/data/coverage.json
+            docs/data/snapshot_manifest.json
+      - name: Publish calibrated compact outputs
+        run: |
+          git config user.name "radar-presupuesto-bot"
+          git config user.email "radar-presupuesto-bot@users.noreply.github.com"
+          git add docs/data/dashboard.json docs/data/quality.json docs/data/source_catalog.json docs/data/coverage.json docs/data/snapshot_manifest.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "radar: recalibracion materialidad real 2026"
+          git pull --rebase origin main
+          git push origin main
