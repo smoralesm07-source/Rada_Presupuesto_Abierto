@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -23,6 +25,24 @@ AVAILABLE_SOURCE_STATUSES = {"linked", "linked_available", "probed_available"}
 def load_config(path: str = "config/anomaly_thresholds.yaml") -> dict:
     p = Path(path)
     return yaml.safe_load(p.read_text(encoding="utf-8")) if p.exists() else {}
+
+
+def _write_snapshot_manifest(rows: list[dict]) -> None:
+    out = Path("docs/data/snapshot_manifest.json")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(
+        json.dumps(
+            {
+                "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                "source_system": "PRESUPUESTO_ABIERTO",
+                "snapshots": rows,
+                "note": "SHA-256 identifica exactamente el bulk utilizado en la corrida; los archivos masivos no se versionan en Git.",
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
 
 
 def run_sample(sample: str) -> None:
@@ -48,7 +68,8 @@ def run_years(years: list[int]) -> None:
         for x in catalog_rows
         if x.get("status") in AVAILABLE_SOURCE_STATUSES
     }
-    processed = []
+    processed: list[Path] = []
+    snapshots: list[dict] = []
     for year in years:
         src = catalog.get(year)
         if not src:
@@ -59,10 +80,23 @@ def run_years(years: list[int]) -> None:
             continue
         raw = Path("data/raw") / f"pagos-{year}.gz"
         parquet = Path("data/processed") / f"transactions_{year}.parquet"
-        download(src["url"], raw)
-        meta = normalize_to_parquet(raw, parquet)
-        print(f"[OK] {year}: {meta['rows']:,} registros normalizados")
+        download_meta = download(src["url"], raw)
+        normalize_meta = normalize_to_parquet(raw, parquet)
+        print(f"[OK] {year}: {normalize_meta['rows']:,} registros normalizados")
         processed.append(parquet)
+        snapshots.append(
+            {
+                "year": year,
+                "source_url": src["url"],
+                "source_status": src.get("status"),
+                "sha256": download_meta.get("sha256"),
+                "bytes": download_meta.get("bytes"),
+                "downloaded_at": download_meta.get("downloaded_at"),
+                "normalized_rows": normalize_meta.get("rows"),
+                "delimiter": normalize_meta.get("delimiter"),
+                "normalized_output": parquet.name,
+            }
+        )
 
     if not processed:
         raise SystemExit(
@@ -70,6 +104,7 @@ def run_years(years: list[int]) -> None:
             "revisar docs/data/source_catalog.json"
         )
 
+    _write_snapshot_manifest(snapshots)
     glob = "data/processed/transactions_*.parquet"
     quality = audit_quality(glob)
     print(
