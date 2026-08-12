@@ -1,6 +1,10 @@
 amount_outlier:
   threshold: 4.5
-  min_group: 8
+  min_group: 20
+  min_ratio: 3.0
+  quantile_floor: 0.99
+  provider_only: true
+  exclude_aggregated: true
 potential_fragmentation:
   min_count: 3
   max_cv: 0.15
