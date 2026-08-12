@@ -147,16 +147,14 @@ def build_signals(
           GROUP BY 1,2
         ), sample AS (
           SELECT organization_id,periodo,
-                 min(transaction_id) transaction_id,
-                 min(recipient_id) recipient_id,
-                 min(provider_id) provider_id,
-                 min(mes) mes
+                 min(transaction_id) transaction_id
           FROM facts
           GROUP BY 1,2
         )
         SELECT 'SIG-PA-YEAR_END_SPIKE-'||upper(substr(md5(y.organization_id||cast(y.periodo AS VARCHAR)),1,20)),
-               'YEAR_END_SPIKE',s.transaction_id,y.organization_id,s.recipient_id,s.provider_id,
-               y.periodo,s.mes,y.endavg,y.base,y.endavg/y.base,
+               'YEAR_END_SPIKE',s.transaction_id,y.organization_id,
+               '' recipient_id,'' provider_id,
+               y.periodo,CAST(NULL AS BIGINT) mes,y.endavg,y.base,y.endavg/y.base,
                'MEDIUM','MEDIUM','DERIVED_SIGNAL',
                'Promedio mensual noviembre-diciembre supera materialmente el promedio enero-octubre.',
                'La estacionalidad presupuestaria puede ser legítima; comparar con años previos y composición por proveedor.',

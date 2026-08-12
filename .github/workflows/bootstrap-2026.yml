@@ -1,5 +1,5 @@
 name: Bootstrap real 2026
-run-name: Bootstrap real 2026 - identity v0.1.4
+run-name: Bootstrap real 2026 - operational v0.3
 on:
   workflow_dispatch:
   push:
@@ -14,55 +14,75 @@ jobs:
     timeout-minutes: 330
     steps:
       - uses: actions/checkout@v6
+      - name: Checkout Radar CGR evidence
+        uses: actions/checkout@v6
+        with:
+          repository: smoralesm07-source/Radar-CGR
+          path: external/radar-cgr
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: pip
       - run: python -m pip install -r requirements.txt
-      - name: Run real 2026 radar
+      - name: Run real 2026 operational radar
         run: PYTHONPATH=src python -m radar_presupuesto.pipeline --years 2026
-      - name: Validate real outputs
+      - name: Validate operational outputs
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
           d=json.load(open('docs/data/dashboard.json'))
           q=json.load(open('docs/data/quality.json'))
+          c=json.load(open('docs/data/cgr_correlation.json'))
+          iq=json.load(open('docs/data/investigation_queue.json'))
           assert d['metrics']['transactions'] > 0
           assert d['metrics']['recipients'] > 0
           assert d['metrics']['providers'] > 0
           assert q['coverage']['valid_rut'] > 0
           assert q['coverage']['hashed_source_identity'] > 0
+          assert q['transaction_id_collision_ratio'] == 0, q
+          assert q['distinct_transaction_ids'] == q['rows'], q
           assert Path('data/index/search.sqlite').exists()
           assert Path('data/signals/risk_signals.parquet').exists()
+          assert Path('data/signals/prioritized_signals.parquet').exists()
+          assert c['links'] == 0 or Path('data/evidence/cgr_evidence_links.parquet').exists()
+          assert iq['total_signals'] == d['metrics']['signals']
+          assert c['status'] in ('OK','NO_CGR_DATA')
           print(json.dumps(d['metrics'], ensure_ascii=False, indent=2))
           print('Signal types:', d.get('signal_types', {}))
-          print('Quality coverage:', q.get('coverage', {}))
-          print('Quality warnings:', q.get('warnings', []))
+          print('Priority tiers:', d.get('priority_tiers', {}))
+          print('CGR:', d.get('cgr_correlation', {}))
+          print('Quality:', {k:q[k] for k in ('rows','distinct_transaction_ids','transaction_id_collision_ratio','source_fact_repeat_ratio')})
           PY
-      - name: Upload analytical artifact
+      - name: Upload operational analytical artifact
         uses: actions/upload-artifact@v4
         with:
-          name: radar-pa-2026-analysis-v014
+          name: radar-pa-2026-operational-v03
           retention-days: 30
           if-no-files-found: error
           compression-level: 6
           path: |
             data/index/search.sqlite
             data/signals/risk_signals.parquet
+            data/signals/prioritized_signals.parquet
+            data/evidence/cgr_evidence_links.parquet
             data/processed/provider_profiles.parquet
             data/processed/recipient_profiles.parquet
             data/processed/organization_profiles.parquet
             docs/data/dashboard.json
+            docs/data/investigation_queue.json
+            docs/data/cgr_correlation.json
             docs/data/source_catalog.json
             docs/data/coverage.json
             docs/data/quality.json
-      - name: Publish compact dashboard data
+            docs/data/snapshot_manifest.json
+      - name: Publish compact operational summaries
         run: |
           git config user.name "radar-presupuesto-bot"
           git config user.email "radar-presupuesto-bot@users.noreply.github.com"
-          git add docs/data/dashboard.json docs/data/source_catalog.json docs/data/coverage.json docs/data/quality.json
+          git add docs/data/dashboard.json docs/data/investigation_queue.json docs/data/cgr_correlation.json docs/data/source_catalog.json docs/data/coverage.json docs/data/quality.json docs/data/snapshot_manifest.json
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "radar: bootstrap real 2026 identity-safe v0.1.4"
+          git commit -m "radar: corrida operacional 2026 v0.3"
           git pull --rebase origin main
           git push origin main
