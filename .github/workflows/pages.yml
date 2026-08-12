@@ -2,7 +2,14 @@ name: Deploy Pages
 on:
   push:
     branches: [main]
-    paths: ['docs/**']
+    paths:
+      - 'docs/**'
+      - '.github/workflows/pages.yml'
+  workflow_run:
+    workflows:
+      - 'Bootstrap real 2026'
+      - 'Radar monthly analysis'
+    types: [completed]
   workflow_dispatch:
 permissions:
   contents: read
@@ -13,9 +20,14 @@ concurrency:
   cancel-in-progress: true
 jobs:
   deploy:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: main
       - name: Check whether GitHub Pages is enabled
         id: pages
         env:
