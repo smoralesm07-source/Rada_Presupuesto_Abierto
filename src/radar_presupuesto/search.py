@@ -69,22 +69,14 @@ def build_fts(df: pd.DataFrame, db_path: str | Path) -> None:
         )
         rows.append(
             (
-                _txt(row.get("transaction_id")),
-                _txt(row.get("organization_id")),
-                _txt(row.get("recipient_id")),
-                _txt(row.get("provider_id")),
-                _txt(row.get("rut_beneficiario")),
-                _txt(row.get("beneficiario_source_id")),
-                _txt(row.get("nombre_beneficiario")),
-                institution,
-                _txt(row.get("nombre_area")),
-                budget,
-                _txt(row.get("numero_documento")),
-                _txt(row.get("tipo_documento")),
-                _txt(row.get("orden_compra")),
-                _txt(row.get("codigo_bip")),
-                _txt(row.get("sector")),
-                _txt(row.get("region")),
+                _txt(row.get("transaction_id")), _txt(row.get("organization_id")),
+                _txt(row.get("recipient_id")), _txt(row.get("provider_id")),
+                _txt(row.get("rut_beneficiario")), _txt(row.get("beneficiario_source_id")),
+                _txt(row.get("nombre_beneficiario")), institution,
+                _txt(row.get("nombre_area")), budget,
+                _txt(row.get("numero_documento")), _txt(row.get("tipo_documento")),
+                _txt(row.get("orden_compra")), _txt(row.get("codigo_bip")),
+                _txt(row.get("sector")), _txt(row.get("region")),
             )
         )
     placeholders = ",".join("?" for _ in FTS_FIELDS)
@@ -160,9 +152,13 @@ def hybrid_search(
     text: str | None = None,
     rut: str | None = None,
     source_id: str | None = None,
+    identity_type: str | None = None,
     organization_id: str | None = None,
     recipient_id: str | None = None,
     provider_id: str | None = None,
+    partida: str | None = None,
+    capitulo: str | None = None,
+    area: str | None = None,
     year: int | None = None,
     month: int | None = None,
     date_from: str | None = None,
@@ -171,8 +167,12 @@ def hybrid_search(
     max_amount: float | None = None,
     min_paid_amount: float | None = None,
     max_paid_amount: float | None = None,
+    currency: str | None = None,
     purchase_order: str | None = None,
+    has_purchase_order: bool | None = None,
     bip: str | None = None,
+    has_bip: bool | None = None,
+    has_valid_rut: bool | None = None,
     location: str | None = None,
     region: str | None = None,
     sector: str | None = None,
@@ -184,6 +184,8 @@ def hybrid_search(
     honorarium_only: bool | None = None,
     intra_state_only: bool | None = None,
     floating_debt_only: bool | None = None,
+    aggregated_only: bool | None = None,
+    min_payment_days: int | None = None,
     max_payment_days: int | None = None,
     limit: int = 100,
 ) -> pd.DataFrame:
@@ -195,8 +197,6 @@ def hybrid_search(
     params: list[object] = []
 
     if text:
-        # All tokens must be present, but they may appear in any order and any field.
-        # Normalization strips accents so `analisis financiero` also finds `ANÁLISIS ...`.
         normalized = normalize_text(text).lower()
         tokens = [t for t in re.split(r"\s+", normalized) if t]
         for token in tokens:
@@ -212,16 +212,20 @@ def hybrid_search(
 
     for field, value in [
         ("beneficiario_source_id", source_id),
+        ("beneficiario_id_type", identity_type),
         ("organization_id", organization_id),
         ("recipient_id", recipient_id),
         ("provider_id", provider_id),
+        ("partida", partida),
+        ("capitulo", capitulo),
+        ("area", area),
         ("orden_compra", purchase_order),
         ("codigo_bip", bip),
         ("numero_documento", document_number),
     ]:
         if value:
             where.append(f"{field} = ?")
-            params.append(value)
+            params.append(str(value))
 
     if year is not None:
         where.append("periodo = ?")
@@ -255,6 +259,7 @@ def hybrid_search(
         ("region", region),
         ("sector", sector),
         ("tipo_documento", document_type),
+        ("moneda_presupuestaria", currency),
     ]:
         if value:
             normalized_value = normalize_text(value).lower()
@@ -273,11 +278,25 @@ def hybrid_search(
         ("is_honorarium", honorarium_only),
         ("is_intra_state", intra_state_only),
         ("is_floating_debt", floating_debt_only),
+        ("is_aggregated", aggregated_only),
     ]:
         if value is not None:
             where.append(f"{field} = ?")
             params.append(bool(value))
 
+    for field, value in [
+        ("orden_compra", has_purchase_order),
+        ("codigo_bip", has_bip),
+        ("rut_beneficiario", has_valid_rut),
+    ]:
+        if value is not None:
+            where.append(
+                f"coalesce({field},'') <> ''" if value else f"coalesce({field},'') = ''"
+            )
+
+    if min_payment_days is not None:
+        where.append("try_cast(dias_de_pago AS INTEGER) >= ?")
+        params.append(int(min_payment_days))
     if max_payment_days is not None:
         where.append("try_cast(dias_de_pago AS INTEGER) <= ?")
         params.append(int(max_payment_days))
