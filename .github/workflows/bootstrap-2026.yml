@@ -1,5 +1,7 @@
 name: Bootstrap real 2026
+run-name: Bootstrap real 2026 - schema v0.1.1
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
