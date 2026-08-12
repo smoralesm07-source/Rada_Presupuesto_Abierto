@@ -10,12 +10,24 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: pip
       - run: python -m pip install -r requirements.txt
-      - run: PYTHONPATH=src pytest -q
+      - name: Unit + scalable engine tests
+        run: PYTHONPATH=src pytest -q
       - name: End-to-end sample pipeline
         run: PYTHONPATH=src python -m radar_presupuesto.pipeline --sample tests/fixtures/sample_transactions.csv
+      - name: Official source smoke test
+        run: |
+          PYTHONPATH=src python -m radar_presupuesto.cli probe --catalog /tmp/source_catalog.json --coverage /tmp/coverage.json
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/source_catalog.json'))
+          ok=[x for x in d.get('downloads',[]) if x.get('status') in ('linked','linked_available','probed_available')]
+          assert ok, 'No official Presupuesto Abierto bulk source could be confirmed'
+          print('Bulk years confirmed:', [x['year'] for x in ok])
+          print('Latest confirmed year:', max(x['year'] for x in ok))
+          PY
