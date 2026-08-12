@@ -19,6 +19,7 @@ Así es posible consultar toda la serie sin mantener simultáneamente un warehou
 El buscador distingue:
 
 - `beneficiario_source_id`: clave original de la fuente;
+- `beneficiario_id_type`: `RUT`, `HASH_SHA1`, `SOURCE_ID` o `MISSING`;
 - `recipient_id`: receptor general;
 - `rut_beneficiario`: solo RUT chileno con dígito verificador válido;
 - `provider_id`: solo cuando la fuente marca rol proveedor;
@@ -28,31 +29,28 @@ El buscador distingue:
 
 Filtros implementados:
 
-- texto libre sobre receptor, institución, área, gasto, documento, OC, BIP, sector y región;
-- RUT validado;
-- identificador original de fuente;
+- texto libre, tokenizado e insensible a acentos, sobre receptor, institución, área, gasto, documento, OC, BIP, sector y región;
+- RUT validado e identificador original/tipo de identidad;
 - `organization_id`, `recipient_id`, `provider_id`;
-- año(s) y mes;
-- fecha desde/hasta;
-- monto devengado mínimo/máximo;
-- monto pagado mínimo/máximo;
-- Orden de Compra;
-- código BIP;
+- partida, capítulo y área;
+- año(s), mes y fecha desde/hasta;
+- monto devengado mínimo/máximo y monto pagado mínimo/máximo;
+- moneda;
+- Orden de Compra exacta o presencia/ausencia de OC;
+- BIP exacto o presencia/ausencia de BIP;
+- presencia/ausencia de RUT válido;
 - ubicación, región y sector;
-- clasificador presupuestario;
+- clasificador presupuestario `subtítulo.item.asignación`;
 - número y tipo de documento;
-- solo proveedores;
-- solo personas;
-- solo honorarios;
-- intraestado;
-- deuda flotante;
-- máximo de días de pago.
+- solo proveedores, personas u honorarios;
+- intraestado, deuda flotante y registro agregado;
+- días de pago mínimos/máximos.
 
 Los filtros se parametrizan; los valores introducidos por el usuario no se interpolan directamente como SQL.
 
 ## Motor textual: SQLite FTS5
 
-La corrida analítica crea un índice de búsqueda rápida sobre transacción, organización, receptor, proveedor, RUT, identificador de fuente, beneficiario, institución, área, clasificador, documento, OC, BIP, sector y región. La tokenización Unicode elimina diacríticos para mejorar recuperación nominal.
+La corrida analítica crea un índice de búsqueda rápida sobre transacción, organización, receptor, proveedor, RUT, identificador de fuente, beneficiario, institución, área, clasificador, documento, OC, BIP, sector y región. La tokenización Unicode elimina diacríticos y BM25 ordena las coincidencias por relevancia.
 
 ## Workflow de consulta
 
@@ -60,10 +58,29 @@ En **Actions -> Search Presupuesto Abierto -> Run workflow**:
 
 1. indicar `years`: `2026`, `2024 2025 2026` o `2016-2026`;
 2. ingresar texto libre si corresponde;
-3. opcionalmente pasar filtros JSON, por ejemplo `{"rut":"96875230-8","provider_only":true,"min_amount":1000000}`;
+3. opcionalmente pasar filtros JSON;
 4. definir límite global de resultados.
 
+Ejemplos de `filters_json`:
+
+```json
+{"provider_only": true, "min_amount": 100000000, "has_purchase_order": true}
+```
+
+```json
+{"rut": "96875230-8", "date_from": "2024-01-01", "date_to": "2026-12-31"}
+```
+
+```json
+{"region": "Metropolitana", "sector": "Salud", "min_payment_days": 60}
+```
+
+```json
+{"partida": "08", "has_bip": true, "aggregated_only": false}
+```
+
 La corrida entrega como artifact:
+
 - `result.csv`
 - `result.json`
 - `query_metadata.json`
