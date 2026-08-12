@@ -41,22 +41,22 @@ def extend_signals(
         ), totals AS (
           SELECT organization_id,periodo,sum(amount) total,count(*) providers FROM spend GROUP BY 1,2
         ), ranked AS (
-          SELECT s.*,t.total,t.providers,s.amount/t.total share,
+          SELECT s.*,t.total,t.providers,s.amount/t.total AS provider_share,
                  sum(power(s.amount/t.total,2)) OVER (PARTITION BY s.organization_id,s.periodo) hhi,
                  row_number() OVER (PARTITION BY s.organization_id,s.periodo ORDER BY s.amount DESC,s.provider_id) rn
           FROM spend s JOIN totals t USING(organization_id,periodo) WHERE t.total>0
         )
         SELECT 'SIG-PA-PROVIDER_CONCENTRATION-'||upper(substr(md5(organization_id||'|'||cast(periodo AS VARCHAR)||'|'||provider_id),1,20)),
                'PROVIDER_CONCENTRATION',transaction_id,organization_id,recipient_id,provider_id,
-               periodo,mes,share,1.0/providers,hhi,
-               CASE WHEN share>=0.65 OR hhi>=0.40 THEN 'HIGH' ELSE 'MEDIUM' END,
+               periodo,mes,provider_share,1.0/providers,hhi,
+               CASE WHEN provider_share>=0.65 OR hhi>=0.40 THEN 'HIGH' ELSE 'MEDIUM' END,
                'MEDIUM','DERIVED_SIGNAL',
                'Un proveedor concentra una fracción material del gasto a proveedores del organismo en el año observado.',
                'La concentración puede responder a contratos marco, monopolios técnicos o grandes proyectos; requiere comparar categoría, competencia y evolución histórica.',
                '["Revisar categoría y modalidad de contratación","Comparar HHI con años previos","Revisar adjudicaciones/OC del proveedor dominante","Contrastar si existen alternativas de mercado"]'
         FROM ranked
         WHERE rn=1 AND providers>={int(concentration_min_providers)}
-          AND share>={float(concentration_min_share)} AND hhi>={float(concentration_min_hhi)}
+          AND provider_share>={float(concentration_min_share)} AND hhi>={float(concentration_min_hhi)}
           AND amount>={float(concentration_min_amount)}
     """)
 
