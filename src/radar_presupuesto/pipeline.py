@@ -75,7 +75,8 @@ def run_years(years: list[int]) -> None:
     print(
         f"[OK] calidad: {quality['status']} | "
         f"devengado={quality['coverage']['monto_devengado']:.1%} | "
-        f"RUT={quality['coverage']['rut']:.1%}"
+        f"RUT válido={quality['coverage']['valid_rut']:.1%} | "
+        f"ID SHA1={quality['coverage']['hashed_source_identity']:.1%}"
     )
     cfg = load_config()
     build_profiles(glob)
