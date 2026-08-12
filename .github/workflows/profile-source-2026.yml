@@ -1,4 +1,5 @@
 name: Profile bulk semantics 2026
+run-name: Profile bulk semantics 2026 - identity v0.1.3
 on:
   push:
     branches: [main]
@@ -25,6 +26,7 @@ jobs:
           git config user.name "radar-presupuesto-bot"
           git config user.email "radar-presupuesto-bot@users.noreply.github.com"
           git add docs/data/source_profile.json
-          git commit -m "radar: perfil semantico bulk 2026"
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "radar: perfil semantico bulk 2026 identity-safe"
           git pull --rebase origin main
           git push origin main
