@@ -1,65 +1,97 @@
-# Schema Design — Radar Presupuesto Abierto v0.1
+# Schema Design — Radar Presupuesto Abierto v0.1.2
 
-## Cambio respecto del esquema inicial
+## Regla de arquitectura
 
-El esquema original se conserva como arquitectura objetivo, pero se corrige para evitar mezclar hechos presupuestarios con relaciones no observadas. La regla obligatoria es:
+El esquema inicial se conserva como visión de largo plazo, pero el núcleo se ajusta a lo que Presupuesto Abierto observa realmente:
 
-`SOURCE_FACT -> NORMALIZED_FACT -> DERIVED_FEATURE -> RISK_SIGNAL -> EXTERNAL_EVIDENCE / INFERENCE`
+`SOURCE_SNAPSHOT -> SOURCE_FACT -> NORMALIZED_FACT -> DERIVED_FEATURE -> RISK_SIGNAL -> EXTERNAL_EVIDENCE / INFERENCE`
 
-Una señal no es un hallazgo de ilegalidad y una coocurrencia no es una relación societaria, familiar ni financiera.
+Una señal no es un hallazgo de ilegalidad. Una coocurrencia no es una relación societaria, familiar ni financiera. Un identificador de fuente no se transforma en RUT si no supera validación formal.
 
-## Soporte de la fuente
+## Hallazgo de modelamiento en el bulk actual
 
-La documentación oficial de Presupuesto Abierto soporta como campos de la extracción SIGFE, entre otros: período, mes, partida, capítulo, área, subtítulo, RUT y nombre de beneficiario, número/tipo/fecha de documento, Orden de Compra, fecha de ingreso, fecha de recepción conforme, moneda, monto devengado, fecha/monto de pago, folio, ítem, asignación, código BIP, ubicación geográfica y programa presupuestario. La disponibilidad puede variar por sistema/institución/año.
+El archivo de producción contiene `beneficiario` como **clave de identidad de fuente**. En muchos registros corresponde a un RUT chileno; en otros, especialmente personas naturales, puede ser un identificador SHA1 pseudonimizado de 40 caracteres. El bulk también incorpora banderas explícitas como `proveedor`, `persona`, `honorario`, `intraestado`, `deuda_flotante` y `agregado`.
 
-Fuentes metodológicas:
-- https://presupuestoabierto.gob.cl/about-data
-- https://api.presupuestoabierto.gob.cl/files/Integracion_Portal_Ciudadano_2.5.pdf
-- https://presupuestoabierto.gob.cl/status
-- https://presupuestoabierto.gob.cl/providers
+Por ello el modelo separa **receptor/beneficiario** de **proveedor**.
 
 ## Nivel 0 — SOURCE_SNAPSHOT
 
-Representa el archivo exacto descargado: `snapshot_id`, `source_url`, `year`, `sha256`, `bytes`, `downloaded_at`, metadatos HTTP y licencia. No se versiona el bulk dentro de Git para evitar repositorios gigantes.
+Representa el archivo exacto descargado: `snapshot_id`, `source_url`, `year`, `sha256`, `bytes`, `downloaded_at`, metadatos HTTP y versión de normalización. Los bulk no se versionan en Git.
 
-## Nivel 1 — Canonical facts
+## Nivel 1 — Entidades canónicas
 
 ### ORGANIZATIONS
-ID preferido: `ORG-PA-{PARTIDA}-{CAPITULO}-{AREA}`. No se inventa RUT institucional cuando la fuente no lo entrega. Campos: jerarquía institucional, first/last seen, cobertura transaccional/agregada y fuente.
+
+`organization_id = ORG-PA-{PARTIDA}-{CAPITULO}-{AREA}` cuando existe jerarquía presupuestaria. No se inventa RUT institucional.
+
+### RECIPIENTS
+
+Es la entidad general que recibe/devenga/paga gasto en la fuente. Campos principales:
+
+- `recipient_id`
+- `beneficiario_source_id`
+- `beneficiario_id_type`: `RUT`, `HASH_SHA1`, `SOURCE_ID` o `MISSING`
+- `rut`: solo si formato y dígito verificador son válidos
+- nombre y nombre normalizado
+- banderas de fuente: persona, proveedor, honorario, intraestado, deuda flotante, agregado
+- first/last seen
+
+IDs:
+- `RCV-RUT-{RUT}` para RUT válido;
+- `RCV-SHA1-{HASH}` para identidad pseudónima publicada por la fuente;
+- fallback determinístico para otras claves.
 
 ### PROVIDERS
-ID preferido: `PRV-RUT-{RUT}`; fallback determinístico por nombre solo cuando no existe RUT. Se separa identidad de métricas derivadas. No incorpora accionistas, representantes o parentescos sin evidencia externa.
+
+Proveedor es un **rol/subconjunto de receptor**, no sinónimo de beneficiario. Solo se crea `provider_id` cuando el bulk marca `proveedor=1`.
+
+IDs:
+- `PRV-RUT-{RUT}` si el proveedor tiene RUT válido;
+- `PRV-SHA1-{HASH}` cuando la propia fuente identifica pseudónimamente a un receptor que además tiene rol proveedor;
+- fallback determinístico si existe otra clave de fuente.
+
+Esto evita convertir remuneraciones, honorarios u otros receptores en empresas proveedoras.
 
 ### TRANSACTIONS
-Conserva el máximo detalle disponible: periodo/mes, jerarquía institucional y presupuestaria, beneficiario/receptor, documento y fechas, OC, moneda, devengo/pago, folio, BIP, ubicación geográfica, programa y trazabilidad. `record_class=SOURCE_FACT`.
 
-El `transaction_id` es hash determinístico de claves de origen y no pretende sustituir el folio SIGFE.
+Conserva el máximo detalle disponible: periodo/mes, jerarquía institucional y presupuestaria, `recipient_id`, `provider_id` nullable, clave de beneficiario original, RUT validado, nombre, documentos y fechas, OC, moneda, monto original, pago/devengo normalizado, folio, BIP, ubicación, programa, sector, región, días de pago y banderas de fuente.
 
-## Nivel 2 — Derived analytical features
+`transaction_id` es un hash determinístico de claves de origen; no pretende sustituir folios SIGFE.
 
-Se calculan fuera del hecho fuente: monto robusto frente a pares, concentración HHI, cadencia, diversidad presupuestaria, expansión a organismos, estacionalidad, concentración geográfica y completitud documental. La ausencia de OC es descriptiva y nunca una anomalía automática.
+## Nivel 2 — Variables derivadas
+
+Se calculan fuera del hecho fuente: monto robusto frente a pares, concentración HHI, cadencia, diversidad presupuestaria, expansión institucional, estacionalidad, concentración geográfica y completitud documental.
+
+Existen perfiles separados:
+- `recipient_profiles`
+- `provider_profiles`
+- `organization_profiles`
+
+La ausencia de OC es descriptiva y nunca una anomalía automática.
 
 ## Nivel 3 — RISK_SIGNALS
 
-Objeto central: `signal_id`, `signal_type`, IDs de transacción/organismo/proveedor, periodo, valor observado/esperado, desviación, severidad, confianza, explicación, hipótesis y chequeos recomendados. `record_class=DERIVED_SIGNAL`.
+Objeto central:
+
+`signal_id, signal_type, transaction_id, organization_id, recipient_id, provider_id, periodo, observed_value, expected_value, deviation, severity, confidence, why_flagged, investigation_hypothesis, recommended_checks`
 
 Señales v0.1:
-1. `AMOUNT_OUTLIER`
-2. `POTENTIAL_FRAGMENTATION`
-3. `YEAR_END_SPIKE`
-4. `EXACT_DUPLICATE_CANDIDATE`
+1. `AMOUNT_OUTLIER`: solo cola alta respecto del grupo comparable.
+2. `POTENTIAL_FRAGMENTATION`: solo receptores marcados como proveedor.
+3. `YEAR_END_SPIKE`: estacionalidad institucional, sujeto a comparación histórica.
+4. `EXACT_DUPLICATE_CANDIDATE`: candidato documental, no duplicidad acreditada.
 
 ## Nivel 4 — EVIDENCE y relaciones futuras
 
-`EVIDENCE` registra fuente, URL, entidad, fundamento de relación, confianza e indicador de inferencia. `ENTITY_RELATIONSHIP_EDGES` solo se puebla con una base explícita: `SAME_PUBLIC_BUYER`, `SAME_PURCHASE_ORDER`, `SAME_BIP`, `SAME_BUDGET_CATEGORY`, `SAME_TEMPORAL_PATTERN` o, con fuentes futuras, representantes/direcciones/hallazgos CGR.
+`EVIDENCE` registra fuente, URL, entidad, fundamento de relación, confianza e indicador de inferencia. `ENTITY_RELATIONSHIP_EDGES` solo se puebla con una base explícita como `SAME_PUBLIC_BUYER`, `SAME_PURCHASE_ORDER`, `SAME_BIP`, `SAME_BUDGET_CATEGORY`, `SAME_TEMPORAL_PATTERN` o evidencia futura de otras fuentes.
 
-## Elementos retirados del núcleo v0.1
+## Elementos fuera del núcleo Presupuesto Abierto
 
-- `CASH_FLOW_TRACE` proveedor→proveedor: Presupuesto Abierto no observa transferencias privadas posteriores al pago estatal.
-- `probabilidad_tbml`: no sustentable con la fuente aislada.
-- `PERSON_PERSON_RELATIONSHIPS` y `PERSON_PROVIDER_RELATIONSHIPS`: requieren evidencia externa.
-- atributos como político/sancionado/servidor público no se infieren desde Presupuesto Abierto.
+- `CASH_FLOW_TRACE` proveedor→proveedor.
+- probabilidad TBML derivada solo del gasto estatal.
+- relaciones familiares/societarias sin fuente externa.
+- PEP, sancionado o servidor público inferidos desde nombres.
 
-## Integración futura con Radar CGR
+## Preparación para Radar CGR
 
-Se realizará por IDs canónicos, RUT, nombre normalizado, periodo, montos, OC/BIP y `evidence_links`. Ambos radares permanecerán operativamente separados hasta medir cobertura, errores y valor analítico propio.
+La integración futura utilizará IDs canónicos, RUT validado, nombre normalizado, período, montos, OC/BIP y `evidence_links`. Los pipelines permanecen independientes durante la fase de evaluación específica.

@@ -1,89 +1,80 @@
 # Motor de búsqueda — Radar Presupuesto Abierto
 
-## Propósito
+## Objetivo
 
-El buscador está diseñado para localizar hechos presupuestarios con trazabilidad suficiente para pasar desde una consulta exploratoria a una hipótesis de investigación. No reemplaza la fuente oficial: cada resultado conserva el año/snapshot, IDs canónicos y atributos de origen.
+Recuperar hechos presupuestarios con suficiente trazabilidad para pasar desde una consulta exploratoria a una hipótesis de investigación. Cada resultado conserva el snapshot/año, identificadores canónicos y atributos originales relevantes.
 
-## Cobertura de fuentes
+## Cobertura histórica
 
-El `source_discovery` audita el portal oficial y prueba los archivos bulk anuales canónicos. La cobertura se registra en `docs/data/source_catalog.json`; años no confirmados se tratan como brechas, nunca como cero transacciones.
+`source_discovery` audita los archivos bulk oficiales antes de consultarlos. El workflow **Search Presupuesto Abierto** acepta un año, una lista de años o un rango como `2016-2026`.
 
-## Dos motores complementarios
+Para una búsqueda histórica amplia, cada año se procesa secuencialmente:
 
-### 1. DuckDB + Parquet — búsqueda estructurada y análisis masivo
+`download -> checksum -> normalize -> query -> append result -> delete temporary bulk`
 
-Filtros disponibles:
-- texto libre sobre proveedor/receptor, institución, área y descripciones presupuestarias;
-- RUT normalizado;
-- `organization_id` y `provider_id`;
-- año y mes;
+Así es posible consultar toda la serie sin mantener simultáneamente un warehouse histórico en el runner ni requerir un servidor externo.
+
+## Identidad
+
+El buscador distingue:
+
+- `beneficiario_source_id`: clave original de la fuente;
+- `recipient_id`: receptor general;
+- `rut_beneficiario`: solo RUT chileno con dígito verificador válido;
+- `provider_id`: solo cuando la fuente marca rol proveedor;
+- identidades `HASH_SHA1`: se conservan como claves pseudónimas, nunca como RUT.
+
+## Motor estructurado: DuckDB + Parquet
+
+Filtros implementados:
+
+- texto libre sobre receptor, institución, área, gasto, documento, OC, BIP, sector y región;
+- RUT validado;
+- identificador original de fuente;
+- `organization_id`, `recipient_id`, `provider_id`;
+- año(s) y mes;
+- fecha desde/hasta;
 - monto devengado mínimo/máximo;
-- Orden de Compra exacta;
-- código BIP;
-- ubicación geográfica;
-- prefijo de clasificador presupuestario `subtítulo.item.asignación`.
-
-Este es el motor preferido para rangos, agregaciones, perfiles y detección de anomalías.
-
-### 2. SQLite FTS5 — recuperación textual rápida
-
-Indexa:
-- beneficiario/receptor;
-- RUT;
-- institución/servicio/área;
-- subtítulo, ítem, asignación y programa presupuestario;
-- número de documento;
+- monto pagado mínimo/máximo;
 - Orden de Compra;
-- BIP;
-- ubicación geográfica.
+- código BIP;
+- ubicación, región y sector;
+- clasificador presupuestario;
+- número y tipo de documento;
+- solo proveedores;
+- solo personas;
+- solo honorarios;
+- intraestado;
+- deuda flotante;
+- máximo de días de pago.
 
-Usa tokenización Unicode y eliminación de diacríticos para mejorar la recuperación de nombres.
+Los filtros se parametrizan; los valores introducidos por el usuario no se interpolan directamente como SQL.
 
-## Esquema bulk observado
+## Motor textual: SQLite FTS5
 
-Además de los campos previstos por el diccionario técnico, el archivo de producción 2026 contiene atributos enriquecidos como `beneficiario`, `moneda`, `monto`, `monto_original`, `devengo`, `devengo_original`, `honorario`, `proveedor`, `sector`, `region`, `persona`, `intraestado`, `deuda_flotante` y `dias_de_pago`.
+La corrida analítica crea un índice de búsqueda rápida sobre transacción, organización, receptor, proveedor, RUT, identificador de fuente, beneficiario, institución, área, clasificador, documento, OC, BIP, sector y región. La tokenización Unicode elimina diacríticos para mejorar recuperación nominal.
 
-El normalizador traduce variantes de nombre a un contrato estable, por ejemplo:
+## Workflow de consulta
 
-| Bulk | Canónico |
-|---|---|
-| `beneficiario` | `rut_beneficiario` |
-| `moneda` | `moneda_presupuestaria` |
-| `monto` | `monto_pago` |
-| `monto_original` | `monto_pago_original` |
-| `devengo` | `monto_devengado` |
-| `devengo_original` | `monto_devengado_original` |
+En **Actions -> Search Presupuesto Abierto -> Run workflow**:
 
-Los campos adicionales no reconocidos se preservan como texto en vez de ser descartados. Esto permite absorber futuras extensiones del dataset sin romper el pipeline.
+1. indicar `years`: `2026`, `2024 2025 2026` o `2016-2026`;
+2. ingresar texto libre si corresponde;
+3. opcionalmente pasar filtros JSON, por ejemplo `{"rut":"96875230-8","provider_only":true,"min_amount":1000000}`;
+4. definir límite global de resultados.
 
-## Búsqueda auditada desde GitHub
+La corrida entrega como artifact:
+- `result.csv`
+- `result.json`
+- `query_metadata.json`
 
-Workflow: **Search Presupuesto Abierto** (`.github/workflows/search.yml`).
-
-Desde Actions → Search Presupuesto Abierto → Run workflow se puede consultar un año con filtros. La corrida:
-
-1. confirma la fuente bulk oficial;
-2. descarga el snapshot;
-3. normaliza a Parquet;
-4. ejecuta la consulta;
-5. genera `result.csv`, `result.json` y `query_metadata.json`;
-6. publica esos archivos como artifact temporal.
-
-`query_metadata.json` contiene la URL fuente, año, parámetros exactos, fecha de ejecución y número de resultados. Así una búsqueda puede ser reproducida y auditada.
+La metadata registra años solicitados, URLs fuente, checksum SHA-256, filas normalizadas por año, parámetros exactos, brechas de cobertura y cantidad de coincidencias. Esto hace la consulta reproducible y auditable.
 
 ## Principios AML / integridad
 
-- Una coincidencia de búsqueda es un **hecho recuperado**, no una señal de riesgo.
-- Una señal estadística es una **priorización**, no una irregularidad acreditada.
-- La ausencia de Orden de Compra no genera una bandera automática.
-- Relaciones societarias, familiares o flujos privados no se infieren desde Presupuesto Abierto.
-- En la futura integración, evidencia CGR/ChileCompra/otras fuentes se añadirá como capa separada.
-
-## Próximas extensiones previstas
-
-- búsqueda histórica multi-año optimizada mediante índice persistente;
-- ranking BM25 combinado con filtros estructurados;
-- búsqueda por similitud de proveedor/nombre para resolver variaciones nominales;
-- perfiles de relación organismo–proveedor;
-- comparación contra pares institucionales y presupuestarios;
-- ficha de señal con transacciones soporte y consultas recomendadas.
+- coincidencia de búsqueda = hecho recuperado, no señal de riesgo;
+- señal estadística = priorización, no irregularidad acreditada;
+- ausencia de OC ≠ anomalía automática;
+- receptor ≠ proveedor;
+- identidad SHA1 ≠ RUT;
+- relaciones societarias/familiares y flujos privados requieren otras fuentes.

@@ -2,20 +2,20 @@ name: Search Presupuesto Abierto
 on:
   workflow_dispatch:
     inputs:
-      year:
-        description: 'Año a consultar'
+      years:
+        description: "Años: 2026 | 2024 2025 2026 | 2016-2026"
         required: true
         default: '2026'
       text:
-        description: 'Texto libre (beneficiario, organismo, gasto, documento, OC, BIP)'
+        description: 'Texto libre (receptor, organismo, gasto, documento, OC, BIP)'
         required: false
         default: ''
       filters_json:
-        description: 'Filtros JSON opcionales, ej. {"rut":"96875230-8","provider_only":true,"min_amount":1000000}'
+        description: 'Filtros JSON, ej. {"rut":"96875230-8","provider_only":true,"min_amount":1000000}'
         required: false
         default: '{}'
       limit:
-        description: 'Máximo resultados (1-10000)'
+        description: 'Máximo resultados global (1-10000)'
         required: true
         default: '1000'
 permissions:
@@ -23,7 +23,7 @@ permissions:
 jobs:
   search:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 330
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v5
@@ -31,19 +31,19 @@ jobs:
           python-version: '3.12'
           cache: pip
       - run: python -m pip install -r requirements.txt
-      - name: Execute auditable search
+      - name: Execute auditable historical search
         env:
           PYTHONPATH: src
-          YEAR: ${{ inputs.year }}
+          YEARS: ${{ inputs.years }}
           TEXT: ${{ inputs.text }}
           FILTERS: ${{ inputs.filters_json }}
           LIMIT: ${{ inputs.limit }}
         run: |
-          python -m radar_presupuesto.query_job --year "$YEAR" --text "$TEXT" --filters-json "$FILTERS" --limit "$LIMIT"
+          python -m radar_presupuesto.query_job --years "$YEARS" --text "$TEXT" --filters-json "$FILTERS" --limit "$LIMIT"
       - name: Upload query result
         uses: actions/upload-artifact@v4
         with:
-          name: presupuesto-abierto-search-${{ inputs.year }}
+          name: presupuesto-abierto-search
           retention-days: 30
           if-no-files-found: error
           path: |
