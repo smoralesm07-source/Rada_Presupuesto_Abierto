@@ -8,67 +8,41 @@ from typing import Iterable
 
 import pandas as pd
 
-from .ids import normalize_rut, normalize_text, organization_id, provider_id, transaction_id
+from .ids import (
+    flag_is_true,
+    normalize_rut,
+    normalize_text,
+    organization_id,
+    provider_id,
+    recipient_id,
+    source_identifier_type,
+    transaction_id,
+)
 
-# Presupuesto Abierto has used both dictionary-style names and shorter bulk-export
-# names. All aliases converge on one stable analytical contract.
 ALIASES = {
-    "PERIODO": "periodo",
-    "MES": "mes",
-    "PARTIDA": "partida",
-    "NOMBRE_PARTIDA": "nombre_partida",
-    "CAPITULO": "capitulo",
-    "NOMBRE_CAPITULO": "nombre_capitulo",
-    "AREA": "area",
-    "NOMBRE_AREA": "nombre_area",
-    "SUBTITULO": "subtitulo",
-    "NOMBRE_SUBTITULO": "nombre_subtitulo",
-    "ITEM": "item",
-    "NOMBRE_ITEM": "nombre_item",
-    "ASIGNACION": "asignacion",
-    "NOMBRE_ASIGNACION": "nombre_asignacion",
-    # Current bulk export (observed in pagos-2026.gz) uses BENEFICIARIO for RUT.
-    "BENEFICIARIO": "rut_beneficiario",
-    "RUT_BENEFICIARIO": "rut_beneficiario",
-    "NOMBRE_BENEFICIARIO": "nombre_beneficiario",
-    "NUMERO_DOCUMENTO": "numero_documento",
-    "FECHA_DOCUMENTO": "fecha_documento",
-    "TIPO_DOCUMENTO": "tipo_documento",
-    "ORDEN_DE_COMPRA": "orden_compra",
-    "FECHA_INGRESO": "fecha_ingreso",
-    "FECHA_RECEPCION_CONFORME": "fecha_recepcion_conforme",
-    "FECHA_PAGO": "fecha_pago",
-    # Current bulk export keeps original-currency and CLP-normalized values.
-    "MONEDA": "moneda_presupuestaria",
-    "MONEDA_PRESUPUESTARIA": "moneda_presupuestaria",
-    "MONTO": "monto_pago",
-    "MONTO_PAGO": "monto_pago",
-    "MONTO_ORIGINAL": "monto_pago_original",
-    "DEVENGO": "monto_devengado",
-    "MONTO_DEVENGADO": "monto_devengado",
-    "DEVENGO_ORIGINAL": "monto_devengado_original",
-    "RUT_PRINCIPAL": "rut_principal",
-    "NOMBRE_PRINCIPAL": "nombre_principal",
-    "FOLIO": "folio",
-    "USUARIO_APROBADOR": "usuario_aprobador",
-    "AGREGADO": "agregado",
-    "BLOQUEO_OC": "bloqueo_oc",
-    "CODIGO_BIP": "codigo_bip",
-    "NOMBRE_BIP": "nombre_bip",
+    "PERIODO": "periodo", "MES": "mes", "PARTIDA": "partida", "NOMBRE_PARTIDA": "nombre_partida",
+    "CAPITULO": "capitulo", "NOMBRE_CAPITULO": "nombre_capitulo", "AREA": "area", "NOMBRE_AREA": "nombre_area",
+    "SUBTITULO": "subtitulo", "NOMBRE_SUBTITULO": "nombre_subtitulo", "ITEM": "item", "NOMBRE_ITEM": "nombre_item",
+    "ASIGNACION": "asignacion", "NOMBRE_ASIGNACION": "nombre_asignacion",
+    # Current bulk uses BENEFICIARIO as a source identity key: valid RUT for many
+    # entities, but SHA1-like pseudonymous IDs for some natural persons/aggregates.
+    "BENEFICIARIO": "beneficiario_source_id", "RUT_BENEFICIARIO": "beneficiario_source_id",
+    "NOMBRE_BENEFICIARIO": "nombre_beneficiario", "NUMERO_DOCUMENTO": "numero_documento",
+    "FECHA_DOCUMENTO": "fecha_documento", "TIPO_DOCUMENTO": "tipo_documento", "ORDEN_DE_COMPRA": "orden_compra",
+    "FECHA_INGRESO": "fecha_ingreso", "FECHA_RECEPCION_CONFORME": "fecha_recepcion_conforme",
+    "FECHA_PAGO": "fecha_pago", "MONEDA": "moneda_presupuestaria", "MONEDA_PRESUPUESTARIA": "moneda_presupuestaria",
+    "MONTO": "monto_pago", "MONTO_PAGO": "monto_pago", "MONTO_ORIGINAL": "monto_pago_original",
+    "DEVENGO": "monto_devengado", "MONTO_DEVENGADO": "monto_devengado", "DEVENGO_ORIGINAL": "monto_devengado_original",
+    "RUT_PRINCIPAL": "rut_principal", "NOMBRE_PRINCIPAL": "nombre_principal", "FOLIO": "folio",
+    "USUARIO_APROBADOR": "usuario_aprobador", "AGREGADO": "agregado", "BLOQUEO_OC": "bloqueo_oc",
+    "CODIGO_BIP": "codigo_bip", "NOMBRE_BIP": "nombre_bip",
     "CODIGO_UBICACION_GEOGRAFICA": "codigo_ubicacion_geografica",
     "NOMBRE_UBICACION_GEOGRAFICA": "nombre_ubicacion_geografica",
     "CODIGO_PROGRAMA_PRESUPUESTARIO": "codigo_programa_presupuestario",
     "NOMBRE_PROGRAMA_PRESUPUESTARIO": "nombre_programa_presupuestario",
-    # Enriched bulk attributes observed in the production file are retained.
-    "HONORARIO": "honorario",
-    "PROVEEDOR": "proveedor",
-    "SECTOR": "sector",
-    "REGION": "region",
-    "PERSONA": "persona",
-    "INTRAESTADO": "intraestado",
-    "DIAS_DE_PAGO": "dias_de_pago",
-    "DIAS_DE_PAGO_CAT": "dias_de_pago_cat",
-    "DEUDA_FLOTANTE": "deuda_flotante",
+    "HONORARIO": "honorario", "PROVEEDOR": "proveedor", "SECTOR": "sector", "REGION": "region",
+    "PERSONA": "persona", "INTRAESTADO": "intraestado", "DIAS_DE_PAGO": "dias_de_pago",
+    "DIAS_DE_PAGO_CAT": "dias_de_pago_cat", "DEUDA_FLOTANTE": "deuda_flotante",
 }
 
 CANONICAL_SOURCE_COLUMNS = list(dict.fromkeys(ALIASES.values()))
@@ -84,18 +58,15 @@ def canonical_column(name: str) -> str:
 
 
 def _canonicalize_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """Rename aliases and coalesce collisions instead of creating duplicate labels."""
     renamed = df.rename(columns={c: canonical_column(c) for c in df.columns})
     if not renamed.columns.duplicated().any():
         return renamed.copy()
-
     out = pd.DataFrame(index=renamed.index)
     for name in dict.fromkeys(renamed.columns):
         matching = renamed.loc[:, renamed.columns == name]
         if matching.shape[1] == 1:
             out[name] = matching.iloc[:, 0]
         else:
-            # Prefer the first non-empty representation among equivalent aliases.
             work = matching.replace(r"^\s*$", pd.NA, regex=True)
             out[name] = work.bfill(axis=1).iloc[:, 0]
     return out
@@ -107,29 +78,19 @@ def _parse_date(series: pd.Series) -> pd.Series:
     if nonempty.empty:
         return pd.to_datetime(series, errors="coerce")
     iso_share = nonempty.str.match(r"^\d{4}-\d{2}-\d{2}(?:[ T].*)?$").mean()
-    if iso_share >= 0.95:
-        return pd.to_datetime(series, errors="coerce", yearfirst=True)
-    return pd.to_datetime(series, errors="coerce", dayfirst=True)
+    return pd.to_datetime(series, errors="coerce", yearfirst=True if iso_share >= 0.95 else False, dayfirst=False if iso_share >= 0.95 else True)
 
 
 def normalize_frame(df: pd.DataFrame, source_url: str = "", source_file: str = "") -> pd.DataFrame:
-    """Apply a stable canonical contract even when optional source columns are absent."""
     out = _canonicalize_columns(df)
-
-    # Schema drift is expected across years/systems. Missing known fields are created
-    # so DuckDB/Parquet queries see a stable contract.
     for col in CANONICAL_SOURCE_COLUMNS:
         if col not in out:
             out[col] = pd.NA
 
-    # Force every non-special field (including unknown future source fields) to a
-    # string dtype. This prevents a completely empty chunk from becoming Arrow
-    # `null` while a later chunk becomes `string`.
     special = set(DATE_COLS + AMOUNT_COLS + INT_COLS)
     for col in list(out.columns):
         if col not in special:
             out[col] = out[col].fillna("").astype(str)
-
     for col in DATE_COLS:
         out[col] = _parse_date(out[col])
     for col in AMOUNT_COLS:
@@ -137,15 +98,29 @@ def normalize_frame(df: pd.DataFrame, source_url: str = "", source_file: str = "
     for col in INT_COLS:
         out[col] = pd.to_numeric(out[col], errors="coerce").astype("Int64")
 
-    out["rut_beneficiario_normalizado"] = out["rut_beneficiario"].map(normalize_rut)
+    out["rut_beneficiario"] = out["beneficiario_source_id"].map(normalize_rut)
+    out["rut_beneficiario_normalizado"] = out["rut_beneficiario"]
+    out["beneficiario_id_type"] = out["beneficiario_source_id"].map(source_identifier_type)
     out["beneficiario_normalizado"] = out["nombre_beneficiario"].map(normalize_text)
+    out["is_provider"] = out["proveedor"].map(flag_is_true).astype(bool)
+    out["is_person"] = out["persona"].map(flag_is_true).astype(bool)
+    out["is_honorarium"] = out["honorario"].map(flag_is_true).astype(bool)
+    out["is_intra_state"] = out["intraestado"].map(flag_is_true).astype(bool)
+    out["is_floating_debt"] = out["deuda_flotante"].map(flag_is_true).astype(bool)
+    out["is_aggregated"] = out["agregado"].map(flag_is_true).astype(bool)
+
     out["organization_id"] = [
-        organization_id(r.partida, r.capitulo, r.area, r.nombre_area)
-        for r in out.itertuples()
+        organization_id(r.partida, r.capitulo, r.area, r.nombre_area) for r in out.itertuples()
+    ]
+    out["recipient_id"] = [
+        recipient_id(raw, name, org)
+        for raw, name, org in zip(out["beneficiario_source_id"], out["nombre_beneficiario"], out["organization_id"])
     ]
     out["provider_id"] = [
-        provider_id(r, n)
-        for r, n in zip(out["rut_beneficiario"], out["nombre_beneficiario"])
+        provider_id(raw, name, flag, org)
+        for raw, name, flag, org in zip(
+            out["beneficiario_source_id"], out["nombre_beneficiario"], out["proveedor"], out["organization_id"]
+        )
     ]
     out["transaction_id"] = [transaction_id(r) for r in out.to_dict("records")]
     out["record_class"] = "SOURCE_FACT"
@@ -156,7 +131,6 @@ def normalize_frame(df: pd.DataFrame, source_url: str = "", source_file: str = "
 
 
 def detect_delimiter(path: str | Path) -> str:
-    """Detect the bulk CSV delimiter once, then keep pandas on its fast C parser."""
     path = Path(path)
     opener = gzip.open if path.suffix.lower() == ".gz" else open
     with opener(path, "rt", encoding="utf-8-sig", errors="replace", newline="") as fh:
@@ -171,22 +145,13 @@ def read_normalized(path: str | Path, chunksize: int = 100_000) -> Iterable[pd.D
     path = Path(path)
     compression = "gzip" if path.suffix.lower() == ".gz" else "infer"
     sep = detect_delimiter(path)
-    for chunk in pd.read_csv(
-        path,
-        compression=compression,
-        sep=sep,
-        encoding="utf-8-sig",
-        dtype=str,
-        chunksize=chunksize,
-        low_memory=False,
-    ):
+    for chunk in pd.read_csv(path, compression=compression, sep=sep, encoding="utf-8-sig", dtype=str, chunksize=chunksize, low_memory=False):
         yield normalize_frame(chunk, source_file=path.name)
 
 
 def normalize_to_parquet(path: str | Path, output_path: str | Path, chunksize: int = 100_000) -> dict:
     import pyarrow as pa
     import pyarrow.parquet as pq
-
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     writer = None
@@ -196,7 +161,6 @@ def normalize_to_parquet(path: str | Path, output_path: str | Path, chunksize: i
         for chunk in read_normalized(path, chunksize=chunksize):
             table = pa.Table.from_pandas(chunk, preserve_index=False)
             if writer is None:
-                # Remove pandas per-chunk metadata; logical column types are the contract.
                 arrow_schema = table.schema.remove_metadata()
                 writer = pq.ParquetWriter(output_path, arrow_schema, compression="zstd")
             table = table.cast(arrow_schema, safe=False).replace_schema_metadata(None)

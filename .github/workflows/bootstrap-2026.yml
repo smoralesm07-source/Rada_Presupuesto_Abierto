@@ -1,5 +1,5 @@
 name: Bootstrap real 2026
-run-name: Bootstrap real 2026 - schema v0.1.1
+run-name: Bootstrap real 2026 - identity v0.1.2
 on:
   workflow_dispatch:
   push:
@@ -28,6 +28,7 @@ jobs:
           from pathlib import Path
           d=json.load(open('docs/data/dashboard.json'))
           assert d['metrics']['transactions'] > 0
+          assert d['metrics']['recipients'] > 0
           assert d['metrics']['providers'] > 0
           assert Path('data/index/search.sqlite').exists()
           assert Path('data/signals/risk_signals.parquet').exists()
@@ -37,23 +38,25 @@ jobs:
       - name: Upload analytical artifact
         uses: actions/upload-artifact@v4
         with:
-          name: radar-pa-2026-analysis
+          name: radar-pa-2026-analysis-v012
           retention-days: 30
           if-no-files-found: error
           path: |
             data/index/search.sqlite
             data/signals/risk_signals.parquet
             data/processed/provider_profiles.parquet
+            data/processed/recipient_profiles.parquet
             data/processed/organization_profiles.parquet
             docs/data/dashboard.json
             docs/data/source_catalog.json
             docs/data/coverage.json
+            docs/data/quality.json
       - name: Publish compact dashboard data
         run: |
           git config user.name "radar-presupuesto-bot"
           git config user.email "radar-presupuesto-bot@users.noreply.github.com"
-          git add docs/data/dashboard.json docs/data/source_catalog.json docs/data/coverage.json
+          git add docs/data/dashboard.json docs/data/source_catalog.json docs/data/coverage.json docs/data/quality.json
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "radar: bootstrap real 2026"
+          git commit -m "radar: bootstrap real 2026 identity-safe"
           git pull --rebase origin main
           git push origin main
