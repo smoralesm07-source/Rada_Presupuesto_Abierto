@@ -1,1 +1,29 @@
-{"generated_at":null,"status":"WAITING_FIRST_RUN","rows":0,"distinct_transaction_ids":0,"duplicate_transaction_id_ratio":0,"invalid_period_rows":0,"negative_devengado_rows":0,"first_year":null,"last_year":null,"devengado_total":0,"coverage":{"rut":0,"beneficiary_name":0,"monto_devengado":0,"monto_pago":0,"fecha_documento":0,"fecha_pago":0,"orden_compra":0,"bip":0,"region":0,"sector":0},"warnings":[],"interpretation":"Coberturas describen disponibilidad del dato, no calidad institucional ni riesgo."}
+{
+  "generated_at": "2026-08-12T18:42:16+00:00",
+  "status": "PASS",
+  "rows": 3067843,
+  "distinct_transaction_ids": 3055428,
+  "duplicate_transaction_id_ratio": 0.00404682,
+  "invalid_period_rows": 0,
+  "negative_devengado_rows": 107,
+  "first_year": 2026,
+  "last_year": 2026,
+  "devengado_total": 40555865898919.0,
+  "coverage": {
+    "valid_rut": 0.772634,
+    "hashed_source_identity": 0.212631,
+    "provider_flag": 0.616955,
+    "person_flag": 0.212631,
+    "beneficiary_name": 0.994475,
+    "monto_devengado": 1.0,
+    "monto_pago": 1.0,
+    "fecha_documento": 0.994472,
+    "fecha_pago": 0.927348,
+    "orden_compra": 0.56289,
+    "bip": 0.002493,
+    "region": 0.945084,
+    "sector": 0.50672
+  },
+  "warnings": [],
+  "interpretation": "RUT válido se informa solo tras validar dígito verificador. Identidades HASH_SHA1 se conservan como claves pseudónimas de fuente, no como RUT. Cobertura no equivale a riesgo."
+}
