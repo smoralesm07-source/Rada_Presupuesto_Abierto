@@ -111,6 +111,11 @@ def normalize_frame(
     out["rut_beneficiario_normalizado"] = out["rut_beneficiario"]
     out["beneficiario_id_type"] = out["beneficiario_source_id"].map(source_identifier_type)
     out["beneficiario_normalizado"] = out["nombre_beneficiario"].map(normalize_text)
+    out["entity_id"] = out["rut_beneficiario"].map(lambda r: f"ENT-RUT-{r}" if r else pd.NA)
+    out["recipient_entity_id"] = out["entity_id"]
+    out["identity_status"] = out["entity_id"].map(lambda x: "RESOLVED" if pd.notna(x) and str(x) else "UNRESOLVED")
+    out["identity_method"] = out["entity_id"].map(lambda x: "RUT_EXACT" if pd.notna(x) and str(x) else "SOURCE_LOCAL_ONLY")
+    out["identity_confidence"] = out["entity_id"].map(lambda x: 1.0 if pd.notna(x) and str(x) else 0.0).astype("Float64")
     out["is_provider"] = out["proveedor"].map(flag_is_true).astype(bool)
     out["is_person"] = out["persona"].map(flag_is_true).astype(bool)
     out["is_honorarium"] = out["honorario"].map(flag_is_true).astype(bool)
