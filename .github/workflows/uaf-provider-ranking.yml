@@ -11,7 +11,7 @@ permissions:
 jobs:
   rank:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v5
@@ -26,90 +26,64 @@ jobs:
           from collections import defaultdict
           from datetime import datetime, timezone
           from pathlib import Path
+          import pandas as pd
 
           from radar_presupuesto.extract import download
-          from radar_presupuesto.ids import normalize_text
-          from radar_presupuesto.normalize import read_normalized
+          from radar_presupuesto.ids import normalize_rut, normalize_text
 
           year = 2025
           target = 'UNIDAD DE ANALISIS FINANCIERO'
           source_url = 'https://api.presupuestoabierto.gob.cl/data/pagos-2025.gz'
           raw = Path('data/raw/pagos-2025.gz')
           meta = download(source_url, raw)
-
-          stats = defaultdict(lambda: {
-              'provider_id': None,
-              'rut': None,
-              'provider_name': None,
-              'amount_paid_clp': 0.0,
-              'payment_rows': 0,
-              'document_ids': set(),
-              'months': set(),
-          })
+          cols = ['periodo','mes','nombre_partida','nombre_capitulo','nombre_area','beneficiario','nombre_beneficiario','numero_documento','monto','proveedor']
+          true_values = {'1','TRUE','T','SI','SÍ','YES','Y'}
+          stats = defaultdict(lambda: {'provider_id':None,'rut':None,'provider_name':None,'source_id':None,'amount_paid_clp':0.0,'payment_rows':0,'document_ids':set(),'months':set()})
           matched_rows = 0
           org_examples = set()
 
-          for chunk in read_normalized(raw, chunksize=150_000):
-              inst = (
-                  chunk['nombre_partida'].map(normalize_text).eq(target)
-                  | chunk['nombre_capitulo'].map(normalize_text).eq(target)
-                  | chunk['nombre_area'].map(normalize_text).eq(target)
-              )
-              mask = inst & chunk['is_provider'] & chunk['periodo'].eq(year)
-              sub = chunk.loc[mask, [
-                  'provider_id','rut_beneficiario','nombre_beneficiario','monto_pago',
-                  'numero_documento','mes','nombre_partida','nombre_capitulo','nombre_area'
-              ]]
+          for chunk in pd.read_csv(raw, compression='gzip', sep='\t', encoding='utf-8-sig', dtype=str, usecols=cols, chunksize=300_000, low_memory=False):
+              partida = chunk['nombre_partida'].fillna('').map(normalize_text)
+              capitulo = chunk['nombre_capitulo'].fillna('').map(normalize_text)
+              area = chunk['nombre_area'].fillna('').map(normalize_text)
+              is_uaf = partida.eq(target) | capitulo.eq(target) | area.eq(target)
+              is_provider = chunk['proveedor'].fillna('').astype(str).str.strip().str.upper().isin(true_values)
+              periodo = pd.to_numeric(chunk['periodo'], errors='coerce')
+              sub = chunk.loc[is_uaf & is_provider & periodo.eq(year)].copy()
               if sub.empty:
                   continue
               matched_rows += len(sub)
+              sub['monto_num'] = pd.to_numeric(sub['monto'], errors='coerce').fillna(0.0)
               for r in sub.itertuples(index=False):
-                  key = r.provider_id or f"NAME::{normalize_text(r.nombre_beneficiario)}"
+                  raw_id = str(r.beneficiario or '').strip()
+                  rut = normalize_rut(raw_id)
+                  pname = str(r.nombre_beneficiario or '').strip()
+                  key = f'RUT::{rut}' if rut else (f'SRC::{raw_id}' if raw_id else f'NAME::{normalize_text(pname)}')
                   s = stats[key]
-                  s['provider_id'] = r.provider_id or None
-                  s['rut'] = r.rut_beneficiario or None
-                  s['provider_name'] = r.nombre_beneficiario or None
-                  if r.monto_pago == r.monto_pago and r.monto_pago is not None:
-                      s['amount_paid_clp'] += float(r.monto_pago)
+                  s['provider_id'] = f'PRV-RUT-{rut}' if rut else None
+                  s['rut'] = rut or None
+                  s['source_id'] = raw_id or None
+                  s['provider_name'] = pname or None
+                  s['amount_paid_clp'] += float(r.monto_num)
                   s['payment_rows'] += 1
                   if r.numero_documento:
                       s['document_ids'].add(str(r.numero_documento))
-                  if r.mes == r.mes and r.mes is not None:
-                      s['months'].add(int(r.mes))
-                  org_examples.add((r.nombre_partida, r.nombre_capitulo, r.nombre_area))
+                  try:
+                      if r.mes not in (None, ''):
+                          s['months'].add(int(float(r.mes)))
+                  except Exception:
+                      pass
+                  org_examples.add((str(r.nombre_partida or ''), str(r.nombre_capitulo or ''), str(r.nombre_area or '')))
 
           ranking = []
           for s in stats.values():
-              ranking.append({
-                  'provider_id': s['provider_id'],
-                  'rut': s['rut'],
-                  'provider_name': s['provider_name'],
-                  'amount_paid_clp': round(s['amount_paid_clp'], 2),
-                  'payment_rows': s['payment_rows'],
-                  'distinct_documents': len(s['document_ids']),
-                  'months_with_payments': sorted(s['months']),
-              })
+              ranking.append({'provider_id':s['provider_id'],'rut':s['rut'],'source_id':s['source_id'],'provider_name':s['provider_name'],'amount_paid_clp':round(s['amount_paid_clp'],2),'payment_rows':s['payment_rows'],'distinct_documents':len(s['document_ids']),'months_with_payments':sorted(s['months'])})
           ranking.sort(key=lambda x: x['amount_paid_clp'], reverse=True)
           total_paid = sum(x['amount_paid_clp'] for x in ranking)
           for x in ranking:
-              x['share_of_uaf_provider_payments'] = round((x['amount_paid_clp'] / total_paid), 6) if total_paid else 0
+              x['share_of_uaf_provider_payments'] = round(x['amount_paid_clp']/total_paid, 6) if total_paid else 0
 
-          out = {
-              'generated_at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
-              'year': year,
-              'institution': 'Unidad de Análisis Financiero',
-              'institution_match': 'exact normalized match in nombre_partida OR nombre_capitulo OR nombre_area',
-              'provider_rule': 'is_provider=true from source flag proveedor',
-              'metric': 'sum(monto_pago) by provider',
-              'source_url': source_url,
-              'source_sha256': meta.get('sha256'),
-              'matched_payment_rows': matched_rows,
-              'distinct_providers': len(ranking),
-              'total_paid_to_providers_clp': round(total_paid, 2),
-              'top10': ranking[:10],
-              'organization_examples': [list(x) for x in sorted(org_examples)[:10]],
-              'note': 'Monto pagado se toma del campo MONTO normalizado como monto_pago. El ranking mide monto total pagado, no cantidad de pagos. Ajustes negativos de fuente se conservan en la suma neta.'
-          }
+          out = {'generated_at':datetime.now(timezone.utc).isoformat(timespec='seconds'),'year':year,'institution':'Unidad de Análisis Financiero','institution_match':'exact normalized match in nombre_partida OR nombre_capitulo OR nombre_area','provider_rule':'source field proveedor interpreted as true','metric':'sum(MONTO) by provider; MONTO maps to monto_pago in Radar normalization','source_url':source_url,'source_sha256':meta.get('sha256'),'matched_payment_rows':matched_rows,'distinct_providers':len(ranking),'total_paid_to_providers_clp':round(total_paid,2),'top10':ranking[:10],'organization_examples':[list(x) for x in sorted(org_examples)[:10]],'note':'Ranking por monto total pagado neto. Se conservan ajustes negativos de fuente. payment_rows es número de filas fuente; distinct_documents cuenta números de documento distintos.'}
           Path('docs/data').mkdir(parents=True, exist_ok=True)
           Path('docs/data/uaf_providers_2025.json').write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding='utf-8')
           assert matched_rows > 0, 'No se encontraron pagos UAF 2025 a registros marcados como proveedor'
