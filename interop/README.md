@@ -1,3 +1,5 @@
-# Interoperabilidad v1
+# Contrato de interoperabilidad de radares v1
 
-Este directorio contiene metadatos declarativos para facilitar el consumo consistente de este repositorio junto con otros repositorios del mismo sistema.
+Este directorio define la capa transversal de interoperabilidad. No reemplaza el modelo interno del radar ni modifica sus algoritmos, scores o dashboard.
+
+Principios: identidad canónica común; territorio por códigos oficiales; homologación sectorial gobernada; separación de fechas observadas, publicadas y recuperadas; evidencia trazable; preservación del último dato válido; scores específicos por radar.

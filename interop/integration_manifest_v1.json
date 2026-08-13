@@ -1,0 +1,54 @@
+{
+  "interop_version": "1.0",
+  "radar_id": "RADAR_PRESUPUESTO",
+  "repository": "smoralesm07-source/Rada_Presupuesto_Abierto",
+  "implementation_stage": "ADAPTER_PARTIAL",
+  "record_domains": ["TRANSACTION","PUBLIC_BODY","SUPPLIER","SIGNAL","CANDIDATE_MATCH","EVIDENCE"],
+  "native_grain": ["TRANSACTION","ENTITY_X_PERIOD","INVESTIGATION_SIGNAL"],
+  "entity_hub": {
+    "global_key": "ENT-RUT-{RUT_NORMALIZADO}",
+    "valid_rut_required": true,
+    "unresolved_policy": "ENTITY_ID_NULL_CANDIDATE_ONLY",
+    "role_is_identity_independent": true,
+    "current_status": "ADAPTER_PARTIAL",
+    "local_ids_preserved": true,
+    "roles": ["SUPPLIER","PAYMENT_RECIPIENT","PUBLIC_BODY"]
+  },
+  "territory": {
+    "region_key": "CL-REG-{CODIGO_REGION}",
+    "commune_key": "CL-COM-{CODIGO_COMUNA}",
+    "name_is_not_key": true,
+    "current_status": "ADAPTER_PARTIAL"
+  },
+  "sector": {
+    "mapping_statuses": ["VALIDATED_EXACT","VALIDATED_RULE","EMPIRICAL_CANDIDATE","AMBIGUOUS","NO_EQUIVALENCE"],
+    "legal_caution": "SII_ACTIVITY_DOES_NOT_PROVE_UAF_OBLIGED_STATUS",
+    "current_status": "REFERENCE_VIA_ENTITY_ENRICHMENT",
+    "strong_membership_allowed": ["VALIDATED_EXACT","VALIDATED_RULE"]
+  },
+  "temporal_evidence": {
+    "time_fields": ["observed_from","observed_to","source_published_at","retrieved_at","last_seen_at","last_successful_refresh_at"],
+    "evidence_fields": ["evidence_id","source_id","source_url","ultimate_source_id","source_tier","capture_method","source_run_id","content_sha256","quality_status","schema_version"],
+    "freshness_states": ["CURRENT","DUE","STALE","UNKNOWN"],
+    "source_failure_is_zero": false,
+    "preserve_last_known_good": true,
+    "candidate_matches_are_proof": false,
+    "current_status": "ADAPTER_PARTIAL"
+  },
+  "scores": {
+    "common_risk_score": false,
+    "policy": "RADAR_SPECIFIC_ONLY",
+    "required_metadata": ["score_name","score_value","score_version","score_scope"],
+    "native_score_name": "priority_score",
+    "native_score_semantics": "INVESTIGATION_PRIORITY_ONLY",
+    "native_scope": ["TRANSACTION","INVESTIGATION_SIGNAL"]
+  },
+  "exports": [
+    {"path":"docs/data/","purpose":"compact consumer outputs and correlations"},
+    {"path":"GitHub Actions artifacts","purpose":"heavy regenerated data products"}
+  ],
+  "consumer_contract": {
+    "manifest_path": "interop/integration_manifest_v1.json",
+    "schema_path": "interop/interop_contract_v1.schema.json"
+  }
+}
