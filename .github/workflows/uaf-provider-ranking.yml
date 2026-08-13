@@ -1,0 +1,126 @@
+name: UAF provider ranking 2025
+run-name: Ranking proveedores UAF 2025
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/uaf-provider-ranking.yml'
+permissions:
+  contents: write
+jobs:
+  rank:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Calculate UAF provider ranking from official 2025 bulk
+        run: |
+          PYTHONPATH=src python - <<'PY'
+          import json
+          from collections import defaultdict
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          from radar_presupuesto.extract import download
+          from radar_presupuesto.ids import normalize_text
+          from radar_presupuesto.normalize import read_normalized
+
+          year = 2025
+          target = 'UNIDAD DE ANALISIS FINANCIERO'
+          source_url = 'https://api.presupuestoabierto.gob.cl/data/pagos-2025.gz'
+          raw = Path('data/raw/pagos-2025.gz')
+          meta = download(source_url, raw)
+
+          stats = defaultdict(lambda: {
+              'provider_id': None,
+              'rut': None,
+              'provider_name': None,
+              'amount_paid_clp': 0.0,
+              'payment_rows': 0,
+              'document_ids': set(),
+              'months': set(),
+          })
+          matched_rows = 0
+          org_examples = set()
+
+          for chunk in read_normalized(raw, chunksize=150_000):
+              inst = (
+                  chunk['nombre_partida'].map(normalize_text).eq(target)
+                  | chunk['nombre_capitulo'].map(normalize_text).eq(target)
+                  | chunk['nombre_area'].map(normalize_text).eq(target)
+              )
+              mask = inst & chunk['is_provider'] & chunk['periodo'].eq(year)
+              sub = chunk.loc[mask, [
+                  'provider_id','rut_beneficiario','nombre_beneficiario','monto_pago',
+                  'numero_documento','mes','nombre_partida','nombre_capitulo','nombre_area'
+              ]]
+              if sub.empty:
+                  continue
+              matched_rows += len(sub)
+              for r in sub.itertuples(index=False):
+                  key = r.provider_id or f"NAME::{normalize_text(r.nombre_beneficiario)}"
+                  s = stats[key]
+                  s['provider_id'] = r.provider_id or None
+                  s['rut'] = r.rut_beneficiario or None
+                  s['provider_name'] = r.nombre_beneficiario or None
+                  if r.monto_pago == r.monto_pago and r.monto_pago is not None:
+                      s['amount_paid_clp'] += float(r.monto_pago)
+                  s['payment_rows'] += 1
+                  if r.numero_documento:
+                      s['document_ids'].add(str(r.numero_documento))
+                  if r.mes == r.mes and r.mes is not None:
+                      s['months'].add(int(r.mes))
+                  org_examples.add((r.nombre_partida, r.nombre_capitulo, r.nombre_area))
+
+          ranking = []
+          for s in stats.values():
+              ranking.append({
+                  'provider_id': s['provider_id'],
+                  'rut': s['rut'],
+                  'provider_name': s['provider_name'],
+                  'amount_paid_clp': round(s['amount_paid_clp'], 2),
+                  'payment_rows': s['payment_rows'],
+                  'distinct_documents': len(s['document_ids']),
+                  'months_with_payments': sorted(s['months']),
+              })
+          ranking.sort(key=lambda x: x['amount_paid_clp'], reverse=True)
+          total_paid = sum(x['amount_paid_clp'] for x in ranking)
+          for x in ranking:
+              x['share_of_uaf_provider_payments'] = round((x['amount_paid_clp'] / total_paid), 6) if total_paid else 0
+
+          out = {
+              'generated_at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+              'year': year,
+              'institution': 'Unidad de Análisis Financiero',
+              'institution_match': 'exact normalized match in nombre_partida OR nombre_capitulo OR nombre_area',
+              'provider_rule': 'is_provider=true from source flag proveedor',
+              'metric': 'sum(monto_pago) by provider',
+              'source_url': source_url,
+              'source_sha256': meta.get('sha256'),
+              'matched_payment_rows': matched_rows,
+              'distinct_providers': len(ranking),
+              'total_paid_to_providers_clp': round(total_paid, 2),
+              'top10': ranking[:10],
+              'organization_examples': [list(x) for x in sorted(org_examples)[:10]],
+              'note': 'Monto pagado se toma del campo MONTO normalizado como monto_pago. El ranking mide monto total pagado, no cantidad de pagos. Ajustes negativos de fuente se conservan en la suma neta.'
+          }
+          Path('docs/data').mkdir(parents=True, exist_ok=True)
+          Path('docs/data/uaf_providers_2025.json').write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding='utf-8')
+          assert matched_rows > 0, 'No se encontraron pagos UAF 2025 a registros marcados como proveedor'
+          assert ranking and ranking[0]['amount_paid_clp'] > 0
+          print(json.dumps(out, ensure_ascii=False, indent=2))
+          PY
+      - name: Persist ranking
+        run: |
+          git config user.name "radar-presupuesto-bot"
+          git config user.email "radar-presupuesto-bot@users.noreply.github.com"
+          git add docs/data/uaf_providers_2025.json
+          git commit -m "radar: ranking proveedores UAF 2025" || exit 0
+          git pull --rebase origin main
+          git push origin main
