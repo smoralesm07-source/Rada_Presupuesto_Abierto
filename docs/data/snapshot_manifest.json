@@ -1,14 +1,36 @@
 {
-  "generated_at": "2026-08-12T22:36:36+00:00",
+  "generated_at": "2026-08-13T02:33:21+00:00",
   "source_system": "PRESUPUESTO_ABIERTO",
   "snapshots": [
+    {
+      "year": 2024,
+      "source_url": "https://api.presupuestoabierto.gob.cl/data/pagos-2024.gz",
+      "source_status": "probed_available",
+      "sha256": "7cb93d3398e68773196387732a01d329c991c807e799eb6be39fec1eb99986bd",
+      "bytes": 217663314,
+      "downloaded_at": "2026-08-13T01:56:04+00:00",
+      "normalized_rows": 5585718,
+      "delimiter": "\t",
+      "normalized_output": "transactions_2024.parquet"
+    },
+    {
+      "year": 2025,
+      "source_url": "https://api.presupuestoabierto.gob.cl/data/pagos-2025.gz",
+      "source_status": "probed_available",
+      "sha256": "a5b5d4c26c290725b9fe796c905820a5b532312082eb9a081a65ca66148e0966",
+      "bytes": 215651424,
+      "downloaded_at": "2026-08-13T02:10:49+00:00",
+      "normalized_rows": 5461160,
+      "delimiter": "\t",
+      "normalized_output": "transactions_2025.parquet"
+    },
     {
       "year": 2026,
       "source_url": "https://api.presupuestoabierto.gob.cl/data/pagos-2026.gz",
       "source_status": "probed_available",
       "sha256": "0328c5d065240509312f9f9ba72781575f357e5ea6c7ad18213238f91b3ebd71",
       "bytes": 96674111,
-      "downloaded_at": "2026-08-12T22:30:34+00:00",
+      "downloaded_at": "2026-08-13T02:25:27+00:00",
       "normalized_rows": 3067843,
       "delimiter": "\t",
       "normalized_output": "transactions_2026.parquet"
