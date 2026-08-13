@@ -10,9 +10,11 @@
     "valid_rut_required": true,
     "unresolved_policy": "ENTITY_ID_NULL_CANDIDATE_ONLY",
     "role_is_identity_independent": true,
-    "current_status": "ADAPTER_PARTIAL",
+    "current_status": "NATIVE_TRANSACTION_INTEROP_READY",
     "local_ids_preserved": true,
-    "roles": ["SUPPLIER","PAYMENT_RECIPIENT","PUBLIC_BODY"]
+    "roles": ["SUPPLIER","PAYMENT_RECIPIENT","PUBLIC_BODY"],
+    "native_fields": ["entity_id","recipient_entity_id","recipient_id","provider_id","rut_beneficiario","identity_status","identity_method","identity_confidence"],
+    "catalog_path": "docs/data/interop_catalog_v1.json"
   },
   "territory": {
     "region_key": "CL-REG-{CODIGO_REGION}",
@@ -44,6 +46,8 @@
     "native_scope": ["TRANSACTION","INVESTIGATION_SIGNAL"]
   },
   "exports": [
+    {"path":"docs/data/interop_catalog_v1.json","purpose":"machine-readable interoperability catalog"},
+    {"path":"data/processed/transactions_*.parquet","purpose":"transactions with native Entity Hub fields"},
     {"path":"docs/data/","purpose":"compact consumer outputs and correlations"},
     {"path":"GitHub Actions artifacts","purpose":"heavy regenerated data products"}
   ],
