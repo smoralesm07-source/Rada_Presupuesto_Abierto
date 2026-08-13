@@ -1,0 +1,12 @@
+{
+  "interop_version":"1.0",
+  "radar_id":"RADAR_PRESUPUESTO",
+  "entity_hub_materialization":"NATIVE_TRANSACTION_COLUMNS",
+  "global_entity_key":"ENT-RUT-{RUT_NORMALIZADO}",
+  "unresolved_policy":"ENTITY_ID_NULL_CANDIDATE_ONLY",
+  "exports":[
+    {"path":"data/processed/transactions_*.parquet","grain":"TRANSACTION","entity_field":"entity_id","source_role_fields":["recipient_id","provider_id"]},
+    {"path":"docs/data/dashboard.json","grain":"AGGREGATED_VIEW"}
+  ],
+  "identity_fields":["entity_id","recipient_entity_id","rut_beneficiario","identity_status","identity_method","identity_confidence"]
+}
