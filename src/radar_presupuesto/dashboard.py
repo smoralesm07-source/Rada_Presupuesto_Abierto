@@ -17,6 +17,66 @@ def _read_json(path: str) -> dict:
         return {}
 
 
+def _write_fusion_preview(payload: dict, output: str = "docs/data/fusion_preview.json") -> dict:
+    """Publica un contrato compacto para consumidores externos.
+
+    El Workbench no necesita descargar la cola completa de investigación para
+    mostrar el estado del radar. Este preview conserva métricas agregadas,
+    tiers y sólo las primeras señales priorizadas, sin cambiar la semántica
+    del score ni promoverlas a hallazgos Fusion.
+    """
+    keep = (
+        "signal_id",
+        "signal_type",
+        "transaction_id",
+        "organization_id",
+        "provider_id",
+        "recipient_id",
+        "periodo",
+        "mes",
+        "organization_name",
+        "provider_or_recipient_name",
+        "transaction_amount",
+        "severity",
+        "confidence",
+        "why_flagged",
+        "investigation_hypothesis",
+        "cgr_match_count",
+        "cgr_finding_count",
+        "investigation_priority_score",
+        "priority_tier",
+        "priority_explanation",
+    )
+    top_signals = [
+        {key: row.get(key) for key in keep if key in row}
+        for row in (payload.get("signals") or [])[:8]
+    ]
+    preview = {
+        "schema": "PRESUPUESTO_FUSION_PREVIEW_V1",
+        "generated_at": payload.get("generated_at"),
+        "version": payload.get("version"),
+        "integration_status": "RADAR_OPERATIONAL_FUSION_ADAPTER_PENDING",
+        "metrics": payload.get("metrics") or {},
+        "signal_types": payload.get("signal_types") or {},
+        "priority_tiers": payload.get("priority_tiers") or {},
+        "cgr_correlation": payload.get("cgr_correlation") or {},
+        "top_signals": top_signals,
+        "methodology_note": payload.get("methodology_note", ""),
+        "guardrail": (
+            "Este preview permite visibilidad en el Workbench antes de completar el "
+            "adaptador canónico. Las señales siguen siendo objetos de Radar Presupuesto "
+            "Abierto y no se consideran hallazgos del Intelligence Fusion Layer."
+        ),
+    }
+    out = Path(output)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(
+        json.dumps(preview, ensure_ascii=False, indent=2, default=str),
+        encoding="utf-8",
+    )
+    return preview
+
+
 def build_dashboard_json(
     parquet_glob: str,
     signals_path: str,
@@ -131,4 +191,5 @@ def build_dashboard_json(
         json.dumps(payload, ensure_ascii=False, indent=2, default=str),
         encoding="utf-8",
     )
+    _write_fusion_preview(payload)
     return payload
