@@ -1,0 +1,89 @@
+{
+  "schema": "PRESUPUESTO_FUSION_PREVIEW_V1",
+  "generated_at": "2026-08-13T02:41:18+00:00",
+  "version": "0.3-operational",
+  "integration_status": "RADAR_OPERATIONAL_FUSION_ADAPTER_PENDING",
+  "metrics": {
+    "transactions": 14114721,
+    "organizations": 1596,
+    "recipients": 441767,
+    "providers": 189197,
+    "amount_clp": 171511640799226.0,
+    "first_year": 2024,
+    "last_year": 2026,
+    "signals": 79871,
+    "priority_p1": 5524,
+    "cgr_candidate_links": 124,
+    "cgr_links_with_findings": 124
+  },
+  "signal_types": {
+    "POTENTIAL_FRAGMENTATION": 38353,
+    "EXACT_DUPLICATE_CANDIDATE": 35772,
+    "AMOUNT_OUTLIER": 4874,
+    "PROVIDER_CONCENTRATION": 576,
+    "YEAR_END_SPIKE": 265,
+    "NEW_TO_SERIES_HIGH_SPEND": 31
+  },
+  "priority_tiers": {
+    "P1": 5524,
+    "P2": 31586,
+    "P3": 42761
+  },
+  "cgr_correlation": {
+    "status": "OK",
+    "links": 124,
+    "provider_links": 6,
+    "organization_links": 118,
+    "links_with_findings": 124,
+    "high_confidence_links": 57,
+    "methodology": "Cruce conservador por nombre normalizado y, cuando está disponible, región. Cada enlace permanece CANDIDATE; no atribuye un hallazgo CGR a una transacción específica."
+  },
+  "top_signals": [
+    {
+      "signal_id": "SIG-PA-AMOUNT_OUTLIER-350EF62D414867800741",
+      "signal_type": "AMOUNT_OUTLIER",
+      "transaction_id": "TRX-PA-A20883A37167511EF97D884F",
+      "organization_id": "ORG-PA-13-06-001",
+      "provider_id": "PRV-RUT-99520000-7",
+      "recipient_id": "RCV-RUT-99520000-7",
+      "periodo": 2026,
+      "mes": 1,
+      "organization_name": "COMISIÓN NACIONAL DE RIEGO",
+      "provider_or_recipient_name": "COMPANIA DE PETROLEOS DE CHILE COPEC S A",
+      "transaction_amount": 48000000.0,
+      "severity": "HIGH",
+      "confidence": "MEDIUM",
+      "why_flagged": "Monto proveedor en la cola superior material de su grupo organismo/subtítulo/ítem: supera el percentil configurado y el múltiplo mínimo de la mediana.",
+      "investigation_hypothesis": "Patrón que requiere explicación documental/contextual; no implica irregularidad por sí solo.",
+      "cgr_match_count": 1,
+      "cgr_finding_count": 5,
+      "investigation_priority_score": 94,
+      "priority_tier": "P1",
+      "priority_explanation": "severidad=30 | señal=15 | coocurrencia=25 | evidencia_CGR=15 | accionabilidad=5 | materialidad=4"
+    },
+    {
+      "signal_id": "SIG-PA-AMOUNT_OUTLIER-D3164F22959964028577",
+      "signal_type": "AMOUNT_OUTLIER",
+      "transaction_id": "TRX-PA-23C29E616B93168A83C080CE",
+      "organization_id": "ORG-PA-13-06-001",
+      "provider_id": "PRV-RUT-60805000-0",
+      "recipient_id": "RCV-RUT-60805000-0",
+      "periodo": 2026,
+      "mes": 4,
+      "organization_name": "COMISIÓN NACIONAL DE RIEGO",
+      "provider_or_recipient_name": "TESORERIA GENERAL DE LA REPUBLICA",
+      "transaction_amount": 36836572.0,
+      "severity": "HIGH",
+      "confidence": "MEDIUM",
+      "why_flagged": "Monto proveedor en la cola superior material de su grupo organismo/subtítulo/ítem: supera el percentil configurado y el múltiplo mínimo de la mediana.",
+      "investigation_hypothesis": "Patrón que requiere explicación documental/contextual; no implica irregularidad por sí solo.",
+      "cgr_match_count": 1,
+      "cgr_finding_count": 5,
+      "investigation_priority_score": 94,
+      "priority_tier": "P1",
+      "priority_explanation": "severidad=30 | señal=15 | coocurrencia=25 | evidencia_CGR=15 | accionabilidad=5 | materialidad=4"
+    }
+  ],
+  "methodology_note": "Las señales son patrones estadísticos para priorizar revisión; no constituyen hallazgos de ilegalidad ni imputaciones AML. El score 0-100 es prioridad investigativa explicable, no probabilidad de delito. Los cruces CGR son coincidencias de entidad candidatas y requieren verificación documental.",
+  "guardrail": "Este preview permite visibilidad en el Workbench antes de completar el adaptador canónico. Las señales siguen siendo objetos de Radar Presupuesto Abierto y no se consideran hallazgos del Intelligence Fusion Layer."
+}
