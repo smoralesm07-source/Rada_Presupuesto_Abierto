@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import glob
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -32,7 +33,7 @@ def build_territorial_context(
     prioritized_path: str = "data/signals/prioritized_signals.parquet",
     output: str = "docs/data/territorial_context_v1.json",
 ) -> dict[str, Any]:
-    files = sorted(Path().glob(parquet_glob)) if "*" in parquet_glob else [Path(parquet_glob)]
+    files = sorted(Path(p) for p in glob.glob(parquet_glob)) if "*" in parquet_glob else [Path(parquet_glob)]
     files = [p for p in files if p.exists()]
     if not files:
         raise FileNotFoundError(f"No transaction parquet matched {parquet_glob}")
