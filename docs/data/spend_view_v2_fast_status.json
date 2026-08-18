@@ -1,27 +1,12 @@
 {
-  "generated_at": "2026-08-18T17:32:49+00:00",
+  "generated_at": "2026-08-18T17:36:34+00:00",
   "workflow": "Build Spend View v2 fast",
-  "outcome": "failure",
-  "exit_code": 1,
-  "data_ready": false,
+  "outcome": "success",
+  "exit_code": 0,
+  "data_ready": true,
   "log_tail": [
-    "Traceback (most recent call last):",
-    "  File \"<frozen runpy>\", line 198, in _run_module_as_main",
-    "  File \"<frozen runpy>\", line 88, in _run_code",
-    "  File \"/home/runner/work/Rada_Presupuesto_Abierto/Rada_Presupuesto_Abierto/src/radar_presupuesto/spend_view_fast.py\", line 166, in <module>",
-    "    main()",
-    "  File \"/home/runner/work/Rada_Presupuesto_Abierto/Rada_Presupuesto_Abierto/src/radar_presupuesto/spend_view_fast.py\", line 161, in main",
-    "    payload = build_fast_spend_view(args.raw_paths, args.output)",
-    "              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
-    "  File \"/home/runner/work/Rada_Presupuesto_Abierto/Rada_Presupuesto_Abierto/src/radar_presupuesto/spend_view_fast.py\", line 146, in build_fast_spend_view",
-    "    payload = build_spend_view_v2(light, output=output, prioritized_path=None)",
-    "              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
-    "  File \"/home/runner/work/Rada_Presupuesto_Abierto/Rada_Presupuesto_Abierto/src/radar_presupuesto/spend_view.py\", line 56, in build_spend_view_v2",
-    "    months = _records(con, \"\"\"",
-    "             ^^^^^^^^^^^^^^^^^",
-    "  File \"/home/runner/work/Rada_Presupuesto_Abierto/Rada_Presupuesto_Abierto/src/radar_presupuesto/spend_view.py\", line 14, in _records",
-    "    df = con.execute(sql, params or []).df()",
-    "         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
-    "_duckdb.NotImplementedException: Not implemented Error: Non-inner join on correlated columns not supported"
+    "[OK] ventana {'start_month': '2025-07-01', 'end_month': '2026-06-01', 'months': ['2025-07', '2025-08', '2025-09', '2025-10', '2025-11', '2025-12', '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'], 'label': 'últimos 12 meses disponibles'}",
+    "[OK] publicados {'services': 1491, 'providers': 1500, 'flows': 10865, 'flows_per_service_cap': 8}",
+    "[OK] overview {'amount_l12_clp': 79710972820812.0, 'transactions_l12': 5924055, 'organizations_l12': 1491, 'providers_l12': 44462, 'provider_amount_l12_clp': 39514646541153.0, 'amount_prev12_clp': 75422940426121.0, 'variation_l12': 0.05685315860750961, 'top10_provider_share': 0.27293418569572525, 'provider_hhi': 0.014627733590357683}"
   ]
 }
