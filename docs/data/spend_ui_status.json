@@ -1,8 +1,11 @@
 {
-  "generated_at": "2026-08-18T18:58:52+00:00",
+  "generated_at": "2026-08-18T18:59:43+00:00",
   "javascript": "success",
-  "html_references": "failure",
+  "html_references": "success",
   "browser_json_parse": "success",
+  "multiyear_validation": "success",
+  "multiyear_state": "success",
+  "sii_enrichment": "success",
   "legacy_nan_fallback": "success",
   "private_supplier_scope": "success"
 }
