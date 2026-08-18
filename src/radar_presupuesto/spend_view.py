@@ -63,6 +63,7 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "top_providers": 60,
         "top_anomalous_providers": 60,
         "top_new_providers": 40,
+        "explorer_providers": 400,
     },
 }
 
@@ -845,7 +846,7 @@ SCORE_WEIGHTS: dict[str, dict[str, Any]] = {
         "reading": "Habitual en proveedores especializados; relevante sólo junto a otras señales.",
     },
     "CONCENTRACION_EN_DICIEMBRE": {
-        "weight": 12,
+        "weight": 10,
         "label": "Gasto concentrado en el cierre del año",
         "reading": "El cierre presupuestario genera estacionalidad legítima; el patrón importa por su magnitud relativa.",
     },
@@ -881,7 +882,8 @@ SCORE_WEIGHTS: dict[str, dict[str, Any]] = {
     },
 }
 
-TIER_THRESHOLDS = (("A1", 55.0), ("A2", 30.0), ("A3", 12.0))
+# A3 recoge el caso de una sola contribución material; A1 exige concurrencia.
+TIER_THRESHOLDS = (("A1", 55.0), ("A2", 30.0), ("A3", 10.0))
 
 
 def _tier(score: float) -> str | None:
@@ -1419,6 +1421,237 @@ def _alerts(
     return out
 
 
+def _explorer_rows(
+    con: duckdb.DuckDBPyConnection,
+    scored: list[dict[str, Any]],
+    limit: int,
+) -> list[dict[str, Any]]:
+    """Filas compactas para el explorador, el scatter y el simulador de umbrales.
+
+    Incluye la estacionalidad mensual del proveedor porque la vista necesita
+    dibujarla sin volver a consultar el parquet desde el navegador.
+    """
+    # El desglose textual del score viaja sólo en `providers.anomalous`: aquí van
+    # las métricas crudas, que es lo que el simulador de umbrales necesita para
+    # recalcular las contribuciones en el navegador sin duplicar el texto.
+    rows = [
+        {k: v for k, v in row.items() if k != "reasons"}
+        for row in sorted(scored, key=lambda r: -(_num(r.get("amount_clp")) or 0.0))[:limit]
+    ]
+    ids = [str(r["provider_id"]) for r in rows if r.get("provider_id")]
+    if not ids:
+        return rows
+    con.execute("CREATE OR REPLACE TEMP TABLE explorer_ids(provider_id VARCHAR)")
+    con.executemany("INSERT INTO explorer_ids VALUES (?)", [(x,) for x in ids])
+    monthly = _rows(
+        con,
+        """
+        SELECT t.provider_id, t.mes AS month, coalesce(sum(t.devengado),0)::DOUBLE AS amount
+        FROM txr t JOIN explorer_ids e USING(provider_id)
+        WHERE t.is_provider_payment AND t.mes BETWEEN 1 AND 12
+        GROUP BY 1,2
+        """,
+    )
+    yearly = _rows(
+        con,
+        """
+        SELECT t.provider_id, t.periodo AS year, coalesce(sum(t.devengado),0)::DOUBLE AS amount
+        FROM txr t JOIN explorer_ids e USING(provider_id)
+        WHERE t.is_provider_payment AND t.periodo IS NOT NULL
+        GROUP BY 1,2
+        """,
+    )
+    regions = _rows(
+        con,
+        """
+        SELECT provider_id, arg_max(region_code, amount) AS main_region, count(*)::BIGINT AS region_count
+        FROM (
+          SELECT t.provider_id, t.region_code, sum(t.devengado) AS amount
+          FROM txr t JOIN explorer_ids e USING(provider_id)
+          WHERE t.is_provider_payment
+          GROUP BY 1,2
+        ) GROUP BY 1
+        """,
+    )
+    by_month: dict[str, list[float]] = {}
+    for row in monthly:
+        vector = by_month.setdefault(str(row["provider_id"]), [0.0] * 12)
+        vector[int(row["month"]) - 1] = round(_num(row["amount"]) or 0.0, 2)
+    by_year: dict[str, dict[str, float]] = {}
+    for row in yearly:
+        by_year.setdefault(str(row["provider_id"]), {})[str(int(row["year"]))] = round(_num(row["amount"]) or 0.0, 2)
+    main_region = {str(r["provider_id"]): r for r in regions}
+
+    for row in rows:
+        pid = str(row.get("provider_id"))
+        row["monthly_amounts"] = by_month.get(pid, [0.0] * 12)
+        row["yearly_amounts"] = by_year.get(pid, {})
+        meta = main_region.get(pid, {})
+        row["main_region_code"] = meta.get("main_region")
+        row["region_count"] = int(meta.get("region_count") or 0)
+    return rows
+
+
+def _heatmaps(con: duckdb.DuckDBPyConnection, top_organizations: int = 18) -> dict[str, Any]:
+    """Matrices para leer estacionalidad: organismo×mes y región×mes."""
+    org_rows = _rows(
+        con,
+        f"""
+        WITH top_orgs AS (
+          SELECT organization_id, any_value(coalesce(nombre_area,nombre_capitulo,nombre_partida)) AS organization_name,
+                 sum(devengado) AS total
+          FROM txr WHERE coalesce(organization_id,'')<>''
+          GROUP BY 1 ORDER BY total DESC LIMIT {int(top_organizations)}
+        )
+        SELECT t.organization_id, o.organization_name, t.mes AS month,
+               coalesce(sum(t.devengado),0)::DOUBLE AS amount
+        FROM txr t JOIN top_orgs o USING(organization_id)
+        WHERE t.mes BETWEEN 1 AND 12
+        GROUP BY 1,2,3
+        ORDER BY 1,3
+        """,
+    )
+    orgs: dict[str, dict[str, Any]] = {}
+    for row in org_rows:
+        key = str(row["organization_id"])
+        entry = orgs.setdefault(
+            key,
+            {"organization_id": key, "organization_name": row["organization_name"], "months": [0.0] * 12},
+        )
+        entry["months"][int(row["month"]) - 1] = round(_num(row["amount"]) or 0.0, 2)
+    for entry in orgs.values():
+        entry["total"] = round(sum(entry["months"]), 2)
+
+    region_rows = _rows(
+        con,
+        """
+        SELECT region_code, region_name, region_abbr, geo_order, mes AS month,
+               coalesce(sum(devengado),0)::DOUBLE AS amount
+        FROM txr WHERE mes BETWEEN 1 AND 12
+        GROUP BY 1,2,3,4,5 ORDER BY geo_order, month
+        """,
+    )
+    regions: dict[str, dict[str, Any]] = {}
+    for row in region_rows:
+        key = str(row["region_code"])
+        entry = regions.setdefault(
+            key,
+            {
+                "region_code": key,
+                "region_name": row["region_name"],
+                "region_abbr": row["region_abbr"],
+                "geo_order": int(row["geo_order"]),
+                "months": [0.0] * 12,
+            },
+        )
+        entry["months"][int(row["month"]) - 1] = round(_num(row["amount"]) or 0.0, 2)
+    for entry in regions.values():
+        entry["total"] = round(sum(entry["months"]), 2)
+
+    return {
+        "organization_month": sorted(orgs.values(), key=lambda r: -r["total"]),
+        "region_month": sorted(regions.values(), key=lambda r: r["geo_order"]),
+    }
+
+
+def _distributions(con: duckdb.DuckDBPyConnection) -> dict[str, Any]:
+    """Histogramas para situar un caso dentro de su población de referencia."""
+    days = _rows(
+        con,
+        """
+        SELECT CASE
+                 WHEN dias_pago<=2 THEN '0-2'
+                 WHEN dias_pago<=7 THEN '3-7'
+                 WHEN dias_pago<=15 THEN '8-15'
+                 WHEN dias_pago<=30 THEN '16-30'
+                 WHEN dias_pago<=45 THEN '31-45'
+                 WHEN dias_pago<=60 THEN '46-60'
+                 WHEN dias_pago<=90 THEN '61-90'
+                 WHEN dias_pago<=120 THEN '91-120'
+                 ELSE '120+' END AS bucket,
+               count(*)::BIGINT AS transactions,
+               coalesce(sum(devengado),0)::DOUBLE AS amount
+        FROM txr WHERE dias_pago IS NOT NULL AND is_provider_payment
+        GROUP BY 1
+        """,
+    )
+    order = ['0-2', '3-7', '8-15', '16-30', '31-45', '46-60', '61-90', '91-120', '120+']
+    days.sort(key=lambda r: order.index(str(r["bucket"])) if str(r["bucket"]) in order else 99)
+
+    amounts = _rows(
+        con,
+        """
+        SELECT least(9, greatest(0, cast(floor(log10(greatest(devengado,1))) AS BIGINT))) AS decade,
+               count(*)::BIGINT AS transactions,
+               coalesce(sum(devengado),0)::DOUBLE AS amount
+        FROM txr WHERE is_provider_payment AND devengado>0
+        GROUP BY 1 ORDER BY 1
+        """,
+    )
+    return {"payment_days": days, "amount_decades": amounts, "amount_decade_note": "Cada tramo es una potencia de 10 en CLP."}
+
+
+def _pareto(con: duckdb.DuckDBPyConnection, points: int = 60) -> dict[str, Any]:
+    """Curva de Pareto del gasto a proveedores: cuántos concentran cuánto."""
+    row = _one(
+        con,
+        """
+        WITH ranked AS (
+          SELECT amount, row_number() OVER (ORDER BY amount DESC) AS rn,
+                 sum(amount) OVER () AS total, count(*) OVER () AS providers
+          FROM prov WHERE amount>0
+        ), cum AS (
+          SELECT rn, providers, total, sum(amount) OVER (ORDER BY rn) AS running FROM ranked
+        )
+        SELECT providers, total,
+               max(rn) FILTER (WHERE running/total<=0.5)::BIGINT AS providers_to_50,
+               max(rn) FILTER (WHERE running/total<=0.8)::BIGINT AS providers_to_80,
+               max(rn) FILTER (WHERE running/total<=0.9)::BIGINT AS providers_to_90
+        FROM cum GROUP BY providers, total
+        """,
+    )
+    providers = int(row.get("providers") or 0)
+    curve: list[dict[str, Any]] = []
+    if providers:
+        step = max(1, providers // int(points))
+        curve = _rows(
+            con,
+            f"""
+            WITH ranked AS (
+              SELECT amount, row_number() OVER (ORDER BY amount DESC) AS rn, sum(amount) OVER () AS total
+              FROM prov WHERE amount>0
+            ), cum AS (
+              SELECT rn, total, sum(amount) OVER (ORDER BY rn) AS running FROM ranked
+            )
+            SELECT rn::BIGINT AS rank, round(rn/{float(providers)},6) AS provider_share,
+                   round(running/nullif(total,0),6) AS amount_share
+            FROM cum WHERE rn % {int(step)} = 0 OR rn = 1 OR rn = {int(providers)}
+            ORDER BY rn
+            """,
+        )
+    return {
+        "providers": providers,
+        "amount_clp": _round(row.get("total"), 2),
+        "providers_to_50": int(row.get("providers_to_50") or 0),
+        "providers_to_80": int(row.get("providers_to_80") or 0),
+        "providers_to_90": int(row.get("providers_to_90") or 0),
+        "curve": curve,
+    }
+
+
+def _cooccurrence(scored: list[dict[str, Any]]) -> dict[str, Any]:
+    """Qué contribuciones aparecen juntas: la concurrencia es lo que ordena la revisión."""
+    codes = list(SCORE_WEIGHTS.keys())
+    index = {code: i for i, code in enumerate(codes)}
+    matrix = [[0] * len(codes) for _ in codes]
+    for row in scored:
+        active = sorted({r["code"] for r in row.get("reasons", []) if r["code"] in index})
+        for a in active:
+            for b in active:
+                matrix[index[a]][index[b]] += 1
+    return {"codes": codes, "labels": [SCORE_WEIGHTS[c]["label"] for c in codes], "matrix": matrix}
+
+
 INDICATOR_CATALOG: list[dict[str, str]] = [
     {"id": "provider_hhi", "name": "HHI de proveedores", "definition": "Suma de cuadrados de la participación de cada proveedor en el gasto a proveedores de la unidad (organismo o región).", "reading": "0 = atomizado, 1 = un solo proveedor. Sobre 0,25 la unidad depende de pocos actores."},
     {"id": "top_provider_share", "name": "Participación del proveedor dominante", "definition": "Gasto del mayor proveedor sobre el gasto a proveedores de la unidad.", "reading": "Comparar con la categoría contratada: en servicios especializados es habitual."},
@@ -1532,6 +1765,11 @@ def build_spend_view(
             "material": new_rows,
         }
 
+        explorer = _explorer_rows(con, scored, int(cfg["output"].get("explorer_providers", 400)))
+        heatmaps = _heatmaps(con)
+        distributions = _distributions(con)
+        pareto = _pareto(con)
+        cooccurrence = _cooccurrence(scored)
         patterns = _pattern_blocks(con, totals, cfg)
         headline = _headline(totals, regional, patterns, new_entrants, anomalous, cfg)
         alerts = _alerts(totals, regional, patterns, organizations, new_entrants, anomalous, cfg)
@@ -1574,6 +1812,26 @@ def build_spend_view(
             "tier_thresholds": {tier: floor for tier, floor in TIER_THRESHOLDS},
         },
         "new_providers": new_entrants,
+        "explorer": {
+            "providers": explorer,
+            "note": (
+                "Universo del explorador, el scatter y el simulador: proveedores materiales "
+                "o con señales en la cola priorizada, ordenados por devengado."
+            ),
+        },
+        "heatmaps": heatmaps,
+        "distributions": distributions,
+        "pareto": pareto,
+        "reason_cooccurrence": cooccurrence,
+        "score_model": {
+            "weights": {code: spec["weight"] for code, spec in SCORE_WEIGHTS.items()},
+            "labels": {code: spec["label"] for code, spec in SCORE_WEIGHTS.items()},
+            "readings": {code: spec["reading"] for code, spec in SCORE_WEIGHTS.items()},
+            "tier_thresholds": {tier: floor for tier, floor in TIER_THRESHOLDS},
+            "national_days_median": _round(totals.get("days_to_pay_median"), 2),
+            "cohort_year": context.get("cohort_year"),
+            "cohort_quantile_amount": _round(context.get("cohort_quantile_amount"), 2),
+        },
         "patterns": patterns,
         "indicator_catalog": INDICATOR_CATALOG,
         "thresholds": cfg,

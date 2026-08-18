@@ -30,6 +30,10 @@ corrida, de modo que la página se actualiza junto con el resto del radar.
 | ¿Quién entra nuevo y se lleva montos importantes? | `new_providers` | Cohorte del último año, corte por percentil, comprador principal |
 | ¿Qué patrones transversales existen? | `patterns` | Fraccionamiento, duplicados candidatos, cierre de año, montos redondos, velocidad de pago |
 | ¿Qué mirar primero? | `headline_indicators`, `alerts` | Indicadores con tono y alertas redactadas con su matiz |
+| ¿Cómo se comporta un proveedor mes a mes? | `explorer.providers` | Métricas crudas + estacionalidad mensual y trayectoria anual por proveedor |
+| ¿Dónde se acumula el gasto en el calendario? | `heatmaps` | Matrices organismo×mes y región×mes |
+| ¿Dónde está mi caso dentro de la población? | `distributions`, `pareto` | Histograma de días de pago, tramos de monto y curva de Pareto |
+| ¿Qué patrones aparecen juntos? | `reason_cooccurrence` | Matriz de concurrencia entre contribuciones del score |
 
 ## Semántica de "ejecución"
 
@@ -49,7 +53,7 @@ su métrica de respaldo y la lectura alternativa que permite descartarla.
 | `CONCENTRA_GASTO_DEL_COMPRADOR` | 16 | Supera `concentration.buyer_share_watch` del gasto a proveedores de un organismo |
 | `NUEVO_CON_MONTO_MATERIAL` | 16 | Primera aparición en el último año y monto sobre el corte del cohorte de entrantes |
 | `DEPENDENCIA_DE_UN_COMPRADOR` | 12 | Su principal comprador concentra ≥ `concentration.client_dependency_share` de sus pagos |
-| `CONCENTRACION_EN_DICIEMBRE` | 12 | Diciembre pesa ≥ `calendar.december_share_watch` de su gasto, con al menos 3 pagos |
+| `CONCENTRACION_EN_DICIEMBRE` | 10 | Diciembre pesa ≥ `calendar.december_share_watch` de su gasto, con al menos 3 pagos |
 | `SIN_ORDEN_DE_COMPRA` | 10 | ≥ `documentation.missing_purchase_order_share` de sus pagos sin OC registrada |
 | `SENAL_FRACCIONAMIENTO_O_DUPLICADO` | 10 | La cola priorizada registra fraccionamiento o duplicado candidato |
 | `MONTOS_REDONDOS` | 8 | ≥50% de sus pagos son múltiplo exacto del monto de referencia, con ≥5 pagos |
@@ -57,7 +61,7 @@ su métrica de respaldo y la lectura alternativa que permite descartarla.
 | `MONTO_ATIPICO` | 6 | Tiene señales `AMOUNT_OUTLIER` en la cola |
 | `ENLACE_CGR` | 4 | Existe coincidencia candidata de entidad con hallazgos CGR |
 
-Tiers: **A1** ≥ 55, **A2** ≥ 30, **A3** ≥ 12. Un proveedor sin contribuciones no entra
+Tiers: **A1** ≥ 55, **A2** ≥ 30, **A3** ≥ 10 (una sola contribución material). Un proveedor sin contribuciones no entra
 a la lista. El tier A1 exige concurrencia de patrones: es prioridad de revisión, no
 imputación ni estimación de riesgo LA/FT.
 
@@ -89,6 +93,30 @@ sigue pendiente contra Context Hub (ver `territorial_export.py`).
 El módulo **no crea señales nuevas**: reutiliza `data/signals/prioritized_signals.parquet`
 para que la vista de gasto y la cola de investigación no puedan divergir. Los enlaces CGR
 provienen de `cgr_correlation.py` y conservan su condición de coincidencia candidata.
+
+## Módulo web
+
+`docs/ejecucion.html` es un workbench de una sola página con navegación por vistas:
+
+| Vista | Herramientas |
+|---|---|
+| Panorama | Indicadores con tono, alertas, forma del año, ranking regional, Pareto |
+| Ejecución | Barras mensuales + curva acumulada (año y métrica seleccionables), tabla por período, histograma de días de pago, heatmap organismo×mes |
+| Territorio | Mapa coroplético de Chile con 9 métricas intercambiables, escala, tooltip, ranking sincronizado, ficha regional, Lorenz, macrozonas, heatmap región×mes |
+| Concentración | Dispersión de organismos (proveedores vs HHI, tamaño = devengado), Pareto, clasificadores, tabla ordenable |
+| Proveedores | Dispersión con ejes intercambiables, filtros por tier/contribución/región, tabla paginada con estacionalidad, ficha lateral |
+| Entrantes nuevos | Cohorte del último año, ranking de montos, tabla con ficha |
+| Simulador | Sliders de umbrales y pesos que recalculan el score en el navegador, efecto sobre los tiers, ranking con cambio de posición, matriz de concurrencia |
+| Método | Catálogo de indicadores, umbrales de la corrida, modelo del score, cobertura, guardarraíles |
+
+La página carga `data/spend_view_v1.json`; si no existe cae a `data/spend_view_demo_v1.json`. Con `window.__SPEND_VIEW__` incrustado funciona sin servidor:
+
+```bash
+PYTHONPATH=src python scripts/build_standalone_page.py \
+    --data docs/data/spend_view_v1.json --output dist/ejecucion.html
+```
+
+El simulador reimplementa el scoring en JavaScript a partir de las métricas crudas del artefacto. Sirve para probar la robustez de una hipótesis: si un caso sólo existe con un umbral exacto, es frágil. Los scores simulados no son comparables con la corrida oficial y la página lo advierte.
 
 ## Modo demostración
 

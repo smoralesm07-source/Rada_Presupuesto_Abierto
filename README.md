@@ -58,12 +58,14 @@ Vista analítica del gasto a terceros, publicada en `docs/ejecucion.html` a part
 - **Proveedores atípicos**: score 0–100 por suma de contribuciones nombradas, cada una con su métrica y su lectura alternativa.
 - **Entrantes nuevos**: proveedores cuya primera aparición ocurre en el último año de la serie con monto sobre el corte de su propio cohorte.
 - **Patrones transversales**: fraccionamiento, duplicados candidatos, cierre de año, montos redondos, velocidad de pago y brecha de orden de compra.
+- **Herramientas gráficas**: mapa coroplético nacional con métrica seleccionable, heatmaps de estacionalidad (organismo×mes y región×mes), dispersión interactiva de proveedores y organismos, curvas de Lorenz y Pareto, histograma de días de pago, matriz de concurrencia de patrones y un simulador de umbrales que recalcula el score en el navegador.
 
 La fuente de pagos no publica presupuesto vigente por organismo: aquí *ejecución* significa flujo devengado y pagado observado, no avance sobre la Ley de Presupuestos. Detalle metodológico en `docs/SPEND_VIEW.md`; umbrales en `config/spend_view.yaml`.
 
 ```bash
-radar-pa spend-view                                    # tras una corrida del pipeline
-PYTHONPATH=src python scripts/build_demo_spend_view.py # demo sintética para revisar el módulo
+radar-pa spend-view                                     # tras una corrida del pipeline
+PYTHONPATH=src python scripts/build_demo_spend_view.py  # demo sintética para revisar el módulo
+PYTHONPATH=src python scripts/build_standalone_page.py  # módulo en un solo HTML autocontenido
 ```
 
 ## Integración con Radar CGR

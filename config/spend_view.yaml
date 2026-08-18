@@ -37,3 +37,5 @@ output:
   top_providers: 60
   top_anomalous_providers: 60
   top_new_providers: 40
+  # Universo que viaja al navegador para scatter, explorador y simulador.
+  explorer_providers: 400
