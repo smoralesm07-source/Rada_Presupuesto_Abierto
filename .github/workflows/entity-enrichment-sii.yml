@@ -1,0 +1,56 @@
+name: Enrich Spend Suppliers with SII
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/build_entity_enrichment_sii.py'
+      - '.github/workflows/entity-enrichment-sii.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '15 11 12 * *'
+permissions:
+  contents: write
+concurrency:
+  group: entity-enrichment-sii
+  cancel-in-progress: true
+jobs:
+  enrich:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v6
+      - name: Checkout Radar SII
+        uses: actions/checkout@v6
+        with:
+          repository: smoralesm07-source/Radar_SII
+          path: external/radar-sii
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install Radar SII runtime
+        run: python -m pip install -r external/radar-sii/requirements.txt
+      - name: Build selective SII extract
+        run: PYTHONPATH=external/radar-sii/src python scripts/build_entity_enrichment_sii.py
+      - name: Validate enrichment
+        run: |
+          python - <<'PY'
+          import json
+          p='docs/data/entity_enrichment_v1.json'
+          d=json.load(open(p,encoding='utf-8'))
+          assert d.get('schema')=='PRESUPUESTO_ENTITY_ENRICHMENT_V1'
+          src=d.get('sources',{}).get('RADAR_SII',{})
+          assert src.get('status')=='SELECTIVE_RUT_EXTRACT_READY'
+          assert src.get('matched_entities',0)>0
+          print('[OK]',src)
+          PY
+      - name: Publish enrichment
+        run: |
+          git config user.name "radar-presupuesto-bot"
+          git config user.email "radar-presupuesto-bot@users.noreply.github.com"
+          git add docs/data/entity_enrichment_v1.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "data: enriquece proveedores con Radar SII"
+          git pull --rebase origin main
+          git push origin main
