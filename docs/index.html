@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Radar Presupuesto Abierto · Flujos L12</title>
 <meta name="description" content="Vista UI/UX conectada a datos reales del Radar Presupuesto Abierto: últimos 12 meses, servicios públicos, proveedores, concentración y flujo de fondos.">
-<link rel="stylesheet" href="assets/spend_v2.css?v=4">
+<link rel="stylesheet" href="assets/spend_v2.css?v=5">
 </head>
 <body>
 <main class="app">
@@ -39,5 +39,30 @@
 <div id="errorBox"></div>
 </main>
 <div class="drawerBack" id="drawerBack"></div><aside class="drawer" id="drawer"></aside><div class="tip" id="tip"></div>
-<script src="assets/spend_v2_fast.js?v=4"></script>
+<script>
+function wireTips(root){
+  if(!root) return;
+  root.querySelectorAll('[data-tip]').forEach(function(n){
+    n.onmousemove=function(e){
+      var t=document.getElementById('tip');
+      if(!t) return;
+      t.innerHTML=n.dataset.tip||'';
+      t.classList.add('on');
+      var x=e.clientX+13,y=e.clientY+13,w=t.offsetWidth,h=t.offsetHeight;
+      if(x+w>window.innerWidth-8)x=e.clientX-w-13;
+      if(y+h>window.innerHeight-8)y=e.clientY-h-13;
+      t.style.left=x+'px';t.style.top=y+'px';
+    };
+    n.onmouseleave=function(){var t=document.getElementById('tip');if(t)t.classList.remove('on')};
+  });
+}
+function showRuntimeError(message){
+  var box=document.getElementById('errorBox'), notice=document.getElementById('notice');
+  if(notice)notice.innerHTML='<span class="dot"></span><span><b>Error al renderizar datos.</b> Revisa el detalle inferior.</span>';
+  if(box)box.innerHTML='<div class="loadError"><b>Error JavaScript:</b><br><code>'+String(message||'desconocido').replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})+'</code></div>';
+}
+window.addEventListener('error',function(e){showRuntimeError((e.error&&e.error.stack)||e.message)});
+window.addEventListener('unhandledrejection',function(e){showRuntimeError((e.reason&&e.reason.stack)||e.reason)});
+</script>
+<script src="assets/spend_v2_fast.js?v=5"></script>
 </body></html>
