@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Radar Presupuesto Abierto · Flujos L12</title>
 <meta name="description" content="Vista UI/UX conectada a datos reales del Radar Presupuesto Abierto: últimos 12 meses, servicios públicos, proveedores, concentración y flujo de fondos.">
-<link rel="stylesheet" href="assets/spend_v2.css?v=6">
+<link rel="stylesheet" href="assets/spend_v2.css?v=7">
 </head>
 <body>
 <main class="app">
@@ -39,6 +39,7 @@
 <div id="errorBox"></div>
 </main>
 <div class="drawerBack" id="drawerBack"></div><aside class="drawer" id="drawer"></aside><div class="tip" id="tip"></div>
+<script src="assets/json_compat.js?v=7"></script>
 <script>
 function wireTips(root){
   if(!root) return;
@@ -65,7 +66,7 @@ window.addEventListener('unhandledrejection',function(e){showRuntimeError((e.rea
 
 /* Prefetch único: evita descargar dos veces el JSON y muestra prueba de datos antes del render complejo. */
 window.__nativeFetch=window.fetch.bind(window);
-window.__PA_SPEND_PREFETCH__=window.__nativeFetch('data/spend_view_v2.json?v=6',{cache:'no-store'}).then(function(r){
+window.__PA_SPEND_PREFETCH__=window.__nativeFetch('data/spend_view_v2.json?v=7',{cache:'no-store'}).then(function(r){
   if(!r.ok)throw new Error('JSON real HTTP '+r.status);
   return r.json();
 }).then(function(d){
@@ -91,5 +92,5 @@ window.fetch=function(input,init){
   return window.__nativeFetch(input,init);
 };
 </script>
-<script src="assets/spend_v2_fast.js?v=6"></script>
+<script src="assets/spend_v2_fast.js?v=7"></script>
 </body></html>
