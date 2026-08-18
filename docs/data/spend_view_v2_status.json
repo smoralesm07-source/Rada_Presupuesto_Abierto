@@ -1,0 +1,21 @@
+{
+  "generated_at": "2026-08-18T17:37:43+00:00",
+  "workflow": "Build Spend View v2",
+  "outcome": "failure",
+  "exit_code": 1,
+  "data_ready": false,
+  "log_tail": [
+    "[OK] 2024: 5,585,718 hechos normalizados",
+    "[OK] 2025: 5,461,160 hechos normalizados",
+    "[OK] 2026: 3,067,843 hechos normalizados",
+    "Traceback (most recent call last):",
+    "  File \"<stdin>\", line 22, in <module>",
+    "  File \"/home/runner/work/Rada_Presupuesto_Abierto/Rada_Presupuesto_Abierto/src/radar_presupuesto/spend_view.py\", line 56, in build_spend_view_v2",
+    "    months = _records(con, \"\"\"",
+    "             ^^^^^^^^^^^^^^^^^",
+    "  File \"/home/runner/work/Rada_Presupuesto_Abierto/Rada_Presupuesto_Abierto/src/radar_presupuesto/spend_view.py\", line 14, in _records",
+    "    df = con.execute(sql, params or []).df()",
+    "         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+    "_duckdb.NotImplementedException: Not implemented Error: Non-inner join on correlated columns not supported"
+  ]
+}
