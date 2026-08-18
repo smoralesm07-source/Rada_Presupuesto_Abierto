@@ -10,6 +10,8 @@ on:
       - 'docs/assets/spend_v4.css'
       - 'docs/assets/spend_v5_focus.js'
       - 'docs/assets/spend_v5.css'
+      - 'docs/assets/spend_v6_dossier.js'
+      - 'docs/assets/spend_v6.css'
       - 'docs/data/spend_view_v2.json'
       - 'docs/data/spend_years_v1.json'
       - 'docs/data/entity_enrichment_v1.json'
@@ -30,6 +32,7 @@ jobs:
           node --check docs/assets/json_compat.js
           node --check docs/assets/spend_v4_explorer.js
           node --check docs/assets/spend_v5_focus.js
+          node --check docs/assets/spend_v6_dossier.js
       - name: Check HTML references
         id: html
         continue-on-error: true
@@ -40,13 +43,19 @@ jobs:
           grep -q 'assets/spend_v4.css' docs/index.html
           grep -q 'assets/spend_v5_focus.js' docs/index.html
           grep -q 'assets/spend_v5.css' docs/index.html
+          grep -q 'assets/spend_v6_dossier.js' docs/index.html
+          grep -q 'assets/spend_v6.css' docs/index.html
           grep -q 'Marcas asociadas a proveedores' docs/index.html
           grep -q 'Referencia UAF' docs/assets/spend_v5_focus.js
           grep -q "uaf:false" docs/assets/spend_v5_focus.js
+          grep -q 'Meses con pagos' docs/assets/spend_v6_dossier.js
+          grep -q 'Actividades vigentes' docs/assets/spend_v6_dossier.js
+          grep -q '0,01–200,00 UF/año' docs/assets/spend_v6_dossier.js
           ! grep -q 'assets/spend_v3_enhance.js' docs/index.html
           grep -q 'data/spend_view_v2.json' docs/assets/spend_v2_fast.js
           grep -q 'data/spend_years_v1.json' docs/assets/spend_v4_explorer.js
           grep -q 'data/spend_years_v1.json' docs/assets/spend_v5_focus.js
+          grep -q 'data/spend_years_v1.json' docs/assets/spend_v6_dossier.js
       - name: Parse current data with browser JSON parser
         id: browser_json
         continue-on-error: true
@@ -73,7 +82,8 @@ jobs:
           if(!Array.isArray(d.years)||d.years.length<2) throw new Error('insufficient year coverage');
           if(!Array.isArray(d.reference_entities)||!d.reference_entities.some(x=>x.role==='UAF_REFERENCE')) throw new Error('UAF reference metadata missing');
           if(!Array.isArray(d.marks)) throw new Error('marks catalogue missing');
-          console.log('[OK] years',d.years,'optional UAF metadata',d.reference_entities,'marks',d.marks.length);
+          const pm=(d.providers||[]).filter(x=>Array.isArray(x.monthly)&&x.monthly.length).length;
+          console.log('[OK] years',d.years,'marks',d.marks.length,'providers with payment months',pm);
           JS
           echo "state=success" >> "$GITHUB_OUTPUT"
       - name: Validate selective SII enrichment
