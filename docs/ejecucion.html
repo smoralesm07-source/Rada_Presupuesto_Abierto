@@ -37,6 +37,38 @@ h1{margin:4px 0 3px;font-size:22px;letter-spacing:-.02em}
 .scope button{border:0;background:#e8d3ba;color:#7a3d0b;border-radius:99px;padding:3px 9px;font-size:10.5px;font-weight:800;cursor:pointer}
 .scope button:hover{background:#dcc0a0}
 
+.combo{position:relative}
+.combo input{border:1px solid var(--line);border-radius:99px;padding:6px 11px;font-size:11.5px;background:#fff;color:var(--ink);min-width:230px}
+.combo ul{position:absolute;z-index:40;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 30px rgba(42,33,24,.14);list-style:none;margin:0;padding:4px;max-height:280px;overflow:auto;display:none}
+.combo ul.open{display:block}
+.combo li{padding:6px 9px;border-radius:7px;font-size:11.5px;cursor:pointer}
+.combo li:hover,.combo li[aria-selected=true]{background:var(--pa-soft)}
+.combo li b{display:block;color:var(--ink);font-weight:650}
+.combo li span{color:var(--muted);font-size:10.5px}
+
+.part{display:grid;gap:2px}
+.part-row{display:grid;grid-template-columns:38px minmax(0,1fr) 78px;gap:8px;align-items:center}
+.part-row .yr{font-size:11px;font-weight:800;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.part-bar{display:flex;height:24px;border-radius:5px;overflow:hidden;background:#f0eae2}
+.part-bar i{display:block;height:100%;cursor:pointer;transition:opacity .12s}
+.part-bar i:hover{opacity:.75}
+.part-row .tot{font-size:10.5px;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+.part-legend{display:flex;gap:9px;flex-wrap:wrap;margin-top:9px;font-size:10.5px;color:var(--muted)}
+.part-legend button{display:flex;align-items:center;gap:5px;border:0;background:none;cursor:pointer;color:inherit;font:inherit;padding:2px 4px;border-radius:6px}
+.part-legend button:hover{background:var(--soft);color:var(--ink)}
+.part-legend i{width:9px;height:9px;border-radius:2px;display:block}
+
+.inst-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-bottom:12px}
+.inst-prov{display:grid;gap:6px}
+.inst-prov-row{display:grid;grid-template-columns:minmax(0,1fr) 92px 62px;gap:8px;align-items:center;cursor:pointer;padding:4px 5px;border-radius:8px}
+.inst-prov-row:hover{background:var(--pa-soft)}
+.inst-prov-row .n{font-size:11.5px;color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.inst-prov-row .n small{display:block;font-family:var(--mono);font-size:9.5px;color:var(--muted);font-weight:400}
+.inst-prov-row .b{height:9px;border-radius:99px;background:#f0eae2;overflow:hidden}
+.inst-prov-row .b i{display:block;height:100%;background:var(--pa)}
+.inst-prov-row .v{font-size:11px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-2);font-weight:700}
+.split{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+
 .banner{border:1px solid var(--pa-line);background:#fff8f0;border-radius:11px;padding:10px 13px;font-size:11.5px;line-height:1.5;color:#6b5a48;margin-bottom:12px}
 .banner b{color:var(--ink)}
 .banner code{font-family:var(--mono);font-size:10.5px;background:#f4e7d8;padding:1px 5px;border-radius:4px}
@@ -183,8 +215,37 @@ details.method li b{color:var(--ink-2)}
     <div class="meta" id="meta"></div>
   </header>
 
+  <div class="combo" id="combo" style="margin-bottom:12px">
+    <input type="search" id="instInput" placeholder="Buscar un servicio público… (por ejemplo: Unidad de Análisis Financiero)" autocomplete="off" aria-label="Buscar servicio público">
+    <ul id="instList" role="listbox"></ul>
+  </div>
+
   <div class="banner" id="banner">Cargando artefacto analítico…</div>
   <div class="kpis" id="kpis"></div>
+
+  <section class="card" id="partCard">
+    <div class="ch">
+      <h2>Participación de los servicios públicos por año</h2>
+      <span class="hint">Clic en un segmento abre la ficha del servicio</span>
+    </div>
+    <div class="part" id="participation"></div>
+    <div class="part-legend" id="partLegend"></div>
+  </section>
+
+  <div class="inst-grid" id="instCards" hidden>
+    <section class="card">
+      <div class="ch"><h2>Proveedores de mayor influencia</h2><span class="hint" id="instProvHint"></span></div>
+      <div class="inst-prov" id="instProviders"></div>
+      <p class="note" id="instProvNote"></p>
+    </section>
+    <section class="card">
+      <div class="ch"><h2>En qué gastó</h2><span class="hint">Clasificador presupuestario e ítem</span></div>
+      <div class="split">
+        <div id="instLines"></div>
+        <div id="instItems"></div>
+      </div>
+    </section>
+  </div>
 
   <div class="grid">
     <section class="card">
@@ -314,8 +375,9 @@ const csv = (rows, cols) => {
 };
 
 /* ---------- estado ---------- */
-const S = {data:null, map:null, region:null, metric:'share_of_national', tab:'proveedores',
+const S = {data:null, map:null, region:null, institution:null, metric:'share_of_national', tab:'proveedores',
            q:'', sort:{key:'anomaly_score', dir:-1}, page:0};
+const SERIES_COLORS = ['#8f4c0d','#c2701f','#dc9a5e','#3a5a78','#5b7a96','#5b4b8a','#8a7ab0','#376b52','#5d9179','#a9651f','#c9a227','#8e2f20','#c9bcae'];
 const PAGE = 20;
 
 const METRICS = [
@@ -333,10 +395,94 @@ function providers(){
   return base.map(r => ({...r, reasons: byId.get(r.provider_id) || []}));
 }
 const regionOf = r => r.main_region_code || null;
+const inst = () => S.data.institutions || {rows:[], detail:{}, provider_names:[], line_names:[], item_names:[], participation:{years:[], series:[]}, coverage:{}};
+const instRow = () => (inst().rows || []).find(r => r.organization_id === S.institution) || null;
+const instDetail = () => (inst().detail || {})[S.institution] || null;
+const providerName = i => (inst().provider_names || [])[i] || '—';
 function scoped(rows){ return S.region ? rows.filter(r => regionOf(r) === S.region) : rows; }
 const regionRow = () => ((S.data.territory || {}).regions || []).find(r => r.region_code === S.region);
 
-/* ---------- KPIs (nacional o región seleccionada) ---------- */
+/* ---------- participación anual de los servicios ---------- */
+function renderParticipation(){
+  const part = inst().participation || {years:[], series:[], totals:[]};
+  const years = part.years || [];
+  const series = part.series || [];
+  if (!years.length || !series.length){
+    el('partCard').hidden = true;
+    return;
+  }
+  el('partCard').hidden = false;
+  el('participation').innerHTML = years.map((year, yi) => {
+    const total = (part.totals || [])[yi] || series.reduce((a, s2) => a + (num(s2.amounts[yi]) || 0), 0);
+    return `<div class="part-row">
+      <span class="yr">${esc(year)}</span>
+      <span class="part-bar">${series.map((s2, si) => {
+        const amount = num(s2.amounts[yi]) || 0;
+        const share = total ? amount / total : 0;
+        if (share <= 0) return '';
+        const selected = S.institution && s2.organization_id === S.institution;
+        return `<i style="width:${(share*100).toFixed(3)}%;background:${SERIES_COLORS[si % SERIES_COLORS.length]};${selected ? 'outline:2px solid #2a2118;outline-offset:-2px' : ''}"
+          data-inst="${esc(s2.organization_id || '')}"
+          data-tip="<b>${esc(s2.organization_name)}</b>${esc(year)}: ${fmtMoneyFull(amount)}<br>${fmtPct(share)} del devengado del año"></i>`;
+      }).join('')}</span>
+      <span class="tot">${fmtMoney(total)}</span>
+    </div>`;
+  }).join('');
+  el('partLegend').innerHTML = series.map((s2, si) =>
+    `<button data-inst="${esc(s2.organization_id || '')}" title="${esc(s2.organization_name)}">
+      <i style="background:${SERIES_COLORS[si % SERIES_COLORS.length]}"></i>${esc((s2.organization_name || '').slice(0, 34))}</button>`).join('');
+}
+
+/* ---------- ficha institucional ---------- */
+function renderInstitution(){
+  const row = instRow();
+  const detail = instDetail();
+  const box = el('instCards');
+  if (!row){ box.hidden = true; return; }
+  box.hidden = false;
+
+  if (!detail){
+    el('instProviders').innerHTML = '';
+    el('instProvHint').textContent = 'sin ficha detallada';
+    el('instProvNote').textContent = `Este organismo queda bajo el piso de materialidad del artefacto (${fmtMoney((inst().coverage || {}).detail_min_amount_clp)}), así que se publica su serie anual y sus señales, pero no el detalle de proveedores ni de clasificadores. La brecha se declara, no se rellena.`;
+    el('instLines').innerHTML = '';
+    el('instItems').innerHTML = '';
+    return;
+  }
+
+  const providerSpend = num(row.provider_amount_clp) || 0;
+  const covered = (detail.p || []).reduce((a, p) => a + (num(p[1]) || 0), 0);
+  el('instProvHint').textContent = `${fmtInt((detail.p || []).length)} de ${fmtInt(row.providers)} proveedores · ${fmtPct(providerSpend ? covered / providerSpend : null)} del gasto a proveedores`;
+  el('instProviders').innerHTML = (detail.p || []).map(p => {
+    const [nameIdx, amount, share, tx, firstYear, otherBuyers, pid] = p;
+    return `<div class="inst-prov-row" data-pid="${esc(pid || '')}"
+      data-tip="<b>${esc(providerName(nameIdx))}</b>${fmtMoneyFull(amount)} · ${fmtInt(tx)} pagos<br>${fmtPct(share)} del gasto a proveedores del organismo<br>Primer año en la serie: ${esc(firstYear ?? '—')} · otros compradores: ${fmtInt(otherBuyers)}">
+      <span class="n">${esc(providerName(nameIdx))}<small>${fmtInt(tx)} pagos · ${otherBuyers ? fmtInt(otherBuyers) + ' otros compradores' : 'sin otros compradores'}</small></span>
+      <span class="b"><i style="width:${clamp((num(share)||0)*100,0,100).toFixed(1)}%"></i></span>
+      <span class="v">${fmtPct(share)}</span>
+    </div>`;
+  }).join('') || '<p class="note">Sin proveedores registrados.</p>';
+
+  const top = (detail.p || [])[0];
+  el('instProvNote').innerHTML = top
+    ? `Proveedor de mayor influencia: <b>${esc(providerName(top[0]))}</b> con ${fmtPct(top[2])} del gasto a proveedores del organismo (${fmtMoneyFull(top[1])}). Concentración HHI ${fmtRatio(row.provider_hhi, 3)} sobre los ${fmtInt((detail.p || []).length)} mayores. Una participación alta no es irregular por sí sola: contrastar con la categoría contratada y con la competencia disponible.`
+    : '';
+
+  const bars = (rows, table) => rows.map(r => {
+    const name = table === 'l' ? `${r[0]} · ${(inst().line_names || [])[r[1]] || '—'}` : ((inst().item_names || [])[r[0]] || '—');
+    const amount = table === 'l' ? r[2] : r[1];
+    const share = table === 'l' ? r[3] : r[2];
+    return `<div class="inst-prov-row" style="cursor:default" data-tip="<b>${esc(name)}</b>${fmtMoneyFull(amount)} · ${fmtPct(share)} del organismo">
+      <span class="n">${esc(name)}</span>
+      <span class="b"><i style="width:${clamp((num(share)||0)*100,0,100).toFixed(1)}%;background:var(--info)"></i></span>
+      <span class="v">${fmtPct(share)}</span></div>`;
+  }).join('') || '<p class="note">Sin desglose disponible.</p>';
+
+  el('instLines').innerHTML = `<div class="ch" style="margin-bottom:6px"><h2 style="font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Subtítulo</h2></div><div class="inst-prov">${bars(detail.l || [], 'l')}</div>`;
+  el('instItems').innerHTML = `<div class="ch" style="margin-bottom:6px"><h2 style="font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Ítem</h2></div><div class="inst-prov">${bars(detail.i || [], 'i')}</div>`;
+}
+
+/* ---------- KPIs (nacional, región o institución) ---------- */
 function renderKpis(){
   const d = S.data, cov = d.coverage || {}, sh = (d.patterns || {}).national_shares || {};
   const conc = (d.territory || {}).concentration || {};
@@ -350,7 +496,28 @@ function renderKpis(){
     return p && regionOf(p) === S.region;
   }) : newMat;
 
-  const tiles = r ? [
+  const inst_row = instRow();
+  const tiles = inst_row ? (() => {
+    const det = instDetail();
+    const top = det && (det.p || [])[0];
+    const years = inst().years || [];
+    const last = inst_row.amounts_by_year[inst_row.amounts_by_year.length - 1];
+    const prev = inst_row.amounts_by_year.length > 1 ? inst_row.amounts_by_year[inst_row.amounts_by_year.length - 2] : null;
+    const delta = prev ? (last - prev) / prev : null;
+    return [
+      {l:'Devengado del servicio', v:fmtMoney(inst_row.amount_clp), s:`${fmtPct(inst_row.share_of_national, 2)} del gasto nacional`},
+      {l:`Variación ${years[years.length-2] ?? ''}→${years[years.length-1] ?? ''}`, v:delta === null ? '—' : `${delta > 0 ? '+' : ''}${fmtPct(delta)}`,
+       s:`${fmtMoney(last)} en ${years[years.length-1] ?? '—'}`, tone:(delta !== null && Math.abs(delta) >= .3) ? 'watch' : ''},
+      {l:'Proveedor de mayor influencia', v:top ? fmtPct(top[2]) : '—',
+       s:top ? esc(providerName(top[0]).slice(0, 40)) : 'sin ficha detallada',
+       tone:top && (num(top[2]) || 0) >= .45 ? 'alert' : ''},
+      {l:'Proveedores', v:fmtInt(inst_row.providers), s:`HHI ${fmtRatio(inst_row.provider_hhi, 3)} · ${fmtInt(inst_row.transactions)} pagos`},
+      {l:'Peso de diciembre', v:fmtPct(inst_row.december_share), s:'referencia uniforme: 8,3%',
+       tone:(num(inst_row.december_share)||0) >= .3 ? 'watch' : ''},
+      {l:'Pagos sin OC', v:fmtPct(inst_row.missing_oc_share), s:`${fmtInt(inst_row.p1_signals)} señales P1 · ${fmtDays(inst_row.days_to_pay_median)} de pago`,
+       tone:(num(inst_row.missing_oc_share)||0) >= .6 ? 'alert' : ''}
+    ];
+  })() : r ? [
     {l:'Devengado en la región', v:fmtMoney(r.devengado), s:`${fmtPct(r.share_of_national)} del país`},
     {l:'Pagos', v:fmtInt(r.transactions), s:`${fmtInt(r.providers)} proveedores · ${fmtInt(r.organizations)} organismos`},
     {l:'Concentración (HHI)', v:fmtRatio(r.provider_hhi,3), s:`mayor: ${esc((r.top_provider_name||'—').slice(0,26))} (${fmtPct(r.top_provider_share)})`, tone:(num(r.provider_hhi)||0) >= .25 ? 'watch' : ''},
@@ -374,8 +541,14 @@ function renderMap(){
   const d = S.data, terr = d.territory || {}, regions = terr.regions || [];
   const metric = METRICS.find(m => m.key === S.metric) || METRICS[0];
   const byCode = new Map(regions.map(r => [r.region_code, r]));
+  const detail = instDetail();
+  const instRegions = detail ? new Map((detail.r || []).map(x => [x[0], x[1]])) : null;
   const known = regions.filter(r => r.region_code !== 'UNKNOWN');
-  const max = Math.max(...known.map(r => num(r[metric.key]) || 0), 1e-9);
+  const valueOf = code => instRegions ? (instRegions.get(code) ?? 0) : (byCode.get(code) || {})[metric.key];
+  const max = instRegions
+    ? Math.max(...[...instRegions.values()].map(v => num(v) || 0), 1e-9)
+    : Math.max(...known.map(r => num(r[metric.key]) || 0), 1e-9);
+  const fmtValue = v => instRegions ? fmtMoney(v) : metric.fmt(v);
   const color = v => {
     const n = num(v);
     if (n === null) return '#f3efe9';
@@ -390,37 +563,50 @@ function renderMap(){
   el('map').innerHTML = S.map ? `<svg class="map" viewBox="${S.map.viewBox}" role="img" aria-label="Mapa de Chile por región">` +
     S.map.order.map(code => {
       const r = byCode.get(code) || {};
-      return `<path class="rg ${S.region === code ? 'sel':''}" d="${S.map.paths[code]}" fill="${color(r[metric.key])}" data-region="${code}"
-        data-tip="<b>${esc(r.region_name || code)}</b>${esc(metric.label)}: ${metric.fmt(r[metric.key])}<br>${fmtMoneyFull(r.devengado)} · ${fmtInt(r.transactions)} pagos"></path>`;
+      const value = valueOf(code);
+      return `<path class="rg ${S.region === code ? 'sel':''}" d="${S.map.paths[code]}" fill="${color(value)}" data-region="${code}"
+        data-tip="<b>${esc(r.region_name || code)}</b>${instRegions ? 'Gasto del servicio aquí' : esc(metric.label)}: ${fmtValue(value)}${instRegions ? '' : `<br>${fmtMoneyFull(r.devengado)} · ${fmtInt(r.transactions)} pagos`}"></path>`;
     }).join('') + '</svg>' : '<p class="note">Cartografía no disponible.</p>';
 
-  el('scale').innerHTML = `<span>${metric.fmt(max)}</span>` +
+  el('scale').innerHTML = `<span>${fmtValue(max)}</span>` +
     [...SCALE].reverse().map(c => `<i style="background:${c}"></i>`).join('') + '<span>0</span>';
 
-  const ranked = regions.slice().sort((a,b) => (num(b[metric.key])||0) - (num(a[metric.key])||0));
+  let ranked = regions.slice().sort((a,b) => (num(valueOf(b.region_code))||0) - (num(valueOf(a.region_code))||0));
+  if (instRegions) ranked = ranked.filter(r => (num(valueOf(r.region_code)) || 0) > 0);
   el('rank').innerHTML = ranked.map(r => `
     <button class="rrow ${S.region === r.region_code ? 'sel':''}" data-region="${esc(r.region_code)}"
       data-tip="<b>${esc(r.region_name)}</b>${fmtMoneyFull(r.devengado)} · ${fmtInt(r.providers)} proveedores · HHI ${fmtRatio(r.provider_hhi,3)}">
       <span class="ab">${esc(r.region_abbr)}</span>
       <span class="nm">${esc(r.region_name)}</span>
-      <span class="bar"><i style="width:${clamp(((num(r[metric.key])||0)/max)*100,0,100).toFixed(1)}%"></i></span>
-      <span class="v">${metric.fmt(r[metric.key])}</span>
+      <span class="bar"><i style="width:${clamp(((num(valueOf(r.region_code))||0)/max)*100,0,100).toFixed(1)}%"></i></span>
+      <span class="v">${fmtValue(valueOf(r.region_code))}</span>
     </button>`).join('');
 
   const selected = el('rank').querySelector('.rrow.sel');
   if (selected) selected.scrollIntoView({block:'nearest'});
 
   const unassigned = (terr.concentration || {}).unassigned_share;
-  el('mapTitle').textContent = S.region ? `Territorio · ${byCode.get(S.region)?.region_name || ''}` : 'Concentración territorial';
-  el('mapNote').innerHTML = `El volumen mide <b>exposición y tamaño del Estado</b> en el territorio, no irregularidad; por eso las señales se muestran normalizadas por 100k pagos. La categoría <b>sin región informada</b> (${fmtPct(unassigned)} del devengado) se reporta aparte y no se redistribuye.`;
+  el('mapTitle').textContent = instRegions
+    ? `Dónde gasta · ${(instRow() || {}).organization_name || ''}`
+    : S.region ? `Territorio · ${byCode.get(S.region)?.region_name || ''}` : 'Concentración territorial';
+  el('mapNote').innerHTML = instRegions
+    ? `Distribución territorial del gasto de este servicio (cinco regiones principales). La imputación regional viene de la fuente: un organismo de alcance nacional suele concentrar sus pagos en la región donde tiene su nivel central, y eso no significa que el bien o servicio se haya consumido allí.`
+    : `El volumen mide <b>exposición y tamaño del Estado</b> en el territorio, no irregularidad; por eso las señales se muestran normalizadas por 100k pagos. La categoría <b>sin región informada</b> (${fmtPct(unassigned)} del devengado) se reporta aparte y no se redistribuye.`;
 }
 
 /* ---------- ejecución mensual (nacional o de la región) ---------- */
 function renderExec(){
   const d = S.data, ex = d.execution || {};
   const r = regionRow();
+  const inst_row = instRow(), det = instDetail();
   let values, ticks = MONTHS, label, cum = null;
-  if (S.region){
+  if (inst_row && det){
+    values = (det.m || []).slice();
+    label = `Devengado por mes · ${inst_row.organization_name}`;
+  } else if (inst_row){
+    values = new Array(12).fill(0);
+    label = 'Sin detalle mensual publicado para este servicio';
+  } else if (S.region){
     const row = ((d.heatmaps || {}).region_month || []).find(x => x.region_code === S.region);
     values = row ? row.months.slice() : new Array(12).fill(0);
     label = 'Devengado por mes (toda la serie)';
@@ -460,8 +646,25 @@ function renderExec(){
     [0,.5,1].forEach(t => { svg += `<text class="axis" x="${W-PR+6}" y="${yc(t)+3}">${fmtPct(t,0)}</text>`; });
   }
   el('execChart').innerHTML = svg + '</svg>';
-  el('execTitle').textContent = S.region ? `Ejecución · ${r ? r.region_name : ''}` : 'Ritmo de ejecución';
-  el('execHint').textContent = S.region ? 'Devengado por mes, toda la serie' : 'Último año · línea negra: acumulado';
+  el('execTitle').textContent = inst_row ? `Cómo gastó en el tiempo` : S.region ? `Ejecución · ${r ? r.region_name : ''}` : 'Ritmo de ejecución';
+  el('execHint').textContent = inst_row ? 'Devengado por mes, toda la serie procesada' : S.region ? 'Devengado por mes, toda la serie' : 'Último año · línea negra: acumulado';
+  const yearBars = inst_row ? (() => {
+    const years = inst().years || [];
+    const amounts = inst_row.amounts_by_year || [];
+    const maxY = Math.max(...amounts.map(v => num(v) || 0), 1e-9);
+    return `<div style="display:flex;gap:12px;align-items:flex-end;margin-top:14px;padding-top:10px;border-top:1px solid var(--line)">${
+      years.map((y, i) => {
+        const prev = i > 0 ? amounts[i-1] : null;
+        const delta = prev ? (amounts[i] - prev) / prev : null;
+        return `<div style="flex:0 1 110px;text-align:center" data-tip="<b>${esc(y)}</b>${fmtMoneyFull(amounts[i])}${delta === null ? '' : `<br>${delta > 0 ? '+' : ''}${fmtPct(delta)} vs ${esc(years[i-1])}`}">
+          <div style="height:${Math.max(4, ((num(amounts[i])||0)/maxY)*46).toFixed(1)}px;background:#3a5a78;border-radius:4px 4px 0 0"></div>
+          <span style="display:block;font-size:10px;color:var(--muted);margin-top:3px">${esc(y)}</span>
+          <span style="display:block;font-size:11px;font-weight:700;color:var(--ink-2);font-variant-numeric:tabular-nums">${fmtMoney(amounts[i])}</span>
+          ${delta === null ? '' : `<span style="display:block;font-size:10px;font-weight:800;color:${delta > 0 ? 'var(--watch)' : 'var(--info)'}">${delta > 0 ? '+' : ''}${fmtPct(delta)}</span>`}
+        </div>`;
+      }).join('')}<span class="note" style="margin:0 0 4px 6px;flex:1">Serie anual del servicio; la variación se lee sobre flujo devengado, no sobre presupuesto vigente.</span></div>`;
+  })() : '';
+  el('execChart').insertAdjacentHTML('beforeend', yearBars);
   el('execLegend').innerHTML =
     `<span><i style="background:#dc9a5e"></i>Devengado mensual</span>` +
     `<span><i style="background:#8f4c0d"></i>Diciembre${dec !== null ? ` · ${fmtPct(dec)} del total` : ''}</span>` +
@@ -471,9 +674,29 @@ function renderExec(){
 /* ---------- lecturas ---------- */
 function renderReads(){
   const d = S.data;
+  const inst_row = instRow();
   const r = regionRow();
   let items;
-  if (r){
+  if (inst_row){
+    const det = instDetail();
+    const top = det && (det.p || [])[0];
+    const years = inst().years || [];
+    const amounts = inst_row.amounts_by_year || [];
+    const delta = amounts.length > 1 && amounts[amounts.length-2] ? (amounts[amounts.length-1] - amounts[amounts.length-2]) / amounts[amounts.length-2] : null;
+    const line = det && (det.l || [])[0];
+    items = [
+      {severity:top && (num(top[2])||0) >= .45 ? 'ALERT' : 'WATCH',
+       title:top ? `${providerName(top[0])} concentra ${fmtPct(top[2])} de sus pagos a proveedores` : 'Sin ficha de proveedores publicada',
+       detail:top ? `${fmtMoneyFull(top[1])} en ${fmtInt(top[3])} pagos. El proveedor atiende a ${fmtInt(top[5])} otros compradores del Estado${top[4] ? ` y aparece en la serie desde ${top[4]}` : ''}. Contrastar con la categoría contratada y con la competencia disponible antes de leerlo como dependencia.` :
+        `Este servicio queda bajo el piso de materialidad del artefacto, así que su ficha detallada no se publica.`},
+      {severity:delta !== null && Math.abs(delta) >= .3 ? 'WATCH' : 'INFO',
+       title:delta === null ? `${fmtMoney(inst_row.amount_clp)} devengados en la serie` : `Su gasto ${delta > 0 ? 'creció' : 'cayó'} ${fmtPct(Math.abs(delta))} en ${years[years.length-1]}`,
+       detail:`Serie ${years.join(' · ')}: ${amounts.map(a => fmtMoney(a)).join(' → ')}. La variación se lee sobre flujo devengado observado, no sobre presupuesto vigente.`},
+      {severity:'INFO',
+       title:line ? `Su mayor gasto es ${(inst().line_names || [])[line[1]] || '—'} (${fmtPct(line[3])})` : 'Sin desglose por clasificador',
+       detail:line ? `Subtítulo ${line[0]} por ${fmtMoneyFull(line[2])}. El desglose por ítem está en el panel “En qué gastó”.` : 'El artefacto no publica clasificadores para este organismo.'}
+    ];
+  } else if (r){
     const rows = scoped(providers()).sort((a,b) => (num(b.anomaly_score)||0) - (num(a.anomaly_score)||0));
     const top = rows[0];
     items = [
@@ -499,21 +722,29 @@ function renderReads(){
 const TABS = [
   {id:'proveedores', label:'Proveedores atípicos', note:'Score 0–100 por suma de contribuciones nombradas; cada una trae su métrica y su lectura alternativa. Ordena revisión analítica, no imputa delito. Clic en una fila abre la ficha.'},
   {id:'nuevos', label:'Entrantes nuevos', note:'Primera aparición en el último año de la serie con monto sobre el corte de su propio cohorte. “Nuevo en la serie” no equivale a empresa recién constituida: verificar primera adjudicación, antigüedad societaria y capacidad declarada.'},
-  {id:'organismos', label:'Organismos compradores', note:'Dependencia del comprador respecto de su proveedor dominante (HHI y participación del primero), cierre de año y brecha documental.'}
+  {id:'organismos', label:'Servicios públicos', note:'Universo completo de organismos compradores publicado por el artefacto: clic en una fila abre su ficha (proveedor de mayor influencia, en qué gastó y cómo se comportó en el tiempo).'}
 ];
 
 function tabRows(){
   const d = S.data;
   if (S.tab === 'organismos'){
-    let rows = d.organizations || [];
-    if (S.region) rows = rows.filter(r => r.region_code === S.region);
+    let rows = inst().rows || [];
+    if (S.region) rows = rows.filter(r => r.main_region_code === S.region);
     return rows;
   }
   if (S.tab === 'nuevos'){
     const byId = new Map(providers().map(r => [r.provider_id, r]));
     let rows = ((d.new_providers || {}).material || []).map(r => ({...byId.get(r.provider_id), ...r}));
     if (S.region) rows = rows.filter(r => regionOf(r) === S.region);
+    if (S.institution) rows = rows.filter(r => r.top_client_id === S.institution);
     return rows;
+  }
+  if (S.institution){
+    // Proveedores del servicio: los de su ficha más cualquiera cuyo principal
+    // comprador sea este organismo, aunque no esté entre los seis mayores.
+    const det = instDetail();
+    const ids = new Set((det ? det.p : []).map(p => p[6]).filter(Boolean));
+    return providers().filter(r => ids.has(r.provider_id) || r.top_client_id === S.institution);
   }
   return scoped(providers()).filter(r => r.anomaly_tier);
 }
@@ -521,7 +752,7 @@ function tabRows(){
 function filtered(){
   const q = S.q.trim().toLowerCase();
   let rows = tabRows();
-  if (q) rows = rows.filter(r => `${r.provider_name || ''} ${r.organization_name || ''} ${r.rut || ''} ${r.top_client_name || ''} ${r.top_provider_name || ''}`.toLowerCase().includes(q));
+  if (q) rows = rows.filter(r => `${r.provider_name || ''} ${r.organization_name || ''} ${r.partida || ''} ${r.rut || ''} ${r.top_client_name || ''}`.toLowerCase().includes(q));
   const {key, dir} = S.sort;
   return rows.slice().sort((a,b) => {
     const va = a[key], vb = b[key];
@@ -553,12 +784,13 @@ const COLUMNS = {
     {label:'Score', key:'anomaly_score', r:true, render:r => `${fmtRatio(r.anomaly_score,0)} ${r.anomaly_tier ? `<span class="pill t-${esc(r.anomaly_tier)}">${esc(r.anomaly_tier)}</span>` : ''}`}
   ],
   organismos: [
-    {label:'Organismo', key:'organization_name', render:r => `<span class="name">${esc(r.organization_name || 'Sin nombre')}</span><span class="rut">${esc(r.partida || '')}</span>`},
-    {label:'Devengado', key:'devengado', r:true, render:r => fmtMoney(r.devengado)},
-    {label:'% país', key:'share_of_national', r:true, render:r => fmtPct(r.share_of_national)},
+    {label:'Servicio público', key:'organization_name', render:r => `<span class="name">${esc(r.organization_name || 'Sin nombre')}</span><span class="rut">${esc(r.partida || '')}</span>`},
+    {label:'Devengado', key:'amount_clp', r:true, render:r => fmtMoney(r.amount_clp)},
+    {label:'% país', key:'share_of_national', r:true, render:r => fmtPct(r.share_of_national, 2)},
     {label:'Proveedores', key:'providers', r:true, cls:'hide-s', render:r => fmtInt(r.providers)},
     {label:'HHI', key:'provider_hhi', r:true, render:r => fmtRatio(r.provider_hhi,3)},
-    {label:'Proveedor dominante', key:'top_provider_name', cls:'hide-s', render:r => esc(r.top_provider_name || '—')},
+    {label:'Proveedor de mayor influencia', key:'top_provider_share', cls:'hide-s',
+     render:r => r.top_provider_name_index === null || r.top_provider_name_index === undefined ? '—' : esc(providerName(r.top_provider_name_index))},
     {label:'Su peso', key:'top_provider_share', r:true, render:r => fmtPct(r.top_provider_share)},
     {label:'Dic.', key:'december_share', r:true, cls:'hide-s', render:r => fmtPct(r.december_share)},
     {label:'Sin OC', key:'missing_oc_share', r:true, cls:'hide-s', render:r => fmtPct(r.missing_oc_share)},
@@ -575,7 +807,8 @@ function renderTable(){
   const tab = TABS.find(t => t.id === S.tab);
   el('tabs').innerHTML = TABS.map(t => {
     const n = (() => { const keep = S.tab; S.tab = t.id; const c = tabRows().length; S.tab = keep; return c; })();
-    return `<button class="tab ${S.tab === t.id ? 'on':''}" data-tab="${t.id}">${esc(t.label)} <span style="opacity:.6">${fmtInt(n)}</span></button>`;
+    const label = t.id === 'proveedores' && S.institution ? 'Proveedores del servicio' : t.label;
+    return `<button class="tab ${S.tab === t.id ? 'on':''}" data-tab="${t.id}">${esc(label)} <span style="opacity:.6">${fmtInt(n)}</span></button>`;
   }).join('');
 
   el('tools').innerHTML =
@@ -592,19 +825,32 @@ function renderTable(){
   el('thead').innerHTML = '<tr>' + cols.map(c =>
     `<th class="${c.ns ? 'ns' : ''} ${c.r ? 'r' : ''} ${c.cls || ''}" ${c.ns ? '' : `data-sort="${c.key}"`}>${esc(c.label)}${S.sort.key === c.key ? (S.sort.dir < 0 ? ' ↓' : ' ↑') : ''}</th>`).join('') + '</tr>';
   el('tbody').innerHTML = page.length ? page.map(r =>
-    `<tr data-pid="${esc(r.provider_id || '')}">` + cols.map(c =>
+    `<tr data-pid="${esc(r.provider_id || '')}" data-inst-row="${esc(S.tab === 'organismos' ? (r.organization_id || '') : '')}">` + cols.map(c =>
       `<td class="${c.r ? 'r' : ''} ${c.cls || ''}">${c.render(r)}</td>`).join('') + '</tr>').join('')
     : `<tr><td colspan="${cols.length}" style="color:var(--muted)">Sin registros para el filtro actual.</td></tr>`;
   el('pinfo').textContent = `${fmtInt(rows.length)} registros · página ${S.page + 1} de ${pages}`;
   el('prev').disabled = S.page === 0;
   el('next').disabled = S.page >= pages - 1;
-  el('tabNote').textContent = tab.note;
+  el('tabNote').textContent = S.tab === 'proveedores' && S.institution
+    ? 'Proveedores cuyo principal comprador es este servicio, más los seis mayores de su ficha. El score sólo existe para proveedores del universo evaluado; un 0 significa “sin contribuciones activas”, no “sin riesgo”.'
+    : tab.note;
 }
 
 /* ---------- ficha ---------- */
 function openFicha(pid){
-  const row = providers().find(r => r.provider_id === pid);
-  if (!row) return;
+  let row = providers().find(r => r.provider_id === pid);
+  if (!row){
+    // Proveedor fuera del universo del explorador: se arma la ficha mínima con
+    // lo que la propia ficha institucional publica, en vez de no abrir nada.
+    const det = instDetail(), inst_row = instRow();
+    const entry = det && (det.p || []).find(x => x[6] === pid);
+    if (!entry) return;
+    row = {provider_id:pid, provider_name:providerName(entry[0]), amount_clp:entry[1],
+           transactions:entry[3], first_year:entry[4], organizations:(entry[5] || 0) + 1,
+           top_client_name:inst_row ? inst_row.organization_name : null,
+           top_client_share:entry[2], max_share_of_buyer:entry[2], reasons:[],
+           monthly_amounts:[], yearly_amounts:{}, partial:true};
+  }
   const d = S.data;
   const monthly = row.monthly_amounts || [];
   const maxM = Math.max(...monthly.map(v => num(v)||0), 1e-9);
@@ -625,7 +871,9 @@ function openFicha(pid){
           <span class="rut">score de atipicidad (0–100)</span>
         </div>
         ${stack(row)}
-        <p class="note" style="margin-top:7px">Prioridad de revisión por concurrencia de patrones. No es probabilidad de delito ni score de riesgo LA/FT.</p>
+        <p class="note" style="margin-top:7px">${row.partial
+          ? 'Ficha parcial: este proveedor no está en el universo evaluado del explorador, así que se muestran sólo las métricas que publica la ficha del servicio público.'
+          : 'Prioridad de revisión por concurrencia de patrones. No es probabilidad de delito ni score de riesgo LA/FT.'}</p>
       </div>
       <div class="fs">
         <h3>Contribuciones al score</h3>
@@ -707,6 +955,49 @@ function renderMethod(){
     </div>`;
 }
 
+/* ---------- selector de servicio público ---------- */
+function renderCombo(){
+  const input = el('instInput'), list = el('instList');
+  const rows = inst().rows || [];
+  const current = instRow();
+  input.value = current ? current.organization_name : (input.value || '');
+  input.placeholder = rows.length
+    ? `Buscar entre ${fmtInt(rows.length)} servicios públicos… (por ejemplo: Unidad de Análisis Financiero)`
+    : 'Sin universo institucional publicado';
+
+  const close = () => list.classList.remove('open');
+  const open = query => {
+    const q = query.trim().toLowerCase();
+    const matches = (q ? rows.filter(r => `${r.organization_name || ''} ${r.partida || ''}`.toLowerCase().includes(q)) : rows)
+      .slice(0, 40);
+    list.innerHTML = matches.map(r =>
+      `<li role="option" data-inst="${esc(r.organization_id)}">
+        <b>${esc(r.organization_name || 'Sin nombre')}</b>
+        <span>${esc(r.partida || '')} · ${fmtMoney(r.amount_clp)} · ${fmtInt(r.providers)} proveedores${r.detail_available ? '' : ' · sin ficha detallada'}</span>
+      </li>`).join('') || '<li aria-disabled="true"><span>Sin coincidencias</span></li>';
+    list.classList.add('open');
+    list.querySelectorAll('[data-inst]').forEach(li => li.addEventListener('mousedown', ev => {
+      ev.preventDefault();
+      selectInstitution(li.dataset.inst);
+      close();
+    }));
+  };
+
+  input.oninput = () => open(input.value);
+  input.onfocus = () => open(input.value);
+  input.onblur = () => setTimeout(close, 120);
+  input.onkeydown = ev => { if (ev.key === 'Escape'){ close(); input.blur(); } };
+}
+
+function selectInstitution(id){
+  S.institution = id || null;
+  S.region = null;
+  S.page = 0;
+  if (S.institution) S.tab = 'proveedores';
+  render();
+  if (S.institution) el('instCards').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
 /* ---------- render ---------- */
 const EXPORTS = {
   regions: () => ['gasto_por_region.csv', (S.data.territory || {}).regions || [], [
@@ -726,22 +1017,34 @@ const EXPORTS = {
 function renderMeta(){
   const d = S.data, cov = d.coverage || {};
   const r = regionRow();
+  const inst_row = instRow();
   el('meta').innerHTML =
+    (inst_row ? `<span class="scope">${esc(inst_row.organization_name)} <button id="clearInst">volver al país</button></span>` : '') +
     (r ? `<span class="scope">${esc(r.region_name)} <button id="clearRegion">quitar filtro</button></span>` : '') +
     `<span class="tag">${cov.first_year ?? '—'}–${cov.last_year ?? '—'} · ${fmtInt(cov.transactions)} pagos</span>` +
     `<span class="tag ${S.mode === 'DEMO_SYNTHETIC' ? 'warn' : ''}">${S.mode === 'DEMO_SYNTHETIC' ? 'demostración sintética' : 'datos oficiales'}</span>`;
   const clear = el('clearRegion');
   if (clear) clear.addEventListener('click', () => { S.region = null; S.page = 0; render(); });
+  const clearInst = el('clearInst');
+  if (clearInst) clearInst.addEventListener('click', () => { el('instInput').value = ''; selectInstitution(null); });
 }
 
 function render(){
-  renderMeta(); renderKpis(); renderMap(); renderExec(); renderReads(); renderTable(); renderMethod();
+  renderMeta(); renderCombo(); renderParticipation(); renderInstitution();
+  renderKpis(); renderMap(); renderExec(); renderReads(); renderTable(); renderMethod();
   wireTips(document.body);
 
   document.querySelectorAll('[data-metric]').forEach(b => b.addEventListener('click', () => { S.metric = b.dataset.metric; render(); }));
   document.querySelectorAll('[data-region]').forEach(n => n.addEventListener('click', () => {
+    if (S.institution) return;   // en modo servicio el mapa describe su gasto, no filtra
     S.region = S.region === n.dataset.region ? null : n.dataset.region; S.page = 0; render();
   }));
+  document.querySelectorAll('[data-inst]').forEach(n => n.addEventListener('click', () => {
+    if (n.dataset.inst) selectInstitution(n.dataset.inst);
+  }));
+  document.querySelectorAll('[data-inst-row]').forEach(tr => {
+    if (tr.dataset.instRow) tr.addEventListener('click', () => selectInstitution(tr.dataset.instRow));
+  });
   document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => {
     S.tab = b.dataset.tab; S.page = 0;
     S.sort = S.tab === 'organismos' ? {key:'devengado', dir:-1} : S.tab === 'nuevos' ? {key:'amount_clp', dir:-1} : {key:'anomaly_score', dir:-1};
@@ -756,8 +1059,8 @@ function render(){
     const spec = EXPORTS[b.dataset.csv]; if (!spec) return;
     const [name, rows, cols] = spec(); download(name, csv(rows, cols));
   }));
-  document.querySelectorAll('#tbody tr[data-pid]').forEach(tr => {
-    if (tr.dataset.pid) tr.addEventListener('click', () => openFicha(tr.dataset.pid));
+  document.querySelectorAll('[data-pid]').forEach(node => {
+    if (node.dataset.pid) node.addEventListener('click', () => openFicha(node.dataset.pid));
   });
   const q = el('q');
   if (q) q.addEventListener('input', () => { S.q = q.value; S.page = 0; renderTable(); wireTips(el('tbody')); bindRows(); });
@@ -765,6 +1068,9 @@ function render(){
 function bindRows(){
   document.querySelectorAll('#tbody tr[data-pid]').forEach(tr => {
     if (tr.dataset.pid) tr.addEventListener('click', () => openFicha(tr.dataset.pid));
+  });
+  document.querySelectorAll('#tbody tr[data-inst-row]').forEach(tr => {
+    if (tr.dataset.instRow) tr.addEventListener('click', () => selectInstitution(tr.dataset.instRow));
   });
   document.querySelectorAll('th[data-sort]').forEach(th => th.addEventListener('click', () => {
     const key = th.dataset.sort;

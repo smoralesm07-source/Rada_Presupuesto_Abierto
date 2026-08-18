@@ -30,6 +30,16 @@ from radar_presupuesto.spend_view import build_spend_view
 SEED = 20260817
 YEARS = (2024, 2025, 2026)
 
+# Servicios pequeños: ejercitan el eje institucional cuando el organismo no
+# está entre los grandes compradores (el caso que motivó la ficha por servicio).
+SMALL_SERVICES = [
+    ("08", "MINISTERIO DE HACIENDA", "UNIDAD DE ANALISIS FINANCIERO", 1_750_000_000),
+    ("08", "MINISTERIO DE HACIENDA", "DIRECCION DE PRESUPUESTOS", 3_100_000_000),
+    ("05", "MINISTERIO DEL INTERIOR", "SERVICIO NACIONAL DE MIGRACIONES", 2_400_000_000),
+    ("28", "MINISTERIO PUBLICO", "UNIDAD ESPECIALIZADA EN LAVADO DE ACTIVOS", 900_000_000),
+    ("29", "MINISTERIO DEL DEPORTE", "INSTITUTO NACIONAL DE DEPORTES", 60_000_000),
+]
+
 MINISTRIES = [
     ("05", "MINISTERIO DEL INTERIOR"),
     ("09", "MINISTERIO DE EDUCACION"),
@@ -160,6 +170,30 @@ def build_frame() -> pd.DataFrame:
             payment(year, historic)
     for _ in range(420):
         payment(YEARS[-1], entrants, scale=rng.uniform(0.8, 3.2))
+
+    # Servicios pequeños con estructura propia de gasto: pocos proveedores,
+    # concentración alta y una serie anual estable.
+    small_providers = [
+        ("SISTEMAS DE INFORMACION FINANCIERA SPA", _rut(rng), SUBTITLES[0]),
+        ("CAPACITACION Y ESTUDIOS AML LTDA", _rut(rng), SUBTITLES[1]),
+        ("ARRIENDO DE OFICINAS CENTRALES SA", _rut(rng), SUBTITLES[0]),
+        ("SERVICIOS INFORMATICOS DEL ESTADO SPA", _rut(rng), SUBTITLES[3]),
+        ("CONSULTORA DE RIESGO FINANCIERO LTDA", _rut(rng), SUBTITLES[1]),
+    ]
+    for partida, ministry_name, service, annual in SMALL_SERVICES:
+        for year in YEARS:
+            budget = annual * (1 + 0.08 * (year - YEARS[0]))
+            for index, (name, rut, subtitle) in enumerate(small_providers):
+                weight = [0.42, 0.24, 0.16, 0.11, 0.07][index]
+                payments = 4 if index < 2 else 2
+                for k in range(payments):
+                    doc += 1
+                    month = (k * 3 + index + 2) % 12 + 1
+                    amount = int(budget * weight / payments)
+                    rows.append(
+                        _row(year, month, (partida, ministry_name), service, subtitle, "13",
+                             rut, name, amount, days_to_pay=rng.choice([18, 25, 32]), doc=doc)
+                    )
 
     # Patrón 1: proveedor dominante de un servicio (concentración del comprador).
     dominant, dominant_rut = "CONSTRUCTORA DOMINANTE AUSTRAL LTDA", "76900111-5"

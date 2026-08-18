@@ -39,3 +39,13 @@ output:
   top_new_providers: 40
   # Universo que viaja al navegador para scatter, explorador y simulador.
   explorer_providers: 400
+institutions:
+  # Un organismo con menos que esto no recibe ficha detallada: se publica su
+  # fila compacta y se declara la brecha, en vez de inflar el artefacto.
+  detail_min_amount_clp: 100000000
+  top_providers: 6
+  top_lines: 6
+  top_items: 4
+  # Servicios dibujados individualmente en el gráfico de participación anual.
+  participation_top: 12
+  max_rows: 1200

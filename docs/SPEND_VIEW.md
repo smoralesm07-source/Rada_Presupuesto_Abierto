@@ -30,10 +30,32 @@ corrida, de modo que la página se actualiza junto con el resto del radar.
 | ¿Quién entra nuevo y se lleva montos importantes? | `new_providers` | Cohorte del último año, corte por percentil, comprador principal |
 | ¿Qué patrones transversales existen? | `patterns` | Fraccionamiento, duplicados candidatos, cierre de año, montos redondos, velocidad de pago |
 | ¿Qué mirar primero? | `headline_indicators`, `alerts` | Indicadores con tono y alertas redactadas con su matiz |
+| ¿Cuánto pesa cada servicio público y cómo evolucionó? | `institutions.rows`, `institutions.participation` | Serie anual por organismo y participación de los mayores en cada año |
+| ¿Quién es el proveedor de mayor influencia de un servicio? | `institutions.detail[id].p` | Top proveedores con su participación **dentro del gasto a proveedores de ese organismo** |
+| ¿En qué gastó su presupuesto? | `institutions.detail[id].l` y `.i` | Subtítulos e ítems con monto y participación |
+| ¿Cómo se comportó su gasto en el tiempo? | `institutions.detail[id].m` | Devengado por mes de toda la serie |
 | ¿Cómo se comporta un proveedor mes a mes? | `explorer.providers` | Métricas crudas + estacionalidad mensual y trayectoria anual por proveedor |
 | ¿Dónde se acumula el gasto en el calendario? | `heatmaps` | Matrices organismo×mes y región×mes |
 | ¿Dónde está mi caso dentro de la población? | `distributions`, `pareto` | Histograma de días de pago, tramos de monto y curva de Pareto |
 | ¿Qué patrones aparecen juntos? | `reason_cooccurrence` | Matriz de concurrencia entre contribuciones del score |
+
+## Eje institucional
+
+`institutions` publica el universo de organismos compradores (hasta `max_rows`), su serie anual y sus señales. La **ficha detallada** —proveedores, clasificadores, ítems, meses y regiones— se publica sobre el piso `detail_min_amount_clp`; bajo ese piso sobrevive la fila compacta y la brecha queda declarada en `institutions.coverage`.
+
+El detalle viaja **columnar, con tablas de nombres compartidas** (`provider_names`, `line_names`, `item_names`) y su formato descrito en `detail_schema`:
+
+```json
+"detail": {"ORG-PA-08-01-001": {
+  "p": [[12, 2381399996, 0.42, 12, 2024, 4, "PRV-RUT-80824628-7"]],
+  "l": [["22", 3, 3288599994, 0.58]],
+  "i": [[7, 5669999988, 1.0]],
+  "m": [318000000, 0, 604000000, "…"],
+  "r": [["13", 5669999988]]
+}}
+```
+
+Sin esa compresión el artefacto pesaba 7,2 MB con el universo real de ~1.600 organismos; con ella queda en 2,6 MB, que es lo que la página descarga entera.
 
 ## Semántica de "ejecución"
 

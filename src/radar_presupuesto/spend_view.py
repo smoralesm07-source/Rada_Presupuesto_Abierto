@@ -56,6 +56,14 @@ DEFAULTS: dict[str, dict[str, Any]] = {
     "calendar": {"december_share_watch": 0.40, "december_share_alert": 0.60},
     "documentation": {"missing_purchase_order_share": 0.80},
     "payment_speed": {"fast_payment_days": 2, "national_median_floor_days": 15},
+    "institutions": {
+        "detail_min_amount_clp": 100_000_000,
+        "top_providers": 6,
+        "top_lines": 6,
+        "top_items": 4,
+        "participation_top": 12,
+        "max_rows": 1200,
+    },
     "output": {
         "top_regions": 20,
         "top_budget_lines": 14,
@@ -186,6 +194,9 @@ def _prepare_transactions(con: duckdb.DuckDBPyConnection, parquet_glob: str) -> 
                {_text_expr(cols, 'codigo_bip')} AS codigo_bip,
                {_text_expr(cols, 'subtitulo')} AS subtitulo,
                {_text_expr(cols, 'nombre_subtitulo')} AS nombre_subtitulo,
+               {_text_expr(cols, 'item')} AS item,
+               {_text_expr(cols, 'nombre_item')} AS nombre_item,
+               {_text_expr(cols, 'nombre_programa_presupuestario')} AS nombre_programa,
                {_text_expr(cols, 'nombre_partida')} AS nombre_partida,
                {_text_expr(cols, 'nombre_capitulo')} AS nombre_capitulo,
                {_text_expr(cols, 'nombre_area')} AS nombre_area,
@@ -1652,6 +1663,310 @@ def _cooccurrence(scored: list[dict[str, Any]]) -> dict[str, Any]:
     return {"codes": codes, "labels": [SCORE_WEIGHTS[c]["label"] for c in codes], "matrix": matrix}
 
 
+def _institutions(con: duckdb.DuckDBPyConnection, cfg: dict[str, Any], national_amount: float) -> dict[str, Any]:
+    """Eje institucional: quién compra, a quién y en qué gasta, año a año.
+
+    Responde tres preguntas que el agregado nacional no permite: cuánto pesa
+    cada servicio público en el tiempo, quién es su proveedor de mayor
+    influencia y en qué clasificadores se fue su presupuesto.
+
+    El detalle viaja **columnar y con tablas de nombres compartidas**: con el
+    universo real (unos 1.600 organismos) la forma naïve de objeto por
+    proveedor multiplicaba por cuatro el peso del artefacto, y este módulo se
+    descarga entero en el navegador. El esquema de cada arreglo se publica en
+    ``detail_schema`` para que el consumidor no tenga que adivinarlo.
+    """
+    inst_cfg = cfg.get("institutions", {})
+    detail_floor = float(inst_cfg.get("detail_min_amount_clp", 100_000_000))
+    top_providers = int(inst_cfg.get("top_providers", 6))
+    top_lines = int(inst_cfg.get("top_lines", 6))
+    top_items = int(inst_cfg.get("top_items", 4))
+    participation_top = int(inst_cfg.get("participation_top", 12))
+    max_rows = int(inst_cfg.get("max_rows", 1200))
+
+    years = [int(r["periodo"]) for r in _rows(con, "SELECT DISTINCT periodo FROM txr WHERE periodo IS NOT NULL ORDER BY 1")]
+
+    base = _rows(
+        con,
+        f"""
+        SELECT organization_id,
+               any_value(coalesce(nombre_area,nombre_capitulo,nombre_partida)) AS organization_name,
+               any_value(nombre_partida) AS partida,
+               arg_max(region_code, devengado) AS main_region_code,
+               count(*)::BIGINT AS transactions,
+               coalesce(sum(devengado),0)::DOUBLE AS amount,
+               coalesce(sum(devengado) FILTER (WHERE is_provider_payment),0)::DOUBLE AS provider_amount,
+               count(DISTINCT provider_id) FILTER (WHERE is_provider_payment)::BIGINT AS providers,
+               coalesce(sum(devengado) FILTER (WHERE mes=12),0)::DOUBLE AS december_amount,
+               count(*) FILTER (WHERE is_provider_payment AND orden_compra IS NULL)::BIGINT AS provider_tx_without_oc,
+               count(*) FILTER (WHERE is_provider_payment)::BIGINT AS provider_transactions,
+               median(dias_pago) AS days_to_pay_median,
+               min(periodo)::BIGINT AS first_year
+        FROM txr
+        WHERE coalesce(organization_id,'')<>''
+        GROUP BY 1
+        ORDER BY amount DESC
+        LIMIT {max_rows}
+        """,
+    )
+    if not base:
+        return {
+            "years": years, "rows": [], "detail": {}, "provider_names": [], "line_names": [], "item_names": [],
+            "participation": {"years": years, "totals": [], "series": []},
+            "coverage": {"organizations_published": 0, "organizations_with_detail": 0,
+                         "detail_min_amount_clp": detail_floor},
+        }
+
+    keep = {str(r["organization_id"]) for r in base}
+    detailed = {str(r["organization_id"]) for r in base if (_num(r["amount"]) or 0) >= detail_floor}
+
+    con.execute("CREATE OR REPLACE TEMP TABLE inst_ids(organization_id VARCHAR)")
+    con.executemany("INSERT INTO inst_ids VALUES (?)", [(x,) for x in sorted(keep)])
+    con.execute("CREATE OR REPLACE TEMP TABLE inst_detail_ids(organization_id VARCHAR)")
+    if detailed:
+        con.executemany("INSERT INTO inst_detail_ids VALUES (?)", [(x,) for x in sorted(detailed)])
+
+    yearly = _rows(
+        con,
+        """
+        SELECT t.organization_id, t.periodo AS year, coalesce(sum(t.devengado),0)::DOUBLE AS amount
+        FROM txr t JOIN inst_ids i USING(organization_id)
+        WHERE t.periodo IS NOT NULL GROUP BY 1,2
+        """,
+    )
+    by_year: dict[str, dict[int, float]] = {}
+    for row in yearly:
+        by_year.setdefault(str(row["organization_id"]), {})[int(row["year"])] = round(_num(row["amount"]) or 0.0)
+
+    monthly = _rows(
+        con,
+        """
+        SELECT t.organization_id, t.mes AS month, coalesce(sum(t.devengado),0)::DOUBLE AS amount
+        FROM txr t JOIN inst_detail_ids i USING(organization_id)
+        WHERE t.mes BETWEEN 1 AND 12 GROUP BY 1,2
+        """,
+    )
+    by_month: dict[str, list[int]] = {}
+    for row in monthly:
+        vector = by_month.setdefault(str(row["organization_id"]), [0] * 12)
+        vector[int(row["month"]) - 1] = int(round(_num(row["amount"]) or 0.0))
+
+    provider_rows = _rows(
+        con,
+        f"""
+        WITH ranked AS (
+          SELECT po.organization_id, po.provider_id, po.amount, po.transactions,
+                 t.provider_amount AS org_provider_amount,
+                 row_number() OVER (PARTITION BY po.organization_id ORDER BY po.amount DESC, po.provider_id) AS rn
+          FROM prov_org po
+          JOIN inst_detail_ids i USING(organization_id)
+          LEFT JOIN org_provider_total t USING(organization_id)
+        )
+        SELECT r.organization_id, r.provider_id, r.amount, r.transactions,
+               CASE WHEN r.org_provider_amount>0 THEN r.amount/r.org_provider_amount END AS share_of_org,
+               p.provider_name, p.first_year, p.organizations
+        FROM ranked r LEFT JOIN prov p USING(provider_id)
+        WHERE r.rn<={top_providers}
+        ORDER BY r.organization_id, r.rn
+        """,
+    )
+    lines = _rows(
+        con,
+        f"""
+        WITH agg AS (
+          SELECT t.organization_id, coalesce(t.subtitulo,'—') AS code,
+                 any_value(coalesce(t.nombre_subtitulo,'Sin clasificador informado')) AS name,
+                 coalesce(sum(t.devengado),0)::DOUBLE AS amount
+          FROM txr t JOIN inst_detail_ids i USING(organization_id) GROUP BY 1,2
+        ), ranked AS (
+          SELECT *, row_number() OVER (PARTITION BY organization_id ORDER BY amount DESC) AS rn,
+                 sum(amount) OVER (PARTITION BY organization_id) AS total FROM agg
+        )
+        SELECT organization_id, code, name, amount, CASE WHEN total>0 THEN amount/total END AS share
+        FROM ranked WHERE rn<={top_lines} ORDER BY organization_id, amount DESC
+        """,
+    )
+    items = _rows(
+        con,
+        f"""
+        WITH agg AS (
+          SELECT t.organization_id, coalesce(nullif(t.nombre_item,''),'Sin ítem informado') AS name,
+                 coalesce(sum(t.devengado),0)::DOUBLE AS amount
+          FROM txr t JOIN inst_detail_ids i USING(organization_id) GROUP BY 1,2
+        ), ranked AS (
+          SELECT *, row_number() OVER (PARTITION BY organization_id ORDER BY amount DESC) AS rn,
+                 sum(amount) OVER (PARTITION BY organization_id) AS total FROM agg
+        )
+        SELECT organization_id, name, amount, CASE WHEN total>0 THEN amount/total END AS share
+        FROM ranked WHERE rn<={top_items} ORDER BY organization_id, amount DESC
+        """,
+    )
+    region_rows = _rows(
+        con,
+        f"""
+        WITH agg AS (
+          SELECT t.organization_id, t.region_code, coalesce(sum(t.devengado),0)::DOUBLE AS amount
+          FROM txr t JOIN inst_detail_ids i USING(organization_id) GROUP BY 1,2
+        ), ranked AS (
+          SELECT *, row_number() OVER (PARTITION BY organization_id ORDER BY amount DESC) AS rn FROM agg
+        )
+        SELECT organization_id, region_code, amount FROM ranked WHERE rn<=5
+        ORDER BY organization_id, amount DESC
+        """,
+    )
+    signals_by_org = {
+        str(r["organization_id"]): r
+        for r in _rows(
+            con,
+            """
+            SELECT organization_id, count(*)::BIGINT AS signals,
+                   count(*) FILTER (WHERE priority_tier='P1')::BIGINT AS p1_signals,
+                   count(*) FILTER (WHERE cgr_match_count>0)::BIGINT AS cgr_linked_signals
+            FROM sig WHERE coalesce(organization_id,'')<>'' GROUP BY 1
+            """,
+        )
+    }
+
+    # Tablas de nombres: los mismos proveedores y clasificadores se repiten en
+    # cientos de organismos; escribirlos una vez es la mitad del artefacto.
+    provider_names: list[str] = []
+    provider_index: dict[str, int] = {}
+    line_names: list[str] = []
+    line_index: dict[str, int] = {}
+    item_names: list[str] = []
+    item_index: dict[str, int] = {}
+
+    def _intern(value: Any, table: list[str], index: dict[str, int]) -> int:
+        key = "" if value is None else str(value)
+        if key not in index:
+            index[key] = len(table)
+            table.append(key)
+        return index[key]
+
+    detail: dict[str, dict[str, Any]] = {}
+    top_provider_of: dict[str, tuple[int, float | None]] = {}
+    hhi_of: dict[str, float] = {}
+    for row in provider_rows:
+        oid = str(row["organization_id"])
+        entry = detail.setdefault(oid, {"p": [], "l": [], "i": [], "m": [], "r": []})
+        name_idx = _intern(row["provider_name"], provider_names, provider_index)
+        share = _round(row["share_of_org"], 4)
+        entry["p"].append(
+            [
+                name_idx,
+                int(round(_num(row["amount"]) or 0.0)),
+                share,
+                int(row["transactions"] or 0),
+                None if row["first_year"] is None else int(row["first_year"]),
+                max(0, int(row["organizations"] or 1) - 1),
+                row["provider_id"],
+            ]
+        )
+        if oid not in top_provider_of:
+            top_provider_of[oid] = (name_idx, share)
+        hhi_of[oid] = round(hhi_of.get(oid, 0.0) + (share or 0.0) ** 2, 4)
+
+    for row in lines:
+        entry = detail.setdefault(str(row["organization_id"]), {"p": [], "l": [], "i": [], "m": [], "r": []})
+        entry["l"].append([row["code"], _intern(row["name"], line_names, line_index),
+                           int(round(_num(row["amount"]) or 0.0)), _round(row["share"], 3)])
+    for row in items:
+        entry = detail.setdefault(str(row["organization_id"]), {"p": [], "l": [], "i": [], "m": [], "r": []})
+        entry["i"].append([_intern(row["name"], item_names, item_index),
+                           int(round(_num(row["amount"]) or 0.0)), _round(row["share"], 3)])
+    for row in region_rows:
+        entry = detail.setdefault(str(row["organization_id"]), {"p": [], "l": [], "i": [], "m": [], "r": []})
+        entry["r"].append([row["region_code"], int(round(_num(row["amount"]) or 0.0))])
+    for oid in list(detail):
+        detail[oid]["m"] = by_month.get(oid, [0] * 12)
+
+    rows: list[dict[str, Any]] = []
+    for row in base:
+        oid = str(row["organization_id"])
+        amount = _num(row["amount"]) or 0.0
+        sig = signals_by_org.get(oid, {})
+        top = top_provider_of.get(oid)
+        rows.append(
+            {
+                "organization_id": oid,
+                "organization_name": row["organization_name"],
+                "partida": row["partida"],
+                "main_region_code": row["main_region_code"],
+                "amount_clp": int(round(amount)),
+                "share_of_national": _share(amount, national_amount),
+                "provider_amount_clp": int(round(_num(row["provider_amount"]) or 0.0)),
+                "transactions": int(row["transactions"] or 0),
+                "providers": int(row["providers"] or 0),
+                "first_year": row["first_year"],
+                "december_share": _share(row["december_amount"], amount),
+                "missing_oc_share": _share(row["provider_tx_without_oc"], row["provider_transactions"]),
+                "days_to_pay_median": _round(row["days_to_pay_median"], 1),
+                "signals": int(sig.get("signals") or 0),
+                "p1_signals": int(sig.get("p1_signals") or 0),
+                "cgr_linked_signals": int(sig.get("cgr_linked_signals") or 0),
+                "amounts_by_year": [int(by_year.get(oid, {}).get(y, 0)) for y in years],
+                "top_provider_name_index": None if not top else top[0],
+                "top_provider_share": None if not top else top[1],
+                "provider_hhi": hhi_of.get(oid),
+                "detail_available": oid in detail,
+            }
+        )
+
+    year_totals = {y: 0.0 for y in years}
+    for entry in rows:
+        for i, y in enumerate(years):
+            year_totals[y] += entry["amounts_by_year"][i]
+    ranked = sorted(rows, key=lambda r: -(r["amount_clp"] or 0))
+    leaders, rest = ranked[:participation_top], ranked[participation_top:]
+    series = [
+        {
+            "organization_id": r["organization_id"],
+            "organization_name": r["organization_name"],
+            "amounts": r["amounts_by_year"],
+            "shares": [_share(r["amounts_by_year"][i], year_totals[y]) for i, y in enumerate(years)],
+        }
+        for r in leaders
+    ]
+    if rest:
+        rest_amounts = [int(sum(r["amounts_by_year"][i] for r in rest)) for i in range(len(years))]
+        series.append(
+            {
+                "organization_id": None,
+                "organization_name": f"Resto ({len(rest)} organismos)",
+                "amounts": rest_amounts,
+                "shares": [_share(rest_amounts[i], year_totals[y]) for i, y in enumerate(years)],
+            }
+        )
+
+    detailed_amount = sum(r["amount_clp"] for r in rows if r["detail_available"])
+    return {
+        "years": years,
+        "rows": rows,
+        "detail": detail,
+        "provider_names": provider_names,
+        "line_names": line_names,
+        "item_names": item_names,
+        "detail_schema": {
+            "p": ["provider_name_index", "amount_clp", "share_of_organization", "transactions", "first_year", "other_buyers", "provider_id"],
+            "l": ["subtitulo", "line_name_index", "amount_clp", "share_of_organization"],
+            "i": ["item_name_index", "amount_clp", "share_of_organization"],
+            "m": "devengado por mes (enero→diciembre), CLP",
+            "r": ["region_code", "amount_clp"],
+        },
+        "participation": {"years": years, "totals": [int(year_totals[y]) for y in years], "series": series},
+        "coverage": {
+            "organizations_published": len(rows),
+            "organizations_with_detail": len(detail),
+            "detail_min_amount_clp": detail_floor,
+            "detail_share_of_published_amount": _share(detailed_amount, sum(r["amount_clp"] for r in rows)),
+            "note": (
+                "Bajo el piso de materialidad se publica la fila compacta del organismo "
+                "(monto, evolución anual, señales) sin ficha de proveedores ni clasificadores."
+            ),
+        },
+    }
+
+
 INDICATOR_CATALOG: list[dict[str, str]] = [
     {"id": "provider_hhi", "name": "HHI de proveedores", "definition": "Suma de cuadrados de la participación de cada proveedor en el gasto a proveedores de la unidad (organismo o región).", "reading": "0 = atomizado, 1 = un solo proveedor. Sobre 0,25 la unidad depende de pocos actores."},
     {"id": "top_provider_share", "name": "Participación del proveedor dominante", "definition": "Gasto del mayor proveedor sobre el gasto a proveedores de la unidad.", "reading": "Comparar con la categoría contratada: en servicios especializados es habitual."},
@@ -1770,6 +2085,7 @@ def build_spend_view(
         distributions = _distributions(con)
         pareto = _pareto(con)
         cooccurrence = _cooccurrence(scored)
+        institutions = _institutions(con, cfg, devengado)
         patterns = _pattern_blocks(con, totals, cfg)
         headline = _headline(totals, regional, patterns, new_entrants, anomalous, cfg)
         alerts = _alerts(totals, regional, patterns, organizations, new_entrants, anomalous, cfg)
@@ -1819,6 +2135,7 @@ def build_spend_view(
                 "o con señales en la cola priorizada, ordenados por devengado."
             ),
         },
+        "institutions": institutions,
         "heatmaps": heatmaps,
         "distributions": distributions,
         "pareto": pareto,
@@ -1853,9 +2170,14 @@ def build_spend_view(
         "guardrails": GUARDRAILS,
     }
 
+    # Artefacto compacto: lo consume la página completa en el navegador, así que
+    # el peso importa más que la diffabilidad línea a línea.
     out = Path(output)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(payload, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+    out.write_text(
+        json.dumps(payload, ensure_ascii=False, separators=(",", ":"), default=str),
+        encoding="utf-8",
+    )
     return payload
 
 

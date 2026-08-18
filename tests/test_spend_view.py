@@ -166,6 +166,57 @@ def test_headline_and_guardrails_present(built):
     assert built["indicator_catalog"]
 
 
+def test_institutions_answer_who_buys_from_whom(built):
+    block = built["institutions"]
+    rows = {r["organization_name"]: r for r in block["rows"]}
+    assert "SERVICIO B" in rows and "SERVICIO A" in rows
+
+    servicio_b = rows["SERVICIO B"]
+    assert servicio_b["amounts_by_year"][-1] > 0
+    assert servicio_b["detail_available"] is True
+
+    detail = block["detail"][servicio_b["organization_id"]]
+    schema = block["detail_schema"]["p"]
+    top = dict(zip(schema, detail["p"][0]))
+    # El entrante nuevo es el proveedor de mayor influencia del servicio B.
+    assert block["provider_names"][top["provider_name_index"]] == "ENTRANTE NUEVO"
+    assert top["share_of_organization"] == pytest.approx(1.0, abs=0.01)
+    assert top["provider_id"] == "p-new"
+
+    # En qué gastó: el subtítulo declarado por la fuente, con su participación.
+    line = dict(zip(block["detail_schema"]["l"], detail["l"][0]))
+    assert block["line_names"][line["line_name_index"]] == "INICIATIVAS DE INVERSION"
+    assert sum(detail["m"]) > 0, "la serie mensual del servicio debe estar publicada"
+
+    # La participación anual suma el total del año, sin perder organismos.
+    participation = block["participation"]
+    for index, year_total in enumerate(participation["totals"]):
+        assert year_total == pytest.approx(
+            sum(s["amounts"][index] for s in participation["series"]), rel=1e-6
+        )
+
+
+def test_institution_detail_floor_is_declared(tmp_path: Path):
+    processed = tmp_path / "processed"
+    processed.mkdir()
+    _facts().to_parquet(processed / "transactions_2026.parquet", index=False)
+    config = tmp_path / "spend_view.yaml"
+    config.write_text("institutions:\n  detail_min_amount_clp: 100000000000\n", encoding="utf-8")
+    payload = build_spend_view(
+        str(processed / "transactions_*.parquet"),
+        str(tmp_path / "missing.parquet"),
+        str(tmp_path / "out.json"),
+        config_path=str(config),
+    )
+    block = payload["institutions"]
+    assert block["coverage"]["organizations_with_detail"] == 0
+    assert block["detail"] == {}
+    assert all(r["detail_available"] is False for r in block["rows"])
+    assert block["coverage"]["detail_min_amount_clp"] == 100000000000
+    # La fila compacta sobrevive: ausencia de ficha no es ausencia de organismo.
+    assert all(r["amounts_by_year"] for r in block["rows"])
+
+
 def test_runs_without_priority_queue(tmp_path: Path):
     processed = tmp_path / "processed"
     processed.mkdir()
