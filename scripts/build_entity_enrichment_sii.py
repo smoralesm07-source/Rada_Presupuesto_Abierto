@@ -38,7 +38,7 @@ def _clean(value):
 
 def _download(url: str, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    req = urllib.request.Request(url, headers={'User-Agent': 'Radar-Presupuesto-SII-Enrichment/1.0'})
+    req = urllib.request.Request(url, headers={'User-Agent': 'Radar-Presupuesto-SII-Enrichment/1.1'})
     with urllib.request.urlopen(req, timeout=180) as r, path.open('wb') as f:
         while True:
             chunk = r.read(1024 * 1024)
@@ -84,6 +84,10 @@ def _selected_rows(paths: list[Path], normalizer, targets: set[str], chunksize: 
             if not hit.empty:
                 rows.extend(hit.to_dict('records'))
     return rows
+
+
+def _mark(signal_type: str, severity: str, year: object, why: str) -> dict:
+    return {'signal_type': signal_type, 'severity': severity, 'year': _clean(year), 'why': why, 'source': 'RADAR_SII_RULE_CATALOG'}
 
 
 def build(spend_path: str, catalog_path: str, output: str, workdir: str) -> dict:
@@ -141,32 +145,82 @@ def build(spend_path: str, catalog_path: str, output: str, workdir: str) -> dict
             seen_activities[rut].add(key)
             activities[rut].append(item)
 
-    latest_year: dict[str, dict] = {}
+    history: dict[str, list[dict]] = defaultdict(list)
     for r in year_rows:
         rut = canon_rut(r.get('rut'))
         year = _clean(r.get('commercial_year'))
         if not rut or year is None:
             continue
-        prev = latest_year.get(rut)
-        if prev is None or int(year) > int(prev.get('commercial_year') or 0):
-            latest_year[rut] = {
-                'commercial_year': int(year),
-                'sales_band_code': _clean(r.get('sales_band_code')),
-                'sales_band': _clean(r.get('sales_band')),
-                'workers': _clean(r.get('workers')),
-                'main_region': _clean(r.get('region')),
-                'main_activity': _clean(r.get('main_activity')),
-                'taxpayer_type': _clean(r.get('taxpayer_type')),
-                'taxpayer_subtype': _clean(r.get('taxpayer_subtype')),
-            }
+        history[rut].append({
+            'commercial_year': int(year),
+            'sales_band_code': _clean(r.get('sales_band_code')),
+            'sales_band': _clean(r.get('sales_band')),
+            'workers': _clean(r.get('workers')),
+            'main_region': _clean(r.get('region')),
+            'main_activity': _clean(r.get('main_activity')),
+            'taxpayer_type': _clean(r.get('taxpayer_type')),
+            'taxpayer_subtype': _clean(r.get('taxpayer_subtype')),
+            'termination_date': _clean(r.get('termination_date')),
+            'negative_equity_band': _clean(r.get('negative_equity_band')),
+        })
+    for rut in history:
+        history[rut].sort(key=lambda x: int(x.get('commercial_year') or 0))
 
     entities: dict[str, dict] = {}
+    mark_count = 0
     for rut in sorted(targets):
-        if rut not in names and rut not in activities and rut not in latest_year:
+        if rut not in names and rut not in activities and rut not in history:
             continue
         n = names.get(rut, {})
-        y = latest_year.get(rut, {})
+        hist = history.get(rut, [])
+        y = hist[-1] if hist else {}
+        prev = hist[-2] if len(hist) >= 2 else {}
         code = y.get('sales_band_code')
+        marks: list[dict] = []
+
+        if code is not None and prev.get('sales_band_code') is not None:
+            try:
+                delta = int(code) - int(prev['sales_band_code'])
+                if delta >= 3:
+                    marks.append(_mark('SALES_BAND_JUMP', 'MEDIUM', y.get('commercial_year'), f'El tramo SII de ventas aumentó {delta} niveles respecto del año anterior con información.'))
+            except Exception:
+                pass
+        workers = y.get('workers')
+        try:
+            if code is not None and int(code) >= 10 and workers is not None and int(workers) <= 2:
+                marks.append(_mark('HIGH_SALES_LOW_WORKFORCE', 'MEDIUM', y.get('commercial_year'), f'Tramo SII de gran empresa (nivel {int(code)}) con {int(workers)} trabajadores dependientes informados.'))
+        except Exception:
+            pass
+        start = n.get('start_date')
+        try:
+            age = int(y.get('commercial_year')) - int(str(start)[:4]) if start and y.get('commercial_year') else None
+            if code is not None and int(code) >= 10 and age is not None and 0 <= age <= 2:
+                marks.append(_mark('RECENT_START_HIGH_SALES', 'MEDIUM', y.get('commercial_year'), f'Empresa con hasta {age} años desde el inicio publicado y tramo SII de gran empresa.'))
+        except Exception:
+            pass
+        try:
+            pw = prev.get('workers')
+            pc = prev.get('sales_band_code')
+            if pw is not None and int(pw) >= 10 and workers is not None and int(workers) <= int(pw) * .20 and code is not None and pc is not None and int(code) > 1 and int(pc) > 1 and int(code) >= int(pc):
+                marks.append(_mark('WORKFORCE_DROP_STABLE_SALES', 'MEDIUM', y.get('commercial_year'), 'La dotación informada cayó al 20% o menos mientras el tramo de ventas no disminuyó.'))
+        except Exception:
+            pass
+        if y.get('main_activity') and prev.get('main_activity') and str(y['main_activity']).strip() != str(prev['main_activity']).strip():
+            marks.append(_mark('MAIN_ACTIVITY_CHANGE', 'LOW', y.get('commercial_year'), 'La actividad económica principal cambió respecto del año comercial anterior.'))
+        if y.get('main_region') and prev.get('main_region') and str(y['main_region']).strip() != str(prev['main_region']).strip():
+            marks.append(_mark('REGION_CHANGE', 'LOW', y.get('commercial_year'), 'La región informada para la empresa cambió respecto del año comercial anterior.'))
+        if len(activities.get(rut, [])) >= 6:
+            marks.append(_mark('ACTIVITY_BREADTH', 'LOW', 'CURRENT', f'Registra {len(activities[rut])} actividades económicas vigentes/publicadas.'))
+        if n.get('tax_status') == 'ACTIVE_AS_PUBLISHED' and any(str(h.get('termination_date') or '').strip() for h in hist):
+            marks.append(_mark('REACTIVATION_PATTERN', 'LOW', 'CURRENT', 'Existe término de giro en un registro histórico y la nómina vigente actual aparece sin término de giro.'))
+        neg = str(y.get('negative_equity_band') or '').strip().lower()
+        try:
+            if code is not None and int(code) >= 10 and neg and neg not in {'nan','0','sin informacion','sin información'}:
+                marks.append(_mark('HIGH_SALES_NEGATIVE_EQUITY', 'MEDIUM', y.get('commercial_year'), 'Tramo SII de gran empresa coexistiendo con tramo de capital propio tributario negativo informado.'))
+        except Exception:
+            pass
+
+        mark_count += len(marks)
         entities[rut] = {
             'rut': rut,
             'entity_id': f'ENT-RUT-{rut}',
@@ -174,6 +228,8 @@ def build(spend_path: str, catalog_path: str, output: str, workdir: str) -> dict
             'acteco': activities.get(rut, []),
             **y,
             'sales_band_label': (f'Tramo SII {code}' if code is not None else None),
+            'marks': marks,
+            'history_available_years': [h['commercial_year'] for h in hist],
         }
 
     payload = {
@@ -185,8 +241,9 @@ def build(spend_path: str, catalog_path: str, output: str, workdir: str) -> dict
                 'key': 'ENT-RUT-{RUT_NORMALIZADO}',
                 'matched_entities': len(entities),
                 'target_ruts': len(targets),
+                'marks': mark_count,
                 'published_updates': {k: by_id[k].get('published_update') for k in required},
-                'coverage_note': 'Estado registral y ACTECO: snapshot 2026-05. Ventas/trabajadores: último año comercial publicado dentro de 2020-2024.'
+                'coverage_note': 'Estado registral y ACTECO: snapshot 2026-05. Ventas/trabajadores: último año comercial publicado dentro de 2020-2024. Marcas reproducen reglas del catálogo Radar SII cuando los campos selectivos son suficientes.'
             },
             'RADAR_UAF': {'status': 'LIVE_PUBLIC_PAGE_LOOKUP', 'path': '/Radar_UAF/data/dashboard.json', 'key': 'rut'},
             'RADAR_SANCIONES': {'status': 'LIVE_PUBLIC_PAGE_LOOKUP', 'path': '/Radar_sanciones/data/entities.json', 'key': 'rut'},
@@ -195,8 +252,8 @@ def build(spend_path: str, catalog_path: str, output: str, workdir: str) -> dict
     }
     out = Path(output)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False, default=str), encoding='utf-8')
-    print('[OK] enrichment', {'targets': len(targets), 'matched': len(entities), 'names': len(name_rows), 'activities': len(activity_rows), 'company_year': len(year_rows)})
+    out.write_text(json.dumps(payload, ensure_ascii=False, separators=(',', ':'), allow_nan=False, default=str), encoding='utf-8')
+    print('[OK] enrichment', {'targets': len(targets), 'matched': len(entities), 'names': len(name_rows), 'activities': len(activity_rows), 'company_year': len(year_rows), 'marks': mark_count})
     return payload
 
 
