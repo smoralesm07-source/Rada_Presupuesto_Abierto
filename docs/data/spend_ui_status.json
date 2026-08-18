@@ -1,6 +1,7 @@
 {
-  "generated_at": "2026-08-18T18:11:40+00:00",
+  "generated_at": "2026-08-18T18:12:20+00:00",
   "javascript": "success",
   "html_references": "success",
-  "log": ""
+  "browser_json_parse": "success",
+  "legacy_nan_fallback": "failure"
 }
