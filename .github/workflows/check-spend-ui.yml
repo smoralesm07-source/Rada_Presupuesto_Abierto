@@ -1,0 +1,54 @@
+name: Check Spend View UI
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/index.html'
+      - 'docs/assets/spend_v2_fast.js'
+      - '.github/workflows/check-spend-ui.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check JavaScript syntax
+        id: js
+        continue-on-error: true
+        run: node --check docs/assets/spend_v2_fast.js 2>&1 | tee /tmp/js-check.log
+      - name: Check HTML references
+        id: html
+        continue-on-error: true
+        run: |
+          grep -q 'assets/spend_v2_fast.js' docs/index.html
+          grep -q 'data/spend_view_v2.json' docs/assets/spend_v2_fast.js
+      - name: Publish UI check status
+        if: always()
+        env:
+          JS_OUTCOME: ${{ steps.js.outcome }}
+          HTML_OUTCOME: ${{ steps.html.outcome }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from datetime import datetime, timezone
+          log=Path('/tmp/js-check.log')
+          p={
+            'generated_at':datetime.now(timezone.utc).isoformat(timespec='seconds'),
+            'javascript':os.environ.get('JS_OUTCOME'),
+            'html_references':os.environ.get('HTML_OUTCOME'),
+            'log':log.read_text(encoding='utf-8',errors='replace')[-4000:] if log.exists() else ''
+          }
+          Path('docs/data/spend_ui_status.json').write_text(json.dumps(p,ensure_ascii=False,indent=2),encoding='utf-8')
+          PY
+          git config user.name "radar-presupuesto-bot"
+          git config user.email "radar-presupuesto-bot@users.noreply.github.com"
+          git add docs/data/spend_ui_status.json
+          git commit -m "ci: publica estado UI spend view" || exit 0
+          git pull --rebase origin main
+          git push origin main
+      - name: Fail if validation failed
+        if: steps.js.outcome != 'success' || steps.html.outcome != 'success'
+        run: exit 1
