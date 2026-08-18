@@ -3,44 +3,47 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Radar Presupuesto Abierto · Inteligencia de flujos L12</title>
-<meta name="description" content="Vista analítica del Radar Presupuesto Abierto: servicios públicos, proveedores privados, concentración económica, dependencia, cambio de escala y fichas 360 interoperables.">
-<link rel="stylesheet" href="assets/spend_v2.css?v=8">
-<link rel="stylesheet" href="assets/spend_v3.css?v=8">
+<title>Radar Presupuesto Abierto · Explorador multianual</title>
+<meta name="description" content="Vista analítica multianual del Radar Presupuesto Abierto: servicios públicos, proveedores privados, UAF como referencia persistente, marcas explicables y fichas 360 interoperables.">
+<link rel="stylesheet" href="assets/spend_v2.css?v=9">
+<link rel="stylesheet" href="assets/spend_v3.css?v=9">
+<link rel="stylesheet" href="assets/spend_v4.css?v=9">
 </head>
 <body>
 <main class="app">
-<header class="top"><div><div class="eyebrow">Radar Presupuesto Abierto · vista real L12</div><h1>Flujos, concentración y comportamiento del gasto</h1><p class="sub">Magnitud de servicios públicos y navegación Servicio Público ↔ Proveedor privado en los últimos 12 meses disponibles. Los organismos públicos se excluyen del universo de proveedores. Los elementos gráficos actúan como filtros reversibles.</p></div><div class="badges" id="badges"></div></header>
+<header class="top"><div><div class="eyebrow">Radar Presupuesto Abierto · vista real multianual</div><h1>Flujos, comportamiento y señales de revisión</h1><p class="sub">Exploración de servicios públicos y proveedores privados por entidad y año. Los organismos públicos se excluyen del universo proveedor. La UAF se mantiene como referencia visible aun cuando no pertenezca al ranking.</p></div><div class="badges" id="badges"></div></header>
 <div class="notice" id="notice"><span class="dot"></span><span><b>Cargando datos reales del radar…</b></span></div>
-<section class="toolbar" id="toolbar" hidden>
-  <div class="field"><label>Servicio público</label><select id="serviceFilter"></select></div>
-  <div class="field"><label>Proveedor</label><select id="providerFilter"></select></div>
+<section class="toolbar v4" id="toolbar" hidden>
+  <div class="entityFinder"><label>Buscar entidad</label><input id="entitySearch" type="search" autocomplete="off" placeholder="Nombre, RUT, servicio o proveedor…"><span class="finderIcon">⌕</span><div class="entityResults" id="entityResults" hidden></div></div>
   <div class="field"><label>Región principal</label><select id="regionFilter"></select></div>
-  <div class="field"><label>Gasto dominante</label><select id="categoryFilter"></select></div>
+  <div class="yearField"><label>Año de la información</label><div class="yearButtons" id="yearButtons"></div><div class="yearSummary" id="yearSummary"></div></div>
   <button class="reset" id="reset">Limpiar filtros</button>
+  <select id="serviceFilter" class="legacyHidden" aria-hidden="true"></select>
+  <select id="providerFilter" class="legacyHidden" aria-hidden="true"></select>
+  <select id="categoryFilter" class="legacyHidden" aria-hidden="true"></select>
 </section>
 <div class="scopebar" id="scopebar"></div>
 <section class="kpis" id="kpis"></section>
 <div id="content" hidden>
 <div class="grid g21">
-  <section class="card"><div class="ch"><div><h2>Flujo de fondos · Servicio público → Proveedor privado</h2><div class="hint" style="text-align:left;margin-top:2px">País = principales flujos; servicio = sus proveedores privados; proveedor = sus compradores públicos. Las transferencias a otros organismos públicos no se clasifican como proveedores.</div></div><span class="hint">grosor = monto</span></div><div class="flowWrap" id="flow"></div></section>
-  <section class="card"><div class="ch"><div><h2>Lectura inmediata</h2><div class="hint" style="text-align:left;margin-top:2px">Seis casos descriptivos priorizados por magnitud, cambio, dependencia, influencia y trazabilidad.</div></div><span class="hint">clic = enfocar</span></div><div class="reads" id="reads"></div></section>
+  <section class="card"><div class="ch"><div><h2>Flujo de fondos · Servicio público → Proveedor privado</h2><div class="hint" style="text-align:left;margin-top:2px">Los flujos responden a entidad, región y años seleccionados. UAF se incorpora siempre como referencia y se distingue en morado.</div></div><span class="hint">grosor = monto</span></div><div class="flowWrap" id="flow"></div></section>
+  <section class="card"><div class="ch"><div><h2>Lectura inmediata</h2><div class="hint" style="text-align:left;margin-top:2px">Seis casos priorizados por magnitud, marcas del radar, inicio reciente, concentración y dependencia.</div></div><span class="hint">clic = enfocar</span></div><div class="reads" id="reads"></div></section>
 </div>
 <div class="grid g11">
-  <section class="card"><div class="ch"><div><h2>Magnitud de servicios públicos · últimos 12 meses</h2><div class="hint" style="text-align:left;margin-top:2px">Barra = monto L12 · microserie = distribución mensual. El ranking permanece fijo para conservar contexto.</div></div><span class="hint" id="rankHint"></span></div><div class="serviceRank" id="serviceRank"></div></section>
-  <section class="card"><div class="ch"><div><h2>Ritmo mensual del flujo visible</h2><div class="hint" style="text-align:left;margin-top:2px">Clic en un mes filtra los demás gráficos; segundo clic vuelve a L12.</div></div><span class="hint" id="monthHint"></span></div><svg class="monthChart" id="monthChart" viewBox="0 0 620 295"></svg><div class="legend"><span><i style="background:#5f7f95"></i>Devengado</span><span><i style="background:#c45f17"></i>Mes seleccionado</span></div></section>
+  <section class="card"><div class="ch"><div><h2>Magnitud de servicios públicos · años seleccionados</h2><div class="hint" style="text-align:left;margin-top:2px">Ranking por devengado. UAF permanece visible aunque quede fuera del top y se muestra con tipografía morada.</div></div><span class="hint" id="rankHint"></span></div><div class="serviceRank" id="serviceRank"></div></section>
+  <section class="card"><div class="ch"><div><h2>Ritmo mensual nacional + UAF</h2><div class="hint" style="text-align:left;margin-top:2px">Barras = devengado nacional; línea morada = UAF con escala propia. Responde a la selección multiaño.</div></div><span class="hint" id="monthHint"></span></div><svg class="monthChart" id="monthChart" viewBox="0 0 620 295"></svg></section>
 </div>
 <div class="grid g11">
-  <section class="card"><div class="ch"><div><h2>Proveedores con cambio de escala</h2><div class="hint" style="text-align:left;margin-top:2px">Variación L12 vs 12 meses previos ponderada por materialidad. Prioriza cambios que merecen contexto, no irregularidades.</div></div><span class="hint" id="paretoHint"></span></div><div class="paretoWrap"><svg class="chart" id="pareto" viewBox="0 0 620 276"></svg></div></section>
-  <section class="card"><div class="ch"><div><h2>Dependencia ↔ influencia</h2><div class="hint" style="text-align:left;margin-top:2px">Eje X: cuánto del proveedor depende de su principal comprador público. Eje Y: cuánto pesa ese proveedor dentro del comprador. La selección no elimina el contexto.</div></div><span class="hint">tamaño = monto</span></div><div class="scatterWrap"><svg class="chart" id="scatter" viewBox="0 0 620 276"></svg></div><p class="scatterHelp">El cuadrante superior derecho prioriza relaciones económicas que merecen contexto; no constituye una señal de irregularidad por sí mismo.</p></section>
+  <section class="card"><div class="ch"><div><h2>Proveedores con cambio de escala</h2><div class="hint" style="text-align:left;margin-top:2px">Crecimiento frente al año previo disponible, ponderado por materialidad. Los proveedores relacionados con UAF se distinguen en morado.</div></div><span class="hint" id="paretoHint"></span></div><div class="paretoWrap"><svg class="chart" id="pareto" viewBox="0 0 620 276"></svg></div></section>
+  <section class="card"><div class="ch"><div><h2>Dependencia ↔ influencia</h2><div class="hint" style="text-align:left;margin-top:2px">X = dependencia en principal comprador público; Y = influencia dentro de ese comprador. La selección conserva los demás puntos visibles.</div></div><span class="hint">tamaño = monto</span></div><div class="scatterWrap"><svg class="chart" id="scatter" viewBox="0 0 620 276"></svg></div><p class="scatterHelp">Borde morado = relación publicada con UAF. Las marcas analíticas priorizan revisión y no constituyen irregularidad por sí mismas.</p></section>
 </div>
-<section class="card"><div class="tabs"><button class="tab on" data-tab="providers">Proveedores</button><button class="tab" data-tab="services">Servicios públicos</button><button class="tab" data-tab="flows">Relaciones</button></div><div class="tableTools"><input type="search" id="search" placeholder="Buscar nombre, RUT o contraparte…"><button class="chip" id="exportBtn">Exportar CSV</button></div><div class="tw"><table class="tbl"><thead id="thead"></thead><tbody id="tbody"></tbody></table></div></section>
+<section class="card"><div class="tabs"><button class="tab on" data-tab="providers">Proveedores</button><button class="tab" data-tab="services">Servicios públicos</button><button class="tab" data-tab="flows">Relaciones</button></div><div class="tableTools"><input type="search" id="search" placeholder="Buscar dentro de la tabla…"><button class="chip" id="exportBtn">Exportar CSV</button></div><div class="tw"><table class="tbl"><thead id="thead"></thead><tbody id="tbody"></tbody></table></div></section>
 <details class="method"><summary>Método y lectura prudente</summary><ul id="guardrails"></ul></details>
 </div>
 <div id="errorBox"></div>
 </main>
 <div class="drawerBack" id="drawerBack"></div><aside class="drawer" id="drawer"></aside><div class="tip" id="tip"></div>
-<script src="assets/json_compat.js?v=8"></script>
+<script src="assets/json_compat.js?v=9"></script>
 <script>
 function wireTips(root){
   if(!root)return;
@@ -53,7 +56,16 @@ function htmlEscape(s){return String(s==null?'':s).replace(/[&<>]/g,function(c){
 function showRuntimeError(message){var box=document.getElementById('errorBox'),notice=document.getElementById('notice');if(notice)notice.innerHTML='<span class="dot"></span><span><b>Error al cargar/renderizar datos.</b> Revisa el detalle inferior.</span>';if(box)box.innerHTML='<div class="loadError"><b>Detalle técnico:</b><br><code>'+htmlEscape(message||'desconocido')+'</code></div>'}
 window.addEventListener('error',function(e){showRuntimeError((e.error&&e.error.stack)||e.message)});
 window.addEventListener('unhandledrejection',function(e){showRuntimeError((e.reason&&e.reason.stack)||e.reason)});
+/* Expone una copia del payload real al explorador v4 sin alterar el renderer base. */
+window.__paNativeFetch=window.fetch.bind(window);
+window.fetch=async function(input,init){
+  var r=await window.__paNativeFetch(input,init);
+  if(String(input).indexOf('data/spend_view_v2.json')>=0){
+    r.clone().json().then(function(d){window.__PA_SPEND_DATA__=d}).catch(function(){});
+  }
+  return r;
+};
 </script>
-<script src="assets/spend_v2_fast.js?v=8"></script>
-<script src="assets/spend_v3_enhance.js?v=8"></script>
+<script src="assets/spend_v2_fast.js?v=9"></script>
+<script src="assets/spend_v4_explorer.js?v=9"></script>
 </body></html>
