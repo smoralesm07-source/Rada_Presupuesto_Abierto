@@ -1,5 +1,11 @@
 name: Radar monthly analysis
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/radar_presupuesto/spend_view.py'
+      - 'src/radar_presupuesto/pipeline.py'
+      - '.github/workflows/radar-monthly.yml'
   workflow_dispatch:
     inputs:
       years:
@@ -54,7 +60,7 @@ jobs:
         run: |
           git config user.name "radar-presupuesto-bot"
           git config user.email "radar-presupuesto-bot@users.noreply.github.com"
-          git add docs/data/dashboard.json docs/data/investigation_queue.json docs/data/cgr_correlation.json docs/data/source_catalog.json docs/data/coverage.json docs/data/quality.json docs/data/snapshot_manifest.json docs/data/territorial_context_v1.json
+          git add docs/data/dashboard.json docs/data/investigation_queue.json docs/data/cgr_correlation.json docs/data/source_catalog.json docs/data/coverage.json docs/data/quality.json docs/data/snapshot_manifest.json docs/data/territorial_context_v1.json docs/data/spend_view_v2.json
           if git diff --cached --quiet; then exit 0; fi
           git commit -m "radar: corrida analítica $(date -u +%F)"
           git pull --rebase origin main
