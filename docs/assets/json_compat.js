@@ -37,5 +37,5 @@ Response.prototype.json=async function(){
     }catch(secondError){throw firstError;}
   }
 };
-window.__PA_SANITIZE_JSON__=sanitizeNonFiniteJson;
+globalThis.__PA_SANITIZE_JSON__=sanitizeNonFiniteJson;
 })();
