@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Radar Presupuesto Abierto · Flujos L12</title>
-<meta name="description" content="Vista UI/UX conectable a datos reales del Radar Presupuesto Abierto: últimos 12 meses, servicios públicos, proveedores, concentración y flujo de fondos.">
-<link rel="stylesheet" href="assets/spend_v2.css">
+<meta name="description" content="Vista UI/UX conectada a datos reales del Radar Presupuesto Abierto: últimos 12 meses, servicios públicos, proveedores, concentración y flujo de fondos.">
+<link rel="stylesheet" href="assets/spend_v2.css?v=4">
 </head>
 <body>
 <main class="app">
 <header class="top"><div><div class="eyebrow">Radar Presupuesto Abierto · vista real L12</div><h1>Flujos, concentración y comportamiento del gasto</h1><p class="sub">Magnitud de servicios públicos en una ventana fija de últimos 12 meses y navegación bidireccional Servicio Público ↔ Proveedor. Cualquier elemento gráfico funciona como filtro reversible: un clic enfoca; el segundo clic sobre el mismo elemento libera.</p></div><div class="badges" id="badges"></div></header>
-<div class="notice" id="notice"><span class="dot"></span><span><b>Cargando agregados reales del radar…</b></span></div>
+<div class="notice" id="notice"><span class="dot"></span><span><b>Cargando datos reales optimizados…</b></span></div>
 <section class="toolbar" id="toolbar" hidden>
   <div class="field"><label>Servicio público</label><select id="serviceFilter"></select></div>
   <div class="field"><label>Proveedor</label><select id="providerFilter"></select></div>
@@ -39,5 +39,5 @@
 <div id="errorBox"></div>
 </main>
 <div class="drawerBack" id="drawerBack"></div><aside class="drawer" id="drawer"></aside><div class="tip" id="tip"></div>
-<script src="assets/spend_v2.js"></script>
+<script src="assets/spend_v2_fast.js?v=4"></script>
 </body></html>
