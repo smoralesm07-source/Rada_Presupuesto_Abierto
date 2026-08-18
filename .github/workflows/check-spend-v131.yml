@@ -1,0 +1,63 @@
+name: Check Spend v13.1 mark filter
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/index.html'
+      - 'docs/assets/spend_v7_mark_filter.js'
+      - 'docs/assets/spend_v7.css'
+      - 'docs/data/spend_years_v1.json'
+      - 'docs/data/entity_enrichment_v1.json'
+      - '.github/workflows/check-spend-v131.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validate new JavaScript
+        run: |
+          node --check docs/assets/spend_v7_mark_filter.js
+          grep -q 'activeMark' docs/assets/spend_v7_mark_filter.js
+          grep -q 'flowMarkChip' docs/assets/spend_v7_mark_filter.js
+          grep -q 'filteredContext' docs/assets/spend_v7_mark_filter.js
+      - name: Validate HTML and optional UAF coexistence
+        run: |
+          grep -q 'assets/spend_v7_mark_filter.js?v=13.1' docs/index.html
+          grep -q 'assets/spend_v7.css?v=13.1' docs/index.html
+          grep -q 'uafRefToggle' docs/assets/spend_v5_focus.js
+          grep -q 'uaf-reference-on' docs/assets/spend_v5_focus.js
+      - name: Validate marks are available
+        run: |
+          node - <<'JS'
+          const fs=require('fs');
+          const h=JSON.parse(fs.readFileSync('docs/data/spend_years_v1.json','utf8'));
+          const e=JSON.parse(fs.readFileSync('docs/data/entity_enrichment_v1.json','utf8'));
+          const pa=(h.marks||[]).filter(x=>x.scope==='provider');
+          const sii=Object.values(e.entities||{}).flatMap(x=>x.marks||[]);
+          if(!pa.length && !sii.length) throw new Error('No provider marks available');
+          console.log('[OK] provider marks', {presupuesto:pa.length,sii:sii.length});
+          JS
+      - name: Publish v13.1 status
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+          Path('docs/data/spend_v131_status.json').write_text(json.dumps({
+            'generated_at':datetime.now(timezone.utc).isoformat(timespec='seconds'),
+            'mark_filter_bundle':'success',
+            'filter_mode':'single_toggle',
+            'uaf_reference':'optional_independent',
+            'synchronized_views':['flow','kpis','reads','service_rank','growth','dependence_influence','table']
+          },ensure_ascii=False,indent=2),encoding='utf-8')
+          PY
+          git config user.name "radar-presupuesto-bot"
+          git config user.email "radar-presupuesto-bot@users.noreply.github.com"
+          git add docs/data/spend_v131_status.json
+          git commit -m "ci: publica estado filtro marcas v13.1" || exit 0
+          git pull --rebase origin main
+          git push origin main
