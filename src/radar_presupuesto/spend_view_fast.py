@@ -143,9 +143,25 @@ def materialize_light_facts(raw_paths: list[str], output: str) -> dict:
 def build_fast_spend_view(raw_paths: list[str], output: str = "docs/data/spend_view_v2.json") -> dict:
     light = "data/processed/spend_view_light.parquet"
     meta = materialize_light_facts(raw_paths, light)
-    payload = build_spend_view_v2(light, output=output, prioritized_path=None)
+    # Mantiene todos los servicios del universo L12, pero limita el detalle inicial
+    # proveedor-relación para que GitHub Pages pueda cargar y renderizar la vista sin
+    # bloquear el navegador. El universo completo sigue resumido en overview/services.
+    payload = build_spend_view_v2(
+        light,
+        output=output,
+        prioritized_path=None,
+        service_limit=1600,
+        provider_limit=1000,
+        flow_limit=3200,
+        flows_per_service=3,
+    )
     payload.setdefault("source", {})["ui_staging"] = "LIGHT_CANONICAL_FACT"
     payload["source"]["ui_staging_rows"] = meta["rows"]
+    payload["source"]["ui_payload"] = "FAST_INITIAL_VIEW"
+    payload["source"]["ui_note"] = (
+        "La carga inicial conserva todos los servicios L12 y publica una selección "
+        "acotada de relaciones principales para evitar bloquear el navegador."
+    )
     Path(output).write_text(
         __import__("json").dumps(payload, ensure_ascii=False, separators=(",", ":"), default=str),
         encoding="utf-8",
