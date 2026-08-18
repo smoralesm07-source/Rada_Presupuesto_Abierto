@@ -3,8 +3,19 @@
   "radar_id": "RADAR_PRESUPUESTO",
   "repository": "smoralesm07-source/Rada_Presupuesto_Abierto",
   "implementation_stage": "ADAPTER_PARTIAL",
-  "record_domains": ["TRANSACTION","PUBLIC_BODY","SUPPLIER","SIGNAL","CANDIDATE_MATCH","EVIDENCE"],
-  "native_grain": ["TRANSACTION","ENTITY_X_PERIOD","INVESTIGATION_SIGNAL"],
+  "record_domains": [
+    "TRANSACTION",
+    "PUBLIC_BODY",
+    "SUPPLIER",
+    "SIGNAL",
+    "CANDIDATE_MATCH",
+    "EVIDENCE"
+  ],
+  "native_grain": [
+    "TRANSACTION",
+    "ENTITY_X_PERIOD",
+    "INVESTIGATION_SIGNAL"
+  ],
   "entity_hub": {
     "global_key": "ENT-RUT-{RUT_NORMALIZADO}",
     "valid_rut_required": true,
@@ -12,26 +23,72 @@
     "role_is_identity_independent": true,
     "current_status": "NATIVE_TRANSACTION_INTEROP_READY",
     "local_ids_preserved": true,
-    "roles": ["SUPPLIER","PAYMENT_RECIPIENT","PUBLIC_BODY"],
-    "native_fields": ["entity_id","recipient_entity_id","recipient_id","provider_id","rut_beneficiario","identity_status","identity_method","identity_confidence"],
+    "roles": [
+      "SUPPLIER",
+      "PAYMENT_RECIPIENT",
+      "PUBLIC_BODY"
+    ],
+    "native_fields": [
+      "entity_id",
+      "recipient_entity_id",
+      "recipient_id",
+      "provider_id",
+      "rut_beneficiario",
+      "identity_status",
+      "identity_method",
+      "identity_confidence"
+    ],
     "catalog_path": "docs/data/interop_catalog_v1.json"
   },
   "territory": {
     "region_key": "CL-REG-{CODIGO_REGION}",
     "commune_key": "CL-COM-{CODIGO_COMUNA}",
     "name_is_not_key": true,
-    "current_status": "ADAPTER_PARTIAL"
+    "current_status": "ADAPTER_PARTIAL",
+    "region_resolution": "SOURCE_REGION_FIELD_OR_GEOGRAPHIC_CODE_PREFIX_ELSE_UNKNOWN"
   },
   "sector": {
-    "mapping_statuses": ["VALIDATED_EXACT","VALIDATED_RULE","EMPIRICAL_CANDIDATE","AMBIGUOUS","NO_EQUIVALENCE"],
+    "mapping_statuses": [
+      "VALIDATED_EXACT",
+      "VALIDATED_RULE",
+      "EMPIRICAL_CANDIDATE",
+      "AMBIGUOUS",
+      "NO_EQUIVALENCE"
+    ],
     "legal_caution": "SII_ACTIVITY_DOES_NOT_PROVE_UAF_OBLIGED_STATUS",
     "current_status": "REFERENCE_VIA_ENTITY_ENRICHMENT",
-    "strong_membership_allowed": ["VALIDATED_EXACT","VALIDATED_RULE"]
+    "strong_membership_allowed": [
+      "VALIDATED_EXACT",
+      "VALIDATED_RULE"
+    ]
   },
   "temporal_evidence": {
-    "time_fields": ["observed_from","observed_to","source_published_at","retrieved_at","last_seen_at","last_successful_refresh_at"],
-    "evidence_fields": ["evidence_id","source_id","source_url","ultimate_source_id","source_tier","capture_method","source_run_id","content_sha256","quality_status","schema_version"],
-    "freshness_states": ["CURRENT","DUE","STALE","UNKNOWN"],
+    "time_fields": [
+      "observed_from",
+      "observed_to",
+      "source_published_at",
+      "retrieved_at",
+      "last_seen_at",
+      "last_successful_refresh_at"
+    ],
+    "evidence_fields": [
+      "evidence_id",
+      "source_id",
+      "source_url",
+      "ultimate_source_id",
+      "source_tier",
+      "capture_method",
+      "source_run_id",
+      "content_sha256",
+      "quality_status",
+      "schema_version"
+    ],
+    "freshness_states": [
+      "CURRENT",
+      "DUE",
+      "STALE",
+      "UNKNOWN"
+    ],
     "source_failure_is_zero": false,
     "preserve_last_known_good": true,
     "candidate_matches_are_proof": false,
@@ -40,16 +97,52 @@
   "scores": {
     "common_risk_score": false,
     "policy": "RADAR_SPECIFIC_ONLY",
-    "required_metadata": ["score_name","score_value","score_version","score_scope"],
+    "required_metadata": [
+      "score_name",
+      "score_value",
+      "score_version",
+      "score_scope"
+    ],
     "native_score_name": "priority_score",
     "native_score_semantics": "INVESTIGATION_PRIORITY_ONLY",
-    "native_scope": ["TRANSACTION","INVESTIGATION_SIGNAL"]
+    "native_scope": [
+      "TRANSACTION",
+      "INVESTIGATION_SIGNAL"
+    ],
+    "additional_scores": [
+      {
+        "score_name": "anomaly_score",
+        "score_semantics": "PROVIDER_PATTERN_ATYPICALITY_PRIORITY_ONLY",
+        "score_version": "spend_view_v1",
+        "score_scope": [
+          "SUPPLIER"
+        ],
+        "explainability": "NAMED_WEIGHTED_CONTRIBUTIONS_WITH_ALTERNATIVE_READING",
+        "not_a_risk_score": true
+      }
+    ]
   },
   "exports": [
-    {"path":"docs/data/interop_catalog_v1.json","purpose":"machine-readable interoperability catalog"},
-    {"path":"data/processed/transactions_*.parquet","purpose":"transactions with native Entity Hub fields"},
-    {"path":"docs/data/","purpose":"compact consumer outputs and correlations"},
-    {"path":"GitHub Actions artifacts","purpose":"heavy regenerated data products"}
+    {
+      "path": "docs/data/interop_catalog_v1.json",
+      "purpose": "machine-readable interoperability catalog"
+    },
+    {
+      "path": "data/processed/transactions_*.parquet",
+      "purpose": "transactions with native Entity Hub fields"
+    },
+    {
+      "path": "docs/data/",
+      "purpose": "compact consumer outputs and correlations"
+    },
+    {
+      "path": "GitHub Actions artifacts",
+      "purpose": "heavy regenerated data products"
+    },
+    {
+      "path": "docs/data/spend_view_v1.json",
+      "purpose": "spend execution, territorial concentration and supplier atypicality view (PRESUPUESTO_SPEND_VIEW_V1)"
+    }
   ],
   "consumer_contract": {
     "manifest_path": "interop/integration_manifest_v1.json",

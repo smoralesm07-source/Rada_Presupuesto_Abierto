@@ -53,6 +53,12 @@ jobs:
           assert Path('data/signals/prioritized_signals.parquet').exists()
           assert c['links'] == 0 or Path('data/evidence/cgr_evidence_links.parquet').exists()
           assert iq['total_signals'] == d['metrics']['signals']
+          sv=json.load(open('docs/data/spend_view_v1.json'))
+          assert sv['schema'] == 'PRESUPUESTO_SPEND_VIEW_V1'
+          assert sv['mode'] == 'REAL'
+          assert sv['coverage']['transactions'] == d['metrics']['transactions']
+          assert sv['territory']['regions']
+          print('Spend view:', {k: sv['coverage'][k] for k in ('transactions','providers','devengado_clp','region_resolved_share')})
           assert c['status'] in ('OK','NO_CGR_DATA')
           print(json.dumps(d['metrics'], ensure_ascii=False, indent=2))
           print('Snapshots:', years)
@@ -83,11 +89,12 @@ jobs:
             docs/data/coverage.json
             docs/data/quality.json
             docs/data/snapshot_manifest.json
+            docs/data/spend_view_v1.json
       - name: Publish compact operational summaries
         run: |
           git config user.name "radar-presupuesto-bot"
           git config user.email "radar-presupuesto-bot@users.noreply.github.com"
-          git add docs/data/dashboard.json docs/data/investigation_queue.json docs/data/cgr_correlation.json docs/data/source_catalog.json docs/data/coverage.json docs/data/quality.json docs/data/snapshot_manifest.json
+          git add docs/data/dashboard.json docs/data/investigation_queue.json docs/data/cgr_correlation.json docs/data/source_catalog.json docs/data/coverage.json docs/data/quality.json docs/data/snapshot_manifest.json docs/data/spend_view_v1.json
           if git diff --cached --quiet; then exit 0; fi
           git commit -m "radar: corrida operacional 2024-2026 v0.3"
           git pull --rebase origin main

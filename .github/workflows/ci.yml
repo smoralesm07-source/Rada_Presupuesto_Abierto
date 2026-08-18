@@ -30,7 +30,30 @@ jobs:
           assert q['transaction_id_collision_ratio'] == 0
           assert q['distinct_transaction_ids'] == q['rows']
           assert iq['total_signals'] == d['metrics']['signals']
+          sv=json.load(open('docs/data/spend_view_v1.json'))
+          assert sv['schema'] == 'PRESUPUESTO_SPEND_VIEW_V1'
+          assert sv['coverage']['transactions'] == d['metrics']['transactions']
+          assert sv['territory']['regions'], 'la vista territorial no puede quedar vacía'
+          assert sv['headline_indicators'] and sv['guardrails']
+          weights=sv['providers']['score_weights']
+          assert sum(weights.values()) == 100, weights
+          for p in sv['providers']['anomalous']:
+              assert p['anomaly_score'] <= 100
+              assert p['reasons'], 'todo proveedor listado debe traer contribuciones explicables'
           print('Priority tiers:', iq['priority_tiers'])
+          print('Spend view regions:', len(sv['territory']['regions']))
+          PY
+      - name: Demo spend view artifact stays reproducible
+        run: |
+          PYTHONPATH=src python scripts/build_demo_spend_view.py --work-dir /tmp/demo --output /tmp/spend_view_demo_v1.json
+          python - <<'PY'
+          import json
+          demo=json.load(open('/tmp/spend_view_demo_v1.json'))
+          published=json.load(open('docs/data/spend_view_demo_v1.json'))
+          assert demo['mode'] == published['mode'] == 'DEMO_SYNTHETIC'
+          assert demo['coverage']['transactions'] == published['coverage']['transactions'], 'la demo dejó de ser determinista'
+          assert demo['coverage']['devengado_clp'] == published['coverage']['devengado_clp']
+          print('Demo transactions:', demo['coverage']['transactions'])
           PY
       - name: Official source smoke test
         run: |

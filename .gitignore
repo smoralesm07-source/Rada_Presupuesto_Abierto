@@ -16,3 +16,7 @@ data/signals/*
 *.parquet
 *.gz
 .DS_Store
+data/demo/
+dist/
+build/
+*.egg-info/

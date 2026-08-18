@@ -20,6 +20,7 @@ from .prioritization import prioritize_signals
 from .quality import audit_quality
 from .search import build_fts, build_fts_from_parquet
 from .source_discovery import write_catalog
+from .spend_view import build_spend_view
 
 AVAILABLE_SOURCE_STATUSES = {"linked", "linked_available", "probed_available"}
 DEFAULT_CGR_DIR = "external/radar-cgr/data/silver"
@@ -100,7 +101,18 @@ def _run_analytics(parquet_glob: str, cfg: dict, cgr_dir: str) -> dict:
         prioritized_path="data/signals/prioritized_signals.parquet",
         cgr_json="docs/data/cgr_correlation.json",
     )
-    return {"base": base, "extended": extended, "cgr": cgr, "queue": queue, "dashboard": dashboard}
+    spend = build_spend_view(
+        parquet_glob,
+        prioritized_path="data/signals/prioritized_signals.parquet",
+    )
+    return {
+        "base": base,
+        "extended": extended,
+        "cgr": cgr,
+        "queue": queue,
+        "dashboard": dashboard,
+        "spend_view": spend,
+    }
 
 
 def run_sample(sample: str, cgr_dir: str = DEFAULT_CGR_DIR) -> None:
@@ -114,7 +126,7 @@ def run_sample(sample: str, cgr_dir: str = DEFAULT_CGR_DIR) -> None:
     if quality["transaction_id_collision_ratio"] != 0:
         raise RuntimeError("transaction_id debe ser único para cada fila fuente")
     result = _run_analytics(parquet, load_config(), cgr_dir)
-    print(f"[OK] muestra: {len(df):,} filas | señales={result['extended']['signals']:,} | prioridad={result['queue']['priority_tiers']}")
+    print(f"[OK] muestra: {len(df):,} filas | señales={result['extended']['signals']:,} | prioridad={result['queue']['priority_tiers']} | vista de ejecución={len(result['spend_view']['territory']['regions'])} región(es)")
 
 
 def run_years(years: list[int], build_search_index: bool = True, cgr_dir: str = DEFAULT_CGR_DIR) -> None:
@@ -150,6 +162,8 @@ def run_years(years: list[int], build_search_index: bool = True, cgr_dir: str = 
     print(f"[OK] señales operativas: {result['extended']['signals']:,} | {result['extended']['by_type']}")
     print(f"[OK] CGR: {result['cgr']['status']} | enlaces candidatos={result['cgr']['links']:,} | con hallazgos={result['cgr']['links_with_findings']:,}")
     print(f"[OK] cola investigativa: {result['queue']['priority_tiers']}")
+    spend = result["spend_view"]
+    print(f"[OK] vista de ejecución: regiones={len(spend['territory']['regions'])} | proveedores atípicos={len(spend['providers']['anomalous']):,} | entrantes materiales={len(spend['new_providers'].get('material', [])):,} | alertas={len(spend['alerts'])}")
 
     if build_search_index:
         indexed = build_fts_from_parquet(glob, "data/index/search.sqlite")

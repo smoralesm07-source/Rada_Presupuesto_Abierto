@@ -1,0 +1,1106 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Módulo de Ejecución y Pagos del Estado · Radar Presupuesto Abierto</title>
+<meta name="description" content="Vista analítica de ejecución presupuestaria, concentración territorial del gasto, proveedores atípicos y entrantes nuevos con adjudicación material.">
+<style>
+:root{
+  --bg:#f3f4f6;--panel:#fff;--ink:#20242a;--muted:#6c727c;--line:#e2e5e9;--soft:#f8f8f9;
+  --accent:#e87524;--dark:#292e34;--alert:#a83d27;--watch:#a9651f;--ok:#376b52;--info:#3a5a78;
+  --p1:#8e2f20;--p2:#a9651f;--p3:#5d6670;
+  --radius:14px;--shadow:0 2px 8px #00000008;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;overflow-x:hidden;background:var(--bg);color:var(--ink);font:14px/1.45 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1640px;margin:auto;padding:22px}
+a{color:var(--info)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+.eyebrow{font-size:11px;font-weight:850;letter-spacing:.14em;color:var(--accent);text-transform:uppercase}
+h1{margin:5px 0 4px;font-size:29px;letter-spacing:-.01em}
+h2{margin:0;font-size:17px}
+.sub{color:var(--muted);max-width:1020px}
+.section-title{font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.small{font-size:12px;color:var(--muted)}
+.mono{font:11px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted)}
+
+/* ---------- encabezado y navegación ---------- */
+.top{display:flex;justify-content:space-between;gap:22px;align-items:flex-end;flex-wrap:wrap}
+.pill{background:var(--dark);color:#fff;padding:8px 13px;border-radius:999px;font-size:12px;white-space:nowrap}
+.pill.warn{background:var(--watch)}
+.topmeta{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+nav.sections{position:sticky;top:0;z-index:20;background:#f3f4f6ee;backdrop-filter:blur(6px);border-bottom:1px solid var(--line);margin:16px -22px 0;padding:9px 22px;display:flex;gap:6px;overflow-x:auto}
+nav.sections a{color:var(--ink);text-decoration:none;font-size:12px;font-weight:700;padding:7px 11px;border-radius:999px;white-space:nowrap;border:1px solid transparent}
+nav.sections a:hover{background:#fff;border-color:var(--line)}
+.banner{margin-top:14px;border-radius:var(--radius);padding:12px 14px;font-size:13px;border:1px solid #f2d5bd;background:#fff8f1}
+.banner.demo{border-color:#e0c48f;background:#fff6e2}
+.banner b{display:block;margin-bottom:2px}
+
+/* ---------- indicadores ---------- */
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:16px 0}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:13px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.kpi:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--line)}
+.kpi.tone-watch:before{background:var(--watch)}
+.kpi.tone-alert:before{background:var(--alert)}
+.kpi .v{font-size:21px;font-weight:800;letter-spacing:-.02em;display:block;margin-bottom:1px}
+.kpi .l{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:750}
+.kpi .h{display:block;font-size:11px;color:var(--muted);margin-top:5px;line-height:1.35}
+
+/* ---------- alertas ---------- */
+.alerts{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:10px;margin-bottom:16px}
+.alert-card{border-left:3px solid var(--info);background:var(--panel);border:1px solid var(--line);border-left-width:3px;border-radius:var(--radius);padding:13px;box-shadow:var(--shadow)}
+.alert-card.ALERT{border-left-color:var(--alert)}
+.alert-card.WATCH{border-left-color:var(--watch)}
+.alert-card.INFO{border-left-color:var(--info)}
+.alert-card b{display:block;font-size:13.5px;margin-bottom:4px}
+.alert-card p{margin:0;font-size:12px;color:#4d535b}
+
+/* ---------- bloques ---------- */
+section{margin:22px 0}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;margin-bottom:10px;flex-wrap:wrap}
+.grid2{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:14px}
+.grid-terr{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:14px}
+.controls{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+button.chip,select,input[type=search],input[type=text]{font:inherit;font-size:12px;border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 11px;color:var(--ink)}
+button.chip{cursor:pointer;font-weight:700}
+button.chip:hover{border-color:var(--accent)}
+button.chip[aria-pressed=true]{background:var(--dark);color:#fff;border-color:var(--dark)}
+button.link{background:none;border:none;color:var(--info);font:inherit;font-size:12px;cursor:pointer;text-decoration:underline;padding:0}
+
+/* ---------- tablas ---------- */
+.table-wrap{overflow:auto;max-height:620px;border-radius:10px;border:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{text-align:left;border-bottom:1px solid var(--line);padding:9px 10px;vertical-align:top}
+th{position:sticky;top:0;background:#fafafa;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);z-index:1;cursor:pointer;white-space:nowrap}
+th.no-sort{cursor:default}
+tbody tr:hover{background:#fcfbfa}
+tbody tr.clickable{cursor:pointer}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.entity{font-weight:700}
+.id{display:block;color:var(--muted);font:10px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;margin-top:2px}
+.badge{font-size:10px;font-weight:850;border-radius:99px;padding:3px 7px;display:inline-block;background:#eee;white-space:nowrap}
+.tier-A1{background:#f7dfda;color:var(--p1)}
+.tier-A2{background:#ffecd8;color:var(--p2)}
+.tier-A3{background:#eceff1;color:var(--p3)}
+.badge.P1{background:#f7dfda;color:var(--p1)}
+.badge.P2{background:#ffecd8;color:var(--p2)}
+.badge.P3{background:#eceff1;color:var(--p3)}
+
+/* ---------- micro visualizaciones ---------- */
+.meter{height:7px;border-radius:99px;background:#eceff1;overflow:hidden;min-width:70px}
+.meter i{display:block;height:100%;background:var(--accent)}
+.stack{display:flex;height:9px;border-radius:99px;overflow:hidden;background:#eceff1;min-width:110px}
+.stack i{display:block;height:100%}
+.score{font-size:17px;font-weight:850;font-variant-numeric:tabular-nums}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-top:8px}
+.legend span{display:flex;gap:5px;align-items:center}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+svg{display:block;width:100%;height:auto;overflow:visible}
+#chartLorenz svg{max-width:320px;margin:0 auto}
+.axis{font-size:10px;fill:var(--muted)}
+.gridline{stroke:var(--line);stroke-width:1}
+
+/* ---------- franja territorial ---------- */
+.strip{display:grid;gap:3px}
+.strip-row{display:grid;grid-template-columns:44px minmax(120px,1.15fr) minmax(0,3fr) 92px;gap:9px;align-items:center;padding:4px 6px;border-radius:8px;cursor:pointer;border:1px solid transparent}
+.strip-row:hover{background:var(--soft);border-color:var(--line)}
+.strip-row[aria-selected=true]{background:#fff8f1;border-color:#f2d5bd}
+.abbr{font:11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:800;background:var(--dark);color:#fff;border-radius:6px;padding:6px 5px;text-align:center}
+.abbr.unknown{background:var(--p3)}
+.strip-name{font-size:12.5px;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.strip-bar{height:15px;background:#eceff1;border-radius:5px;overflow:hidden}
+.strip-bar i{display:block;height:100%;background:linear-gradient(90deg,#e8752499,#e87524)}
+.strip-val{font-size:12px;font-variant-numeric:tabular-nums;text-align:right;font-weight:700}
+
+/* ---------- panel lateral / drawer ---------- */
+.drawer{position:fixed;visibility:hidden;inset:0 0 0 auto;width:min(560px,100%);background:#fff;border-left:1px solid var(--line);box-shadow:-12px 0 40px #0000001a;padding:20px;overflow:auto;transform:translateX(100%);transition:transform .18s ease;z-index:60}
+.drawer[open]{visibility:visible;transform:translateX(0)}
+.drawer-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}
+.reason{border:1px solid var(--line);border-radius:11px;padding:11px;margin-bottom:8px;background:var(--soft)}
+.reason .rh{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.reason b{font-size:12.5px}
+.reason .w{font-size:12px;font-weight:850;color:var(--accent);font-variant-numeric:tabular-nums}
+.reason p{margin:5px 0 0;font-size:12px;color:#4d535b}
+.reason .alt{margin-top:6px;font-size:11.5px;color:var(--muted);border-left:2px solid var(--line);padding-left:8px}
+.kv{display:grid;grid-template-columns:1fr auto;gap:4px 10px;font-size:12px;margin-top:8px}
+.kv div:nth-child(odd){color:var(--muted)}
+.kv div:nth-child(even){font-variant-numeric:tabular-nums;font-weight:650;text-align:right}
+.scrim{position:fixed;inset:0;background:#20242a55;z-index:50;display:none}
+.scrim[open]{display:block}
+
+/* ---------- método ---------- */
+.method-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px}
+.def{border:1px solid var(--line);border-radius:11px;padding:11px;background:var(--soft)}
+.def b{font-size:12.5px}
+.def p{margin:4px 0 0;font-size:12px;color:#4d535b}
+.guardrails{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.guardrails span{font-size:10.5px;font-weight:750;background:#eceff1;color:var(--p3);border-radius:99px;padding:4px 9px}
+footer{margin:26px 0 10px;color:var(--muted);font-size:11.5px;line-height:1.6}
+
+@media(max-width:1250px){.kpis{grid-template-columns:repeat(3,1fr)}.grid2,.grid-terr{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:700px){
+  .wrap{padding:14px}.kpis{grid-template-columns:repeat(2,1fr)}h1{font-size:23px}
+  .strip-row{grid-template-columns:38px 1fr 74px;grid-template-areas:"a n v" "a b v"}
+  .strip-row .abbr{grid-area:a}.strip-row .strip-name{grid-area:n}.strip-row .strip-bar{grid-area:b}.strip-row .strip-val{grid-area:v}
+  nav.sections{margin:14px -14px 0;padding:8px 14px}
+}
+@media print{nav.sections,.controls,.drawer,.scrim{display:none}body{background:#fff}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <div class="eyebrow">Radar Presupuesto Abierto · módulo analítico</div>
+      <h1>Ejecución y pagos del Estado a terceros</h1>
+      <p class="sub">Ritmo de ejecución → concentración territorial → dependencia comprador/proveedor → proveedores atípicos y entrantes nuevos → patrones de calendario y documentación. Todo indicador de esta vista ordena trabajo analítico: <b>no califica delitos, no estima riesgo LA/FT y no sustituye la verificación documental</b>.</p>
+    </div>
+    <div class="topmeta">
+      <span class="pill" id="periodPill">Cargando…</span>
+      <span class="pill" id="modePill" hidden>—</span>
+    </div>
+  </header>
+
+  <nav class="sections" aria-label="Secciones del módulo">
+    <a href="#ejecucion">Ejecución</a>
+    <a href="#territorio">Territorio</a>
+    <a href="#proveedores">Proveedores atípicos</a>
+    <a href="#nuevos">Entrantes nuevos</a>
+    <a href="#organismos">Organismos</a>
+    <a href="#patrones">Patrones</a>
+    <a href="#metodo">Método y umbrales</a>
+  </nav>
+
+  <div id="stateBanner" class="banner" role="status">Cargando vista de ejecución…</div>
+
+  <section id="indicadores" aria-label="Indicadores de lectura ágil">
+    <div class="kpis" id="kpis"></div>
+    <div class="alerts" id="alerts"></div>
+  </section>
+
+  <section id="ejecucion">
+    <div class="head">
+      <div>
+        <h2>Ritmo de ejecución</h2>
+        <p class="small">Flujo devengado y pagado efectivamente observado. La fuente no publica presupuesto vigente por organismo, de modo que aquí no existe “% de avance sobre la Ley de Presupuestos”: se lee ritmo, estacionalidad y cierre de año.</p>
+      </div>
+      <div class="controls" id="execControls"></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="section-title">Devengado mensual y curva acumulada</div>
+        <div id="chartMonthly"></div>
+        <div class="legend" id="legendMonthly"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">Cierre de año y caja por período</div>
+        <div class="table-wrap" style="max-height:none">
+          <table id="tblYears"><thead><tr>
+            <th class="no-sort">Período</th><th class="num no-sort">Devengado</th><th class="num no-sort">Pag./dev.</th>
+            <th class="num no-sort">Diciembre</th><th class="num no-sort">Q4</th><th class="num no-sort">Días pago</th><th class="num no-sort">Prov.</th>
+          </tr></thead><tbody></tbody></table>
+        </div>
+        <p class="small" style="margin-top:9px">Referencia de reparto uniforme: 8,3% mensual. Un diciembre muy sobre esa referencia concentra decisiones de gasto en el cierre, lo que es legítimo pero reduce el tiempo de control previo.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="territorio">
+    <div class="head">
+      <div>
+        <h2>Concentración del gasto por región</h2>
+        <p class="small">Franja nacional norte→sur. El volumen de gasto mide exposición y tamaño del Estado en el territorio, no irregularidad: por eso las métricas de atipicidad se muestran normalizadas por transacciones.</p>
+      </div>
+      <div class="controls" id="regionControls"></div>
+    </div>
+    <div class="grid-terr">
+      <div class="card">
+        <div class="section-title" id="stripTitle">Distribución nacional</div>
+        <div class="strip" id="strip" role="listbox" aria-label="Regiones ordenadas de norte a sur"></div>
+        <p class="small" style="margin-top:9px">Selecciona una región para ver su ficha comparada.</p>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="section-title">Curva de Lorenz territorial</div>
+          <div id="chartLorenz"></div>
+          <div class="kv" id="concKv"></div>
+        </div>
+        <div class="card" id="regionDetail">
+          <div class="section-title">Ficha regional</div>
+          <p class="small">Selecciona una región en la franja para comparar su participación, su concentración de proveedores y su intensidad de señales.</p>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div class="section-title">Macrozonas y clasificadores presupuestarios</div>
+      <div class="grid2" style="margin-top:8px">
+        <div id="chartMacro"></div>
+        <div id="chartSubtitles"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="proveedores">
+    <div class="head">
+      <div>
+        <h2>Proveedores con patrones atípicos</h2>
+        <p class="small">Score 0–100 construido por suma de contribuciones nombradas. Cada contribución trae su métrica y su lectura alternativa, para que descartarla sea tan barato como confirmarla.</p>
+      </div>
+      <div class="controls" id="providerControls"></div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table id="tblProviders"><thead><tr>
+          <th class="no-sort">Score</th>
+          <th data-sort="provider_name">Proveedor</th>
+          <th class="num" data-sort="amount_clp">Devengado</th>
+          <th class="num" data-sort="transactions">Pagos</th>
+          <th class="num" data-sort="organizations">Organismos</th>
+          <th class="num" data-sort="max_share_of_buyer">Peso en su comprador</th>
+          <th class="num" data-sort="top_client_share">Dependencia</th>
+          <th class="num" data-sort="december_share">Diciembre</th>
+          <th class="num" data-sort="missing_oc_share">Sin OC</th>
+          <th class="num" data-sort="days_to_pay_median">Días pago</th>
+          <th class="no-sort">Contribuciones</th>
+        </tr></thead><tbody></tbody></table>
+      </div>
+      <div class="legend" id="legendReasons"></div>
+    </div>
+  </section>
+
+  <section id="nuevos">
+    <div class="head">
+      <div>
+        <h2>Entrantes nuevos con adjudicación material</h2>
+        <p class="small" id="newSubtitle">Proveedores cuya primera aparición ocurre en el último año de la serie procesada y cuyo monto supera el corte del propio cohorte de entrantes.</p>
+      </div>
+      <div class="controls" id="newControls"></div>
+    </div>
+    <div class="card">
+      <div class="banner" style="margin:0 0 12px">
+        <b>Lectura obligada</b>“Nuevo en la serie” no equivale a empresa recién constituida ni a irregularidad: puede reflejar rotación de proveedor, licitación reciente o cobertura histórica incompleta de la serie procesada. La verificación mínima es primera adjudicación, antigüedad societaria y capacidad declarada.
+      </div>
+      <div class="table-wrap">
+        <table id="tblNew"><thead><tr>
+          <th data-sort="provider_name">Proveedor</th>
+          <th class="num" data-sort="amount_clp">Devengado</th>
+          <th class="num" data-sort="share_of_new_cohort">% del cohorte</th>
+          <th class="num" data-sort="transactions">Pagos</th>
+          <th class="num" data-sort="months_active">Meses activos</th>
+          <th class="num" data-sort="organizations">Organismos</th>
+          <th class="no-sort">Principal comprador</th>
+          <th class="num" data-sort="missing_oc_share">Sin OC</th>
+          <th class="num" data-sort="anomaly_score">Score</th>
+        </tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <section id="organismos">
+    <div class="head">
+      <div>
+        <h2>Organismos compradores</h2>
+        <p class="small">Tamaño del gasto, dependencia de proveedor dominante (HHI y participación del primero), brecha documental y señales acumuladas.</p>
+      </div>
+      <div class="controls" id="orgControls"></div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table id="tblOrgs"><thead><tr>
+          <th data-sort="organization_name">Organismo</th>
+          <th class="num" data-sort="devengado">Devengado</th>
+          <th class="num" data-sort="share_of_national">% nacional</th>
+          <th class="num" data-sort="providers">Proveedores</th>
+          <th class="num" data-sort="provider_hhi">HHI proveedor</th>
+          <th class="no-sort">Proveedor dominante</th>
+          <th class="num" data-sort="top_provider_share">Su peso</th>
+          <th class="num" data-sort="december_share">Diciembre</th>
+          <th class="num" data-sort="missing_oc_share">Sin OC</th>
+          <th class="num" data-sort="p1_signals">P1</th>
+        </tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <section id="patrones">
+    <div class="head"><div><h2>Patrones transversales</h2>
+      <p class="small">Composición del gasto y calidad documental a escala nacional, más los organismos donde se acumulan señales de fraccionamiento, duplicado candidato y cierre de año.</p></div></div>
+    <div class="grid2">
+      <div class="card">
+        <div class="section-title">Composición y calidad documental</div>
+        <div id="shareBars"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">Dónde se acumulan las señales</div>
+        <div id="patternTables"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="metodo">
+    <div class="head"><div><h2>Método, umbrales y límites</h2>
+      <p class="small">Todo umbral es una decisión analítica explícita: cambia el ordenamiento de la vista, nunca la semántica del dato fuente.</p></div>
+      <div class="controls"><button class="chip" id="btnPrint">Imprimir / PDF</button></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Catálogo de indicadores</div>
+      <div class="method-grid" id="catalog" style="margin-top:9px"></div>
+      <div class="section-title" style="margin-top:16px">Umbrales aplicados en esta corrida</div>
+      <div class="method-grid" id="thresholds" style="margin-top:9px"></div>
+      <div class="section-title" style="margin-top:16px">Guardarraíles de interpretación</div>
+      <div class="guardrails" id="guardrails"></div>
+      <div class="section-title" style="margin-top:16px">Cobertura del artefacto</div>
+      <div class="kv" id="coverageKv"></div>
+    </div>
+  </section>
+
+  <footer>
+    Fuente: pagos de <a href="https://api.presupuestoabierto.gob.cl/about-data" rel="noreferrer noopener">Presupuesto Abierto (DIPRES)</a>, normalizados por Radar Presupuesto Abierto.
+    Las señales reutilizadas provienen de la cola de investigación del radar; este módulo no crea señales nuevas.
+    <br>Volver al <a href="index.html">tablero de investigación</a>.
+  </footer>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true" aria-label="Ficha de detalle"></aside>
+
+<script>
+(() => {
+"use strict";
+
+/* ============================ utilidades ============================ */
+const NF = new Intl.NumberFormat('es-CL');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const num = v => (v === null || v === undefined || v === '' || Number.isNaN(Number(v))) ? null : Number(v);
+const fmtInt = v => num(v) === null ? '—' : NF.format(Math.round(num(v)));
+const fmtPct = (v, d = 1) => num(v) === null ? '—' : new Intl.NumberFormat('es-CL', {style:'percent', maximumFractionDigits:d}).format(num(v));
+const fmtDays = v => num(v) === null ? '—' : `${NF.format(Math.round(num(v)))} d`;
+const fmtRatio = (v, d = 2) => num(v) === null ? '—' : new Intl.NumberFormat('es-CL', {maximumFractionDigits:d}).format(num(v));
+function fmtMoney(v){
+  const n = num(v);
+  if (n === null) return '—';
+  const abs = Math.abs(n);
+  if (abs >= 1e12) return `$${fmtRatio(n/1e12, 2)} bill.`;
+  if (abs >= 1e9)  return `$${fmtRatio(n/1e9, 1)} mil M`;
+  if (abs >= 1e6)  return `$${fmtRatio(n/1e6, 1)} M`;
+  return `$${fmtInt(n)}`;
+}
+const fmtMoneyFull = v => num(v) === null ? '—' : `$${fmtInt(v)}`;
+const fmtBy = (v, format) => ({money:fmtMoney, percent:fmtPct, integer:fmtInt, days:fmtDays, ratio:fmtRatio}[format] || fmtInt)(v);
+const el = (id) => document.getElementById(id);
+const byDesc = key => (a, b) => (num(b[key]) ?? -Infinity) - (num(a[key]) ?? -Infinity);
+
+function download(name, text, type='text/csv;charset=utf-8'){
+  const url = URL.createObjectURL(new Blob(['﻿' + text], {type}));
+  const a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+function toCsv(rows, columns){
+  const cell = v => {
+    const s = v === null || v === undefined ? '' : (Array.isArray(v) ? v.join(' | ') : String(v));
+    return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  return [columns.map(c => cell(c.label)).join(';')]
+    .concat(rows.map(r => columns.map(c => cell(typeof c.get === 'function' ? c.get(r) : r[c.key])).join(';')))
+    .join('\n');
+}
+function exportButton(label, filename, getRows, columns){
+  const b = document.createElement('button');
+  b.className = 'chip'; b.textContent = label;
+  b.addEventListener('click', () => download(filename, toCsv(getRows(), columns)));
+  return b;
+}
+
+/* Colores estables por tipo de contribución del score. */
+const REASON_COLOR = {
+  CONCENTRA_GASTO_DEL_COMPRADOR:'#a83d27', NUEVO_CON_MONTO_MATERIAL:'#e87524',
+  DEPENDENCIA_DE_UN_COMPRADOR:'#a9651f', CONCENTRACION_EN_DICIEMBRE:'#7d6a3c',
+  SIN_ORDEN_DE_COMPRA:'#3a5a78', SENAL_FRACCIONAMIENTO_O_DUPLICADO:'#5b4b8a',
+  MONTOS_REDONDOS:'#376b52', PAGO_ACELERADO:'#2f7d8c', MONTO_ATIPICO:'#8e2f20', ENLACE_CGR:'#5d6670'
+};
+const reasonColor = code => REASON_COLOR[code] || '#5d6670';
+
+/* ============================== estado ============================== */
+const state = {
+  data: null, mode: 'REAL', source: '',
+  execYear: null, execMetric: 'devengado',
+  regionMetric: 'share_of_national', selectedRegion: null,
+  providerQuery: '', providerTier: '', providerReason: '', providerSort: {key:'anomaly_score', dir:-1},
+  newSort: {key:'amount_clp', dir:-1}, orgSort: {key:'devengado', dir:-1}
+};
+
+/* ============================== carga =============================== */
+async function loadFirstAvailable(){
+  const candidates = [
+    {url:'data/spend_view_v1.json', label:'corrida operacional'},
+    {url:'data/spend_view_demo_v1.json', label:'demostración sintética'}
+  ];
+  for (const c of candidates){
+    try {
+      const res = await fetch(c.url, {cache:'no-store'});
+      if (!res.ok) continue;
+      const json = await res.json();
+      if (json && json.schema === 'PRESUPUESTO_SPEND_VIEW_V1') return {json, source:c.url, label:c.label};
+    } catch (e) { /* siguiente candidato */ }
+  }
+  return null;
+}
+
+function bannerState(){
+  const b = el('stateBanner');
+  if (state.mode === 'DEMO_SYNTHETIC'){
+    b.className = 'banner demo';
+    b.innerHTML = '<b>Datos sintéticos de demostración — no son pagos reales del Estado.</b>' +
+      'Esta vista se generó con <code>scripts/build_demo_spend_view.py</code> (semilla fija) para revisar el diseño y validar el motor antes de la próxima corrida nacional. ' +
+      'Cuando el workflow <i>Radar monthly analysis</i> publique <code>docs/data/spend_view_v1.json</code>, la página cambia sola a datos reales.';
+  } else {
+    b.className = 'banner';
+    b.innerHTML = '<b>Cómo leer este módulo.</b>' +
+      'Volumen de gasto = exposición, no irregularidad. Los puntajes ordenan revisión analítica y toda contribución trae su lectura alternativa. ' +
+      'Una coincidencia con hallazgos CGR es relación candidata de entidad y exige verificación documental.';
+  }
+}
+
+/* =========================== indicadores ============================ */
+function renderKpis(){
+  el('kpis').innerHTML = (state.data.headline_indicators || []).map(k => `
+    <div class="kpi tone-${esc(k.tone || 'neutral')}" title="${esc(k.basis || '')}">
+      <span class="v">${fmtBy(k.value, k.format)}</span>
+      <span class="l">${esc(k.label)}</span>
+      <span class="h">${esc(k.hint || '')}</span>
+    </div>`).join('');
+}
+
+function renderAlerts(){
+  const alerts = state.data.alerts || [];
+  el('alerts').innerHTML = alerts.length ? alerts.map(a => `
+    <article class="alert-card ${esc(a.severity)}">
+      <b>${esc(a.title)}</b>
+      <p>${esc(a.detail)}</p>
+    </article>`).join('')
+    : '<article class="alert-card INFO"><b>Sin lecturas destacadas en esta corrida</b><p>Ningún agregado superó los umbrales configurados en <code>config/spend_view.yaml</code>.</p></article>';
+}
+
+/* ============================ ejecución ============================= */
+const MONTHS = ['E','F','M','A','M','J','J','A','S','O','N','D'];
+
+function renderExecControls(){
+  const years = (state.data.execution.by_year || []).map(y => y.periodo);
+  if (state.execYear === null && years.length) state.execYear = years[years.length - 1];
+  const box = el('execControls');
+  box.innerHTML = '';
+  years.forEach(y => {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.textContent = y;
+    b.setAttribute('aria-pressed', String(state.execYear === y));
+    b.addEventListener('click', () => { state.execYear = y; renderExecution(); });
+    box.appendChild(b);
+  });
+  [['devengado','Devengado'], ['pagado','Pagado'], ['transactions','N° de pagos']].forEach(([k, label]) => {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.textContent = label;
+    b.setAttribute('aria-pressed', String(state.execMetric === k));
+    b.addEventListener('click', () => { state.execMetric = k; renderExecution(); });
+    box.appendChild(b);
+  });
+  box.appendChild(exportButton('CSV mensual', 'ejecucion_mensual.csv', () => state.data.execution.monthly, [
+    {label:'periodo', key:'periodo'}, {label:'mes', key:'mes'}, {label:'devengado', key:'devengado'},
+    {label:'pagado', key:'pagado'}, {label:'transacciones', key:'transactions'},
+    {label:'share_del_año', key:'share_of_year'}, {label:'acumulado_share', key:'cumulative_share_of_year'}
+  ]));
+}
+
+function renderMonthlyChart(){
+  const monthly = state.data.execution.monthly || [];
+  const years = [...new Set(monthly.map(m => m.periodo))];
+  const metric = state.execMetric;
+  const W = 720, H = 300, PL = 58, PR = 42, PT = 16, PB = 30;
+  const iw = W - PL - PR, ih = H - PT - PB;
+  const maxVal = Math.max(1, ...monthly.map(m => num(m[metric]) || 0));
+  const x = i => PL + (iw / 12) * (i + 0.5);
+  const y = v => PT + ih - (ih * (num(v) || 0) / maxVal);
+  const colorFor = (yr, i) => yr === state.execYear ? '#e87524' : ['#c9ccd1','#a9adb4','#8d929a'][i % 3];
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Devengado mensual por año">`;
+  for (let g = 0; g <= 4; g++){
+    const gy = PT + (ih / 4) * g;
+    svg += `<line class="gridline" x1="${PL}" y1="${gy}" x2="${W - PR}" y2="${gy}"/>`;
+    svg += `<text class="axis" x="${PL - 8}" y="${gy + 3}" text-anchor="end">${metric === 'transactions' ? fmtInt(maxVal - (maxVal / 4) * g) : fmtMoney(maxVal - (maxVal / 4) * g)}</text>`;
+  }
+  MONTHS.forEach((m, i) => { svg += `<text class="axis" x="${x(i)}" y="${H - PB + 16}" text-anchor="middle">${m}</text>`; });
+
+  // Barras del año seleccionado, líneas para el resto de la serie.
+  years.forEach((yr, idx) => {
+    const rows = monthly.filter(m => m.periodo === yr).sort((a, b) => a.mes - b.mes);
+    if (yr === state.execYear){
+      const bw = Math.max(6, (iw / 12) * 0.52);
+      rows.forEach(r => {
+        const h = Math.max(1, PT + ih - y(r[metric]));
+        svg += `<rect x="${x(r.mes - 1) - bw / 2}" y="${y(r[metric])}" width="${bw}" height="${h}" rx="3" fill="${colorFor(yr, idx)}"><title>${esc(r.month_label)}: ${metric === 'transactions' ? fmtInt(r[metric]) : fmtMoneyFull(r[metric])}</title></rect>`;
+      });
+    } else {
+      const pts = rows.map(r => `${x(r.mes - 1)},${y(r[metric])}`).join(' ');
+      svg += `<polyline points="${pts}" fill="none" stroke="${colorFor(yr, idx)}" stroke-width="1.8" stroke-dasharray="4 3"/>`;
+    }
+  });
+
+  // Curva acumulada del año seleccionado sobre eje derecho 0-100%.
+  const sel = monthly.filter(m => m.periodo === state.execYear).sort((a, b) => a.mes - b.mes);
+  if (sel.length){
+    const yc = s => PT + ih - ih * (num(s) || 0);
+    svg += `<polyline points="${sel.map(r => `${x(r.mes - 1)},${yc(r.cumulative_share_of_year)}`).join(' ')}" fill="none" stroke="#292e34" stroke-width="2"/>`;
+    sel.forEach(r => { svg += `<circle cx="${x(r.mes - 1)}" cy="${yc(r.cumulative_share_of_year)}" r="2.6" fill="#292e34"><title>Acumulado ${esc(r.month_label)}: ${fmtPct(r.cumulative_share_of_year)}</title></circle>`; });
+    [0, .25, .5, .75, 1].forEach(t => {
+      svg += `<text class="axis" x="${W - PR + 8}" y="${yc(t) + 3}">${fmtPct(t, 0)}</text>`;
+    });
+  }
+  svg += '</svg>';
+  el('chartMonthly').innerHTML = svg;
+  el('legendMonthly').innerHTML = years.map((yr, idx) =>
+    `<span><i style="background:${colorFor(yr, idx)}"></i>${yr}${yr === state.execYear ? ' (barras)' : ''}</span>`
+  ).join('') + '<span><i style="background:#292e34"></i>Acumulado del año seleccionado (eje derecho)</span>';
+}
+
+function renderYearTable(){
+  const rows = state.data.execution.by_year || [];
+  el('tblYears').querySelector('tbody').innerHTML = rows.map(r => `
+    <tr>
+      <td><b>${esc(r.periodo)}</b></td>
+      <td class="num">${fmtMoney(r.devengado)}</td>
+      <td class="num">${fmtPct(r.payment_ratio)}</td>
+      <td class="num">${fmtPct(r.december_share)}</td>
+      <td class="num">${fmtPct(r.q4_share)}</td>
+      <td class="num">${fmtDays(r.days_to_pay_median)}</td>
+      <td class="num">${fmtInt(r.providers)}</td>
+    </tr>`).join('') || '<tr><td colspan="7" class="small">Sin períodos en la serie.</td></tr>';
+}
+
+function renderExecution(){ renderExecControls(); renderMonthlyChart(); renderYearTable(); }
+
+/* ============================ territorio ============================ */
+const REGION_METRICS = [
+  {key:'share_of_national', label:'% del devengado', fmt:v => fmtPct(v), higherIsContext:true},
+  {key:'devengado', label:'Devengado', fmt:fmtMoney},
+  {key:'provider_hhi', label:'HHI de proveedores', fmt:v => fmtRatio(v, 3)},
+  {key:'top_provider_share', label:'Peso del proveedor mayor', fmt:v => fmtPct(v)},
+  {key:'p1_per_100k_transactions', label:'Señales P1 / 100k pagos', fmt:v => fmtRatio(v, 2)},
+  {key:'missing_oc_share', label:'Pagos sin OC', fmt:v => fmtPct(v)},
+  {key:'december_share', label:'Peso de diciembre', fmt:v => fmtPct(v)},
+  {key:'amount_per_transaction', label:'Monto por pago', fmt:fmtMoney},
+  {key:'days_to_pay_median', label:'Días de pago (mediana)', fmt:fmtDays}
+];
+
+function renderRegionControls(){
+  const box = el('regionControls');
+  box.innerHTML = '';
+  REGION_METRICS.forEach(m => {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.textContent = m.label;
+    b.setAttribute('aria-pressed', String(state.regionMetric === m.key));
+    b.addEventListener('click', () => { state.regionMetric = m.key; renderTerritory(); });
+    box.appendChild(b);
+  });
+  box.appendChild(exportButton('CSV regiones', 'gasto_por_region.csv', () => state.data.territory.regions, [
+    {label:'region_code', key:'region_code'}, {label:'region', key:'region_name'}, {label:'macrozona', key:'macrozone'},
+    {label:'devengado', key:'devengado'}, {label:'share_nacional', key:'share_of_national'},
+    {label:'transacciones', key:'transactions'}, {label:'proveedores', key:'providers'},
+    {label:'hhi_proveedores', key:'provider_hhi'}, {label:'proveedor_mayor', key:'top_provider_name'},
+    {label:'peso_proveedor_mayor', key:'top_provider_share'}, {label:'sin_oc', key:'missing_oc_share'},
+    {label:'diciembre', key:'december_share'}, {label:'p1_por_100k', key:'p1_per_100k_transactions'}
+  ]));
+}
+
+function renderStrip(){
+  const metric = REGION_METRICS.find(m => m.key === state.regionMetric) || REGION_METRICS[0];
+  const regions = (state.data.territory.regions || []).slice();
+  const max = Math.max(...regions.map(r => num(r[metric.key]) || 0), 0.0000001);
+  el('stripTitle').textContent = `Franja nacional norte → sur · ${metric.label}`;
+  el('strip').innerHTML = regions.map(r => {
+    const value = num(r[metric.key]);
+    const w = Math.max(0, Math.min(100, ((value || 0) / max) * 100));
+    const unknown = r.region_code === 'UNKNOWN';
+    return `<div class="strip-row" role="option" tabindex="0" data-region="${esc(r.region_code)}" aria-selected="${state.selectedRegion === r.region_code}">
+      <span class="abbr ${unknown ? 'unknown' : ''}">${esc(r.region_abbr)}</span>
+      <span class="strip-name" title="${esc(r.region_name)}">${esc(r.region_name)}</span>
+      <span class="strip-bar"><i style="width:${w.toFixed(2)}%"></i></span>
+      <span class="strip-val">${metric.fmt(value)}</span>
+    </div>`;
+  }).join('');
+  el('strip').querySelectorAll('.strip-row').forEach(row => {
+    const pick = () => { state.selectedRegion = row.dataset.region; renderTerritory(); };
+    row.addEventListener('click', pick);
+    row.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); pick(); } });
+  });
+}
+
+function renderLorenz(){
+  const c = state.data.territory.concentration || {};
+  const pts = c.lorenz || [];
+  const S = 260, P = 26, inner = S - P * 2;
+  const px = v => P + inner * v, py = v => S - P - inner * v;
+  let svg = `<svg viewBox="0 0 ${S} ${S}" role="img" aria-label="Curva de Lorenz del gasto regional">
+    <rect x="${P}" y="${P}" width="${inner}" height="${inner}" fill="#fafafa" stroke="#e2e5e9"/>
+    <line x1="${px(0)}" y1="${py(0)}" x2="${px(1)}" y2="${py(1)}" stroke="#a9adb4" stroke-dasharray="4 4"/>`;
+  if (pts.length){
+    svg += `<polyline points="${pts.map(p => `${px(p.population_share)},${py(p.amount_share)}`).join(' ')}" fill="none" stroke="#e87524" stroke-width="2.4"/>`;
+    svg += `<polygon points="${px(0)},${py(0)} ${pts.map(p => `${px(p.population_share)},${py(p.amount_share)}`).join(' ')} ${px(1)},${py(0)}" fill="#e8752418"/>`;
+  }
+  svg += `<text class="axis" x="${px(0)}" y="${S - 6}">regiones ordenadas por gasto</text>
+    <text class="axis" x="${px(1)}" y="${py(1) - 8}" text-anchor="end">${c.gini === null || c.gini === undefined ? '' : 'Gini ' + fmtRatio(c.gini, 3)}</text></svg>`;
+  el('chartLorenz').innerHTML = svg;
+  el('concKv').innerHTML = [
+    ['Región líder', esc(c.top1_region || '—')],
+    ['Participación líder', fmtPct(c.top1_share)],
+    ['Participación top 3', fmtPct(c.top3_share)],
+    ['HHI territorial', fmtRatio(c.hhi, 3)],
+    ['Regiones con gasto', fmtInt(c.regions_with_spend)],
+    ['Sin región informada', fmtPct(c.unassigned_share)]
+  ].map(([k, v]) => `<div>${k}</div><div>${v}</div>`).join('');
+}
+
+function renderRegionDetail(){
+  const regions = state.data.territory.regions || [];
+  const r = regions.find(x => x.region_code === state.selectedRegion);
+  const box = el('regionDetail');
+  if (!r){
+    box.innerHTML = '<div class="section-title">Ficha regional</div><p class="small">Selecciona una región en la franja para comparar su participación, su concentración de proveedores y su intensidad de señales.</p>';
+    return;
+  }
+  const national = state.data.coverage || {};
+  const rows = [
+    ['Devengado', fmtMoneyFull(r.devengado)],
+    ['Participación nacional', fmtPct(r.share_of_national)],
+    ['Transacciones', fmtInt(r.transactions)],
+    ['Monto por pago', fmtMoney(r.amount_per_transaction)],
+    ['Organismos', fmtInt(r.organizations)],
+    ['Proveedores', fmtInt(r.providers)],
+    ['HHI de proveedores', fmtRatio(r.provider_hhi, 3)],
+    ['Peso del proveedor mayor', fmtPct(r.top_provider_share)],
+    ['Peso de diciembre', fmtPct(r.december_share)],
+    ['Pagos sin OC', fmtPct(r.missing_oc_share)],
+    ['Días de pago (mediana)', fmtDays(r.days_to_pay_median)],
+    ['Señales', fmtInt(r.signals)],
+    ['Señales P1', fmtInt(r.p1_signals)],
+    ['P1 por 100k pagos', fmtRatio(r.p1_per_100k_transactions, 2)],
+    ['Señales con enlace CGR', fmtInt(r.cgr_linked_signals)]
+  ];
+  box.innerHTML = `<div class="section-title">Ficha regional</div>
+    <h2 style="margin:6px 0 2px;font-size:16px">${esc(r.region_name)}</h2>
+    <div class="mono">${esc(r.region_code)} · ${esc(r.macrozone)} · proveedor mayor: ${esc(r.top_provider_name || 'sin dato')}</div>
+    <div class="kv">${rows.map(([k, v]) => `<div>${k}</div><div>${v}</div>`).join('')}</div>
+    <p class="small" style="margin-top:10px">Comparación nacional: ${fmtInt(national.transactions)} transacciones y ${fmtMoney(national.devengado_clp)} devengados en toda la serie. Una participación alta refleja tamaño y centralismo administrativo; para leer atipicidad usa las métricas normalizadas por 100k pagos.</p>`;
+}
+
+function hbars(target, rows, opts){
+  const max = Math.max(...rows.map(r => num(opts.value(r)) || 0), 0.0000001);
+  el(target).innerHTML = `<div class="section-title">${esc(opts.title)}</div>` + rows.map(r => `
+    <div style="display:grid;grid-template-columns:minmax(90px,1.1fr) minmax(0,2fr) 84px;gap:9px;align-items:center;margin:6px 0">
+      <span class="small" style="color:var(--ink);font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(opts.label(r))}">${esc(opts.label(r))}</span>
+      <span class="meter"><i style="width:${(((num(opts.value(r)) || 0) / max) * 100).toFixed(2)}%;background:${opts.color || 'var(--accent)'}"></i></span>
+      <span class="small" style="text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)">${opts.format(opts.value(r))}</span>
+    </div>`).join('');
+}
+
+function renderTerritory(){
+  renderRegionControls(); renderStrip(); renderLorenz(); renderRegionDetail();
+  hbars('chartMacro', state.data.territory.macrozones || [], {
+    title:'Devengado por macrozona', label:r => r.macrozone, value:r => r.devengado, format:fmtMoney
+  });
+  hbars('chartSubtitles', state.data.budget_lines || [], {
+    title:'Devengado por subtítulo presupuestario', label:r => `${r.subtitulo} · ${r.name}`,
+    value:r => r.devengado, format:fmtMoney, color:'#3a5a78'
+  });
+}
+
+/* =========================== proveedores ============================ */
+function scoreStack(row){
+  const reasons = row.reasons || [];
+  if (!reasons.length) return '<span class="small">—</span>';
+  return `<span class="stack" title="${esc(reasons.map(r => `${r.label}: ${fmtRatio(r.weight, 1)}`).join(' · '))}">` +
+    reasons.map(r => `<i style="width:${Math.max(2, num(r.weight) || 0)}%;background:${reasonColor(r.code)}"></i>`).join('') +
+    '</span>';
+}
+
+function providerRows(){
+  const q = state.providerQuery.trim().toLowerCase();
+  let rows = (state.data.providers.anomalous || []).filter(r => {
+    if (state.providerTier && r.anomaly_tier !== state.providerTier) return false;
+    if (state.providerReason && !(r.reasons || []).some(x => x.code === state.providerReason)) return false;
+    if (q){
+      const hay = `${r.provider_name || ''} ${r.rut || ''} ${r.provider_id || ''} ${r.top_client_name || ''} ${(r.signal_types || []).join(' ')}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  const {key, dir} = state.providerSort;
+  rows.sort((a, b) => {
+    const va = a[key], vb = b[key];
+    if (typeof va === 'string' || typeof vb === 'string') return dir * String(va ?? '').localeCompare(String(vb ?? ''), 'es');
+    return dir * ((num(va) ?? -Infinity) - (num(vb) ?? -Infinity));
+  });
+  return rows;
+}
+
+function renderProviderControls(){
+  const box = el('providerControls');
+  if (box.dataset.ready) { syncProviderControls(); return; }
+  box.dataset.ready = '1';
+
+  const search = document.createElement('input');
+  search.type = 'search'; search.placeholder = 'Buscar proveedor, RUT, comprador…'; search.style.minWidth = '250px';
+  search.addEventListener('input', () => { state.providerQuery = search.value; renderProviderTable(); });
+  box.appendChild(search);
+
+  const tier = document.createElement('select');
+  tier.innerHTML = '<option value="">Todos los tiers</option><option value="A1">A1 · concurrencia alta</option><option value="A2">A2 · concurrencia media</option><option value="A3">A3 · señal aislada</option>';
+  tier.addEventListener('change', () => { state.providerTier = tier.value; renderProviderTable(); });
+  box.appendChild(tier);
+
+  const reason = document.createElement('select');
+  reason.innerHTML = '<option value="">Todas las contribuciones</option>' +
+    Object.keys(state.data.providers.score_weights || {}).map(code =>
+      `<option value="${esc(code)}">${esc(code.replaceAll('_', ' ').toLowerCase())}</option>`).join('');
+  reason.addEventListener('change', () => { state.providerReason = reason.value; renderProviderTable(); });
+  box.appendChild(reason);
+
+  box.appendChild(exportButton('CSV proveedores', 'proveedores_atipicos.csv', providerRows, [
+    {label:'provider_id', key:'provider_id'}, {label:'proveedor', key:'provider_name'}, {label:'rut', key:'rut'},
+    {label:'score', key:'anomaly_score'}, {label:'tier', key:'anomaly_tier'},
+    {label:'devengado', key:'amount_clp'}, {label:'pagos', key:'transactions'}, {label:'organismos', key:'organizations'},
+    {label:'peso_en_su_comprador', key:'max_share_of_buyer'}, {label:'dependencia_comprador', key:'top_client_share'},
+    {label:'principal_comprador', key:'top_client_name'}, {label:'diciembre', key:'december_share'},
+    {label:'sin_oc', key:'missing_oc_share'}, {label:'montos_redondos', key:'round_amount_share'},
+    {label:'dias_pago_mediana', key:'days_to_pay_median'}, {label:'senales', key:'signals'},
+    {label:'contribuciones', get:r => (r.reasons || []).map(x => x.code).join(' | ')}
+  ]));
+}
+
+function syncProviderControls(){
+  const box = el('providerControls');
+  const [search, tier, reason] = [box.querySelector('input'), box.querySelectorAll('select')[0], box.querySelectorAll('select')[1]];
+  if (search) search.value = state.providerQuery;
+  if (tier) tier.value = state.providerTier;
+  if (reason) reason.value = state.providerReason;
+}
+
+function renderProviderTable(){
+  const rows = providerRows();
+  el('tblProviders').querySelector('tbody').innerHTML = rows.map((r, i) => `
+    <tr class="clickable" data-idx="${i}">
+      <td><span class="score">${fmtRatio(r.anomaly_score, 0)}</span><span class="badge tier-${esc(r.anomaly_tier || 'A3')}" style="margin-left:6px">${esc(r.anomaly_tier || '—')}</span></td>
+      <td><span class="entity">${esc(r.provider_name || 'Sin nombre')}</span><span class="id">${esc(r.rut || r.provider_id || '')}</span></td>
+      <td class="num">${fmtMoney(r.amount_clp)}</td>
+      <td class="num">${fmtInt(r.transactions)}</td>
+      <td class="num">${fmtInt(r.organizations)}</td>
+      <td class="num">${fmtPct(r.max_share_of_buyer)}</td>
+      <td class="num">${fmtPct(r.top_client_share)}</td>
+      <td class="num">${fmtPct(r.december_share)}</td>
+      <td class="num">${fmtPct(r.missing_oc_share)}</td>
+      <td class="num">${fmtDays(r.days_to_pay_median)}</td>
+      <td>${scoreStack(r)}</td>
+    </tr>`).join('') || '<tr><td colspan="11" class="small">Ningún proveedor cumple los filtros aplicados.</td></tr>';
+
+  el('tblProviders').querySelectorAll('tbody tr[data-idx]').forEach(tr => {
+    tr.addEventListener('click', () => openProviderDrawer(rows[Number(tr.dataset.idx)]));
+  });
+
+  const used = new Map();
+  rows.forEach(r => (r.reasons || []).forEach(x => used.set(x.code, x.label)));
+  el('legendReasons').innerHTML = [...used.entries()].map(([code, label]) =>
+    `<span><i style="background:${reasonColor(code)}"></i>${esc(label)}</span>`).join('') ||
+    '<span class="small">Sin contribuciones activas en el filtro actual.</span>';
+}
+
+function openProviderDrawer(row){
+  if (!row) return;
+  const kv = [
+    ['Devengado en la serie', fmtMoneyFull(row.amount_clp)],
+    ['% del gasto a proveedores', fmtPct(row.share_of_provider_spend, 3)],
+    ['Pagos', fmtInt(row.transactions)],
+    ['Pago promedio', fmtMoney(row.average_transaction_clp)],
+    ['Pago mayor', fmtMoney(row.max_transaction_clp)],
+    ['Organismos compradores', fmtInt(row.organizations)],
+    ['Regiones con pagos', fmtInt(row.regions)],
+    ['Primer año en la serie', esc(row.first_year ?? '—')],
+    ['Meses activos', fmtInt(row.months_active)],
+    ['Principal comprador', esc(row.top_client_name || '—')],
+    ['Dependencia del principal', fmtPct(row.top_client_share)],
+    ['Peso en el comprador donde más pesa', fmtPct(row.max_share_of_buyer)],
+    ['Concentración de clientes (HHI)', fmtRatio(row.client_hhi, 3)],
+    ['Peso de diciembre', fmtPct(row.december_share)],
+    ['Pagos sin orden de compra', fmtPct(row.missing_oc_share)],
+    ['Montos exactamente redondos', fmtPct(row.round_amount_share)],
+    ['Días de pago (mediana)', fmtDays(row.days_to_pay_median)],
+    ['Señales en la cola', `${fmtInt(row.signals)} (P1: ${fmtInt(row.p1_signals)})`],
+    ['Enlaces candidatos CGR', fmtInt(row.cgr_match_count)]
+  ];
+  el('drawer').innerHTML = `
+    <div class="drawer-head">
+      <div>
+        <div class="eyebrow">Ficha de proveedor</div>
+        <h2 style="margin:4px 0 2px">${esc(row.provider_name || 'Sin nombre')}</h2>
+        <div class="mono">${esc([row.rut, row.provider_id, row.entity_id].filter(Boolean).join(' · '))}</div>
+      </div>
+      <button class="chip" id="drawerClose" aria-label="Cerrar ficha">Cerrar</button>
+    </div>
+    <div class="card" style="box-shadow:none;margin-bottom:12px">
+      <div style="display:flex;align-items:baseline;gap:10px">
+        <span class="score" style="font-size:30px">${fmtRatio(row.anomaly_score, 0)}</span>
+        <span class="badge tier-${esc(row.anomaly_tier || 'A3')}">${esc(row.anomaly_tier || '—')}</span>
+        <span class="small">score de atipicidad (0–100)</span>
+      </div>
+      ${scoreStack(row)}
+      <p class="small" style="margin:8px 0 0">Prioridad de revisión analítica construida por concurrencia de patrones. No es probabilidad de delito ni score de riesgo LA/FT.</p>
+    </div>
+    <div class="section-title">Contribuciones al score</div>
+    ${(row.reasons || []).map(r => `
+      <div class="reason">
+        <div class="rh"><b>${esc(r.label)}</b><span class="w">+${fmtRatio(r.weight, 1)} / ${fmtInt(r.max_weight)}</span></div>
+        <p>${esc(r.detail)}</p>
+        <div class="alt">Lectura alternativa: ${esc(r.alternative_reading)}</div>
+        <div class="mono" style="margin-top:6px">${esc(JSON.stringify(r.metric))}</div>
+      </div>`).join('') || '<p class="small">Sin contribuciones activas.</p>'}
+    <div class="section-title" style="margin-top:14px">Métricas del proveedor</div>
+    <div class="kv">${kv.map(([k, v]) => `<div>${k}</div><div>${v}</div>`).join('')}</div>
+    <div class="section-title" style="margin-top:14px">Verificación mínima sugerida</div>
+    <ol class="small" style="margin:6px 0 0 16px;padding:0">
+      <li>Revisar orden de compra, contrato y acta de recepción conforme de los pagos mayores.</li>
+      <li>Contrastar la modalidad de contratación (licitación, convenio marco, trato directo) con el monto adjudicado.</li>
+      <li>Verificar antigüedad societaria, giro y capacidad declarada frente al objeto contratado.</li>
+      <li>Comparar con proveedores pares del mismo organismo, subtítulo e ítem.</li>
+      <li>Si existe enlace CGR, leer el hallazgo original antes de cualquier atribución.</li>
+    </ol>`;
+  el('drawer').setAttribute('open', '');
+  el('drawer').setAttribute('aria-hidden', 'false');
+  el('scrim').setAttribute('open', '');
+  el('drawerClose').addEventListener('click', closeDrawer);
+  el('drawerClose').focus();
+}
+
+function closeDrawer(){
+  el('drawer').removeAttribute('open');
+  el('drawer').setAttribute('aria-hidden', 'true');
+  el('scrim').removeAttribute('open');
+}
+
+/* ========================= entrantes nuevos ========================= */
+function renderNew(){
+  const block = state.data.new_providers || {};
+  const rows = (block.material || []).slice();
+  const {key, dir} = state.newSort;
+  rows.sort((a, b) => typeof a[key] === 'string'
+    ? dir * String(a[key] ?? '').localeCompare(String(b[key] ?? ''), 'es')
+    : dir * ((num(a[key]) ?? -Infinity) - (num(b[key]) ?? -Infinity)));
+
+  el('newSubtitle').textContent = block.available
+    ? `Primera aparición en ${block.cohort_year} sobre una serie de ${block.series_years} año(s). Cohorte de entrantes: ${fmtInt(block.cohort_providers)} proveedores y ${fmtMoney(block.cohort_amount)} devengados; el corte de materialidad es ${fmtMoney(block.cohort_quantile_amount)} (percentil ${fmtPct(block.cohort_quantile, 0)} del cohorte).`
+    : 'La serie procesada tiene un solo año, por lo que no es posible distinguir entrantes nuevos de proveedores históricos.';
+
+  const box = el('newControls');
+  if (!box.dataset.ready){
+    box.dataset.ready = '1';
+    box.appendChild(exportButton('CSV entrantes', 'proveedores_nuevos.csv', () => rows, [
+      {label:'provider_id', key:'provider_id'}, {label:'proveedor', key:'provider_name'}, {label:'rut', key:'rut'},
+      {label:'devengado', key:'amount_clp'}, {label:'share_cohorte', key:'share_of_new_cohort'},
+      {label:'pagos', key:'transactions'}, {label:'meses_activos', key:'months_active'},
+      {label:'organismos', key:'organizations'}, {label:'principal_comprador', key:'top_client_name'},
+      {label:'sin_oc', key:'missing_oc_share'}, {label:'score', key:'anomaly_score'}
+    ]));
+  }
+
+  el('tblNew').querySelector('tbody').innerHTML = rows.map((r, i) => `
+    <tr class="clickable" data-idx="${i}">
+      <td><span class="entity">${esc(r.provider_name || 'Sin nombre')}</span><span class="id">${esc(r.rut || r.provider_id || '')}</span></td>
+      <td class="num">${fmtMoney(r.amount_clp)}</td>
+      <td class="num">${fmtPct(r.share_of_new_cohort)}</td>
+      <td class="num">${fmtInt(r.transactions)}</td>
+      <td class="num">${fmtInt(r.months_active)}</td>
+      <td class="num">${fmtInt(r.organizations)}</td>
+      <td>${esc(r.top_client_name || '—')}</td>
+      <td class="num">${fmtPct(r.missing_oc_share)}</td>
+      <td class="num">${r.anomaly_score === undefined ? '—' : fmtRatio(r.anomaly_score, 0)}</td>
+    </tr>`).join('') || `<tr><td colspan="9" class="small">${block.available ? 'Ningún entrante nuevo supera el corte de materialidad.' : 'Serie insuficiente para el análisis de entrantes.'}</td></tr>`;
+
+  el('tblNew').querySelectorAll('tbody tr[data-idx]').forEach(tr => {
+    tr.addEventListener('click', () => openProviderDrawer(rows[Number(tr.dataset.idx)]));
+  });
+}
+
+/* ============================ organismos ============================ */
+function renderOrgs(){
+  const rows = (state.data.organizations || []).slice();
+  const {key, dir} = state.orgSort;
+  rows.sort((a, b) => typeof a[key] === 'string'
+    ? dir * String(a[key] ?? '').localeCompare(String(b[key] ?? ''), 'es')
+    : dir * ((num(a[key]) ?? -Infinity) - (num(b[key]) ?? -Infinity)));
+
+  const box = el('orgControls');
+  if (!box.dataset.ready){
+    box.dataset.ready = '1';
+    box.appendChild(exportButton('CSV organismos', 'organismos.csv', () => rows, [
+      {label:'organization_id', key:'organization_id'}, {label:'organismo', key:'organization_name'},
+      {label:'partida', key:'partida'}, {label:'devengado', key:'devengado'},
+      {label:'share_nacional', key:'share_of_national'}, {label:'proveedores', key:'providers'},
+      {label:'hhi_proveedor', key:'provider_hhi'}, {label:'proveedor_dominante', key:'top_provider_name'},
+      {label:'peso_dominante', key:'top_provider_share'}, {label:'diciembre', key:'december_share'},
+      {label:'sin_oc', key:'missing_oc_share'}, {label:'senales', key:'signals'}, {label:'p1', key:'p1_signals'}
+    ]));
+  }
+
+  el('tblOrgs').querySelector('tbody').innerHTML = rows.map(r => `
+    <tr>
+      <td><span class="entity">${esc(r.organization_name || 'Sin nombre')}</span><span class="id">${esc(r.partida || '')} · ${esc(r.organization_id || '')}</span></td>
+      <td class="num">${fmtMoney(r.devengado)}</td>
+      <td class="num">${fmtPct(r.share_of_national)}</td>
+      <td class="num">${fmtInt(r.providers)}</td>
+      <td class="num">${fmtRatio(r.provider_hhi, 3)}</td>
+      <td>${esc(r.top_provider_name || '—')}</td>
+      <td class="num">${fmtPct(r.top_provider_share)}</td>
+      <td class="num">${fmtPct(r.december_share)}</td>
+      <td class="num">${fmtPct(r.missing_oc_share)}</td>
+      <td class="num">${fmtInt(r.p1_signals)}</td>
+    </tr>`).join('') || '<tr><td colspan="10" class="small">Sin organismos en la corrida.</td></tr>';
+}
+
+/* ============================= patrones ============================= */
+const SHARE_LABELS = {
+  december_share_of_devengado:['Devengado en diciembre', 'Referencia uniforme: 8,3%'],
+  provider_share_of_devengado:['Gasto a proveedores', 'Resto: transferencias, personas y entidades sin flag proveedor'],
+  person_share_of_devengado:['Pagos a personas naturales', 'Incluye honorarios y beneficios directos'],
+  honorarium_share_of_devengado:['Honorarios', 'Subconjunto de pagos a personas'],
+  intra_state_share_of_devengado:['Pagos intra-Estado', 'Transferencias entre organismos públicos'],
+  floating_debt_share_of_devengado:['Deuda flotante', 'Compromisos arrastrados desde el período anterior'],
+  provider_tx_without_oc_share:['Pagos a proveedor sin OC', 'Brecha documental, no ilegalidad'],
+  provider_tx_round_amount_share:['Pagos de monto exactamente redondo', 'Frecuente en cuotas y anticipos'],
+  fast_paid_share:['Pagos en 2 días o menos', 'Contrastar con la mediana nacional'],
+  slow_paid_share:['Pagos sobre 120 días', 'Indicador de morosidad del comprador']
+};
+
+function renderPatterns(){
+  const shares = (state.data.patterns || {}).national_shares || {};
+  el('shareBars').innerHTML = Object.entries(shares).map(([k, v]) => {
+    const [label, note] = SHARE_LABELS[k] || [k, ''];
+    const pct = Math.max(0, Math.min(100, (num(v) || 0) * 100));
+    return `<div style="margin:10px 0">
+      <div style="display:flex;justify-content:space-between;gap:10px;font-size:12.5px">
+        <b>${esc(label)}</b><span style="font-variant-numeric:tabular-nums">${fmtPct(v, 2)}</span>
+      </div>
+      <span class="meter" style="display:block;margin:5px 0 3px"><i style="width:${pct.toFixed(2)}%"></i></span>
+      <span class="small">${esc(note)}</span>
+    </div>`;
+  }).join('');
+
+  const p = state.data.patterns || {};
+  const table = (title, rows, cols) => `
+    <div class="section-title" style="margin-top:12px">${esc(title)}</div>
+    <div class="table-wrap" style="max-height:none;margin-top:6px"><table><thead><tr>${cols.map(c => `<th class="no-sort ${c.num ? 'num' : ''}">${esc(c.label)}</th>`).join('')}</tr></thead>
+    <tbody>${rows.length ? rows.map(r => `<tr>${cols.map(c => `<td class="${c.num ? 'num' : ''}">${c.render(r)}</td>`).join('')}</tr>`).join('')
+      : `<tr><td colspan="${cols.length}" class="small">Sin registros.</td></tr>`}</tbody></table></div>`;
+
+  el('patternTables').innerHTML =
+    table('Fraccionamiento potencial por organismo', p.fragmentation_top_organizations || [], [
+      {label:'Organismo', render:r => esc(r.organization_name || r.organization_id || '—')},
+      {label:'Señales', num:true, render:r => fmtInt(r.fragmentation_signals)}
+    ]) +
+    table('Duplicado candidato por organismo', p.duplicate_top_organizations || [], [
+      {label:'Organismo', render:r => esc(r.organization_name || r.organization_id || '—')},
+      {label:'Señales', num:true, render:r => fmtInt(r.duplicate_signals)},
+      {label:'Monto expuesto', num:true, render:r => fmtMoney(r.exposed_amount_clp)}
+    ]) +
+    table('Mayor gasto de cierre de año', p.december_top_organizations || [], [
+      {label:'Organismo', render:r => `${esc(r.organization_name || '—')}<span class="id">${esc(r.organization_id || '')}</span>`},
+      {label:'Diciembre', num:true, render:r => fmtMoney(r.december_devengado)},
+      {label:'% del organismo', num:true, render:r => fmtPct(r.december_share)}
+    ]) +
+    `<p class="small" style="margin-top:10px">Proveedores materiales con un único organismo comprador: <b>${fmtInt((p.single_client_providers || {}).providers)}</b> por ${fmtMoney((p.single_client_providers || {}).amount_clp)}. Es un rasgo estructural del mercado público, no una señal por sí solo.</p>`;
+}
+
+/* ============================== método ============================== */
+function renderMethod(){
+  el('catalog').innerHTML = (state.data.indicator_catalog || []).map(c => `
+    <div class="def"><b>${esc(c.name)}</b><p>${esc(c.definition)}</p><p style="color:var(--muted)">${esc(c.reading)}</p></div>`).join('');
+
+  const th = state.data.thresholds || {};
+  el('thresholds').innerHTML = Object.entries(th).map(([section, values]) => `
+    <div class="def"><b>${esc(section)}</b>
+      <div class="kv">${Object.entries(values || {}).map(([k, v]) =>
+        `<div>${esc(k)}</div><div>${typeof v === 'number' && v < 1 && v > 0 ? fmtRatio(v, 3) : fmtInt(v)}</div>`).join('')}</div>
+    </div>`).join('');
+
+  el('guardrails').innerHTML = (state.data.guardrails || []).map(g => `<span>${esc(g.replaceAll('_', ' ').toLowerCase())}</span>`).join('');
+
+  const c = state.data.coverage || {}, m = state.data.methodology || {};
+  el('coverageKv').innerHTML = [
+    ['Serie procesada', `${esc(c.first_year ?? '—')}–${esc(c.last_year ?? '—')} (${fmtInt(c.years)} año(s))`],
+    ['Transacciones', fmtInt(c.transactions)],
+    ['Organismos', fmtInt(c.organizations)],
+    ['Receptores', fmtInt(c.recipients)],
+    ['Proveedores', fmtInt(c.providers)],
+    ['Devengado', fmtMoneyFull(c.devengado_clp)],
+    ['Pagado', fmtMoneyFull(c.pagado_clp)],
+    ['Devengado con región resuelta', fmtPct(c.region_resolved_share)],
+    ['Cola de investigación disponible', c.priority_queue_available ? 'sí' : 'no'],
+    ['Semántica de ejecución', esc(m.execution_semantics || '—')],
+    ['Presupuesto vigente disponible', m.budget_appropriation_available ? 'sí' : 'no'],
+    ['Generado', esc((state.data.generated_at || '').replace('T', ' '))]
+  ].map(([k, v]) => `<div>${k}</div><div>${v}</div>`).join('');
+}
+
+/* =========================== interacción ============================ */
+function wireSorting(tableId, sortState, rerender){
+  document.querySelectorAll(`#${tableId} th[data-sort]`).forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.sort;
+      if (sortState.key === key) sortState.dir *= -1; else { sortState.key = key; sortState.dir = -1; }
+      rerender();
+    });
+  });
+}
+
+function renderAll(){
+  bannerState();
+  el('periodPill').textContent = state.data.coverage.first_year
+    ? `${state.data.coverage.first_year}–${state.data.coverage.last_year} · ${fmtInt(state.data.coverage.transactions)} pagos`
+    : 'Sin período';
+  const modePill = el('modePill');
+  modePill.hidden = false;
+  modePill.textContent = state.mode === 'DEMO_SYNTHETIC' ? 'Demostración sintética' : 'Datos oficiales';
+  modePill.className = state.mode === 'DEMO_SYNTHETIC' ? 'pill warn' : 'pill';
+
+  renderKpis(); renderAlerts(); renderExecution(); renderTerritory();
+  renderProviderControls(); renderProviderTable(); renderNew(); renderOrgs(); renderPatterns(); renderMethod();
+}
+
+async function init(){
+  el('btnPrint').addEventListener('click', () => window.print());
+  el('scrim').addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+  const loaded = await loadFirstAvailable();
+  if (!loaded){
+    el('stateBanner').className = 'banner';
+    el('stateBanner').innerHTML = '<b>Aún no hay vista de ejecución publicada.</b>' +
+      'Ejecuta <code>PYTHONPATH=src python -m radar_presupuesto.spend_view</code> tras una corrida del pipeline, ' +
+      'o <code>PYTHONPATH=src python scripts/build_demo_spend_view.py</code> para revisar el módulo con datos sintéticos.';
+    el('periodPill').textContent = 'Sin corrida';
+    return;
+  }
+  state.data = loaded.json;
+  state.mode = loaded.json.mode || 'REAL';
+  state.source = loaded.source;
+
+  wireSorting('tblProviders', state.providerSort, renderProviderTable);
+  wireSorting('tblNew', state.newSort, renderNew);
+  wireSorting('tblOrgs', state.orgSort, renderOrgs);
+  renderAll();
+}
+
+init();
+})();
+</script>
+</body>
+</html>

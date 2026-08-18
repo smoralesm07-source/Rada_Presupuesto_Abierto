@@ -1,0 +1,39 @@
+# Umbrales del módulo de ejecución y pagos del Estado (spend_view).
+# Cada umbral es una decisión analítica explícita y auditable: cambia el
+# ordenamiento de la vista, nunca la semántica del dato fuente.
+materiality:
+  # Monto mínimo para que un proveedor entre al scoring de atipicidad.
+  provider_min_amount_clp: 20000000
+  # Mínimo de transacciones para evaluar patrones de comportamiento.
+  provider_min_transactions: 2
+  # Múltiplo exacto que se considera "monto redondo" en CLP.
+  round_amount_multiple_clp: 1000000
+concentration:
+  # Participación de un proveedor en el gasto a proveedores de un organismo.
+  buyer_share_watch: 0.45
+  buyer_share_alert: 0.65
+  # Dependencia del proveedor respecto de su principal comprador.
+  client_dependency_share: 0.95
+new_entrants:
+  # Percentil del cohorte de proveedores nuevos que marca "monto importante".
+  cohort_quantile: 0.95
+  min_amount_clp: 50000000
+calendar:
+  # Participación de diciembre en el devengado anual del proveedor/organismo.
+  december_share_watch: 0.40
+  december_share_alert: 0.60
+documentation:
+  # Participación de pagos a proveedor sin orden de compra registrada.
+  missing_purchase_order_share: 0.80
+payment_speed:
+  # Días de pago que se consideran anómalamente rápidos frente al patrón país.
+  fast_payment_days: 2
+  # Mediana nacional mínima para que "rápido" sea interpretable como excepción.
+  national_median_floor_days: 15
+output:
+  top_regions: 20
+  top_budget_lines: 14
+  top_organizations: 30
+  top_providers: 60
+  top_anomalous_providers: 60
+  top_new_providers: 40

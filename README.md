@@ -2,7 +2,7 @@
 
 Radar autónomo para explotar datos públicos de **Presupuesto Abierto (DIPRES)** con enfoque de inteligencia financiera, integridad del gasto y detección de patrones anómalos.
 
-**Estado actual: v0.3 operacional.** El sistema procesa bulk oficiales, controla identidad y calidad, detecta señales, las prioriza para investigación y contrasta entidades con evidencia del repositorio Radar CGR.
+**Estado actual: v0.4.** El sistema procesa bulk oficiales, controla identidad y calidad, detecta señales, las prioriza para investigación, contrasta entidades con evidencia del repositorio Radar CGR y publica el **módulo de ejecución y pagos del Estado** (`docs/ejecucion.html`).
 
 ## Objetivo
 
@@ -48,6 +48,24 @@ Las señales no constituyen hallazgos de ilegalidad.
 
 El score es **prioridad de revisión**, no probabilidad de delito ni de LA/FT.
 
+## Módulo de ejecución y pagos del Estado (v0.4)
+
+Vista analítica del gasto a terceros, publicada en `docs/ejecucion.html` a partir de `docs/data/spend_view_v1.json`:
+
+- **Ritmo de ejecución**: serie mensual, curva acumulada, peso de diciembre y Q4, razón pagado/devengado.
+- **Concentración territorial**: franja nacional norte→sur, Gini, HHI, curva de Lorenz y métricas normalizadas por 100k pagos.
+- **Dependencia comprador/proveedor**: HHI de proveedores por organismo y participación del proveedor dominante.
+- **Proveedores atípicos**: score 0–100 por suma de contribuciones nombradas, cada una con su métrica y su lectura alternativa.
+- **Entrantes nuevos**: proveedores cuya primera aparición ocurre en el último año de la serie con monto sobre el corte de su propio cohorte.
+- **Patrones transversales**: fraccionamiento, duplicados candidatos, cierre de año, montos redondos, velocidad de pago y brecha de orden de compra.
+
+La fuente de pagos no publica presupuesto vigente por organismo: aquí *ejecución* significa flujo devengado y pagado observado, no avance sobre la Ley de Presupuestos. Detalle metodológico en `docs/SPEND_VIEW.md`; umbrales en `config/spend_view.yaml`.
+
+```bash
+radar-pa spend-view                                    # tras una corrida del pipeline
+PYTHONPATH=src python scripts/build_demo_spend_view.py # demo sintética para revisar el módulo
+```
+
 ## Integración con Radar CGR
 
 Las corridas operativas descargan `smoralesm07-source/Radar-CGR` y contrastan organizaciones y proveedores con sus capas silver. Todos los enlaces quedan con estado `CANDIDATE`: una coincidencia de entidad no atribuye automáticamente un hallazgo CGR a una transacción de Presupuesto Abierto.
@@ -82,6 +100,8 @@ Risk Signal Engine
        v
 Explainable Investigation Priority
        |
+       +---- Spend View (ejecución, territorio, proveedores)
+       |
        v
 Dashboard + Evidence/Lineage
 ```
@@ -93,12 +113,17 @@ El motor puede consultar **un año, varios años o 2016-2026** secuencialmente, 
 ## Operación
 
 ```bash
-python -m pip install -r requirements.txt
-python -m pip install -e .
+python -m pip install -e .            # instala el paquete y sus dependencias
+python -m pip install -e '.[test]'    # con dependencias de test
+radar-pa probe                        # audita fuentes oficiales
+radar-pa-pipeline --years 2026        # corrida completa (normaliza, señaliza, prioriza, publica)
+radar-pa spend-view                   # reconstruye sólo la vista de ejecución
 python -m radar_presupuesto.pipeline --years 2026
 python -m radar_presupuesto.query_job --years 2016-2026 --text "constructora" --filters-json '{"provider_only":true}' --limit 1000
 ```
 
 Los `.gz`, Parquet e índices SQLite no se versionan en Git. Los productos pesados se conservan como artifacts temporales; Pages publica las salidas compactas.
 
-Documentación: `docs/SCHEMA_DESIGN.md`, `docs/ANOMALY_CATALOG.md`, `docs/SEARCH_ENGINE.md` y `docs/OPERATIONAL_V03.md`.
+El paquete se instala con `pip install .` y expone los comandos `radar-pa`, `radar-pa-pipeline` y `radar-pa-spend-view`.
+
+Documentación: `docs/SCHEMA_DESIGN.md`, `docs/ANOMALY_CATALOG.md`, `docs/SEARCH_ENGINE.md`, `docs/OPERATIONAL_V03.md` y `docs/SPEND_VIEW.md`.
