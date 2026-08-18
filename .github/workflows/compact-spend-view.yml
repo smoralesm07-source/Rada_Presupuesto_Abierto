@@ -1,0 +1,26 @@
+name: Compact Spend View
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/compact_spend_view.py'
+      - '.github/workflows/compact-spend-view.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  compact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Compact existing real payload
+        run: python scripts/compact_spend_view.py --input docs/data/spend_view_v2.json --output docs/data/spend_view_v2.json --max-flows 3200 --per-service 2
+      - name: Publish compact payload
+        run: |
+          git config user.name "radar-presupuesto-bot"
+          git config user.email "radar-presupuesto-bot@users.noreply.github.com"
+          git add docs/data/spend_view_v2.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "data: compacta carga inicial spend view"
+          git pull --rebase origin main
+          git push origin main
