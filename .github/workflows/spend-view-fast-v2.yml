@@ -7,6 +7,7 @@ on:
       - 'src/radar_presupuesto/spend_view_fast.py'
       - 'src/radar_presupuesto/spend_view_fast2.py'
       - 'scripts/compact_spend_view.py'
+      - 'scripts/build_spend_years_v1.py'
   workflow_dispatch:
 permissions:
   contents: write
@@ -54,6 +55,20 @@ jobs:
           CODE=${PIPESTATUS[0]}
           echo "exit_code=$CODE" >> "$GITHUB_OUTPUT"
           exit $CODE
+      - name: Build multiyear explorer payload
+        id: multiyear
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        run: |
+          python scripts/build_spend_years_v1.py --parquet data/processed/spend_view_light.parquet --output docs/data/spend_years_v1.json --flows-per-service-year 3 --global-flow-cap 12000
+          node - <<'JS'
+          const fs=require('fs');
+          const d=JSON.parse(fs.readFileSync('docs/data/spend_years_v1.json','utf8'));
+          if(d.schema!=='PRESUPUESTO_SPEND_YEARS_V1') throw new Error('unexpected multiyear schema');
+          if(!Array.isArray(d.years)||d.years.length<2) throw new Error('insufficient multiyear coverage');
+          if(!Array.isArray(d.reference_entities)||!d.reference_entities.some(x=>x.role==='UAF_REFERENCE')) throw new Error('UAF reference not found');
+          console.log('[OK] multiyear',d.years,d.reference_entities);
+          JS
       - name: Compact and validate browser JSON
         id: strict_json
         if: steps.build.outcome == 'success'
@@ -73,6 +88,7 @@ jobs:
           BUILD_OUTCOME: ${{ steps.build.outcome }}
           BUILD_CODE: ${{ steps.build.outputs.exit_code }}
           STRICT_OUTCOME: ${{ steps.strict_json.outcome }}
+          MULTIYEAR_OUTCOME: ${{ steps.multiyear.outcome }}
         run: |
           python - <<'PY'
           import json,os
@@ -80,21 +96,22 @@ jobs:
           from pathlib import Path
           log=Path('/tmp/spend-view-fast.log')
           lines=log.read_text(encoding='utf-8',errors='replace').splitlines() if log.exists() else []
-          p={'generated_at':datetime.now(timezone.utc).isoformat(timespec='seconds'),'workflow':'Build Spend View v2 fast','outcome':os.environ.get('BUILD_OUTCOME') or 'UNKNOWN','exit_code':int(os.environ.get('BUILD_CODE') or -1),'strict_json':os.environ.get('STRICT_OUTCOME') or 'skipped','data_ready':Path('docs/data/spend_view_v2.json').exists(),'log_tail':lines[-100:]}
+          p={'generated_at':datetime.now(timezone.utc).isoformat(timespec='seconds'),'workflow':'Build Spend View v2 fast','outcome':os.environ.get('BUILD_OUTCOME') or 'UNKNOWN','exit_code':int(os.environ.get('BUILD_CODE') or -1),'strict_json':os.environ.get('STRICT_OUTCOME') or 'skipped','multiyear':os.environ.get('MULTIYEAR_OUTCOME') or 'skipped','data_ready':Path('docs/data/spend_view_v2.json').exists(),'multiyear_ready':Path('docs/data/spend_years_v1.json').exists(),'log_tail':lines[-100:]}
           Path('docs/data').mkdir(parents=True,exist_ok=True)
           Path('docs/data/spend_view_v2_fast_status.json').write_text(json.dumps(p,ensure_ascii=False,indent=2,allow_nan=False),encoding='utf-8')
           PY
-      - name: Publish real L12 data and build status
+      - name: Publish real spend data and build status
         if: always()
         run: |
           git config user.name "radar-presupuesto-bot"
           git config user.email "radar-presupuesto-bot@users.noreply.github.com"
           git add docs/data/spend_view_v2_fast_status.json
           if [ -f docs/data/spend_view_v2.json ]; then git add docs/data/spend_view_v2.json; fi
+          if [ -f docs/data/spend_years_v1.json ]; then git add docs/data/spend_years_v1.json; fi
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "data: publica spend view L12 real"
+          git commit -m "data: publica vista gasto multianual"
           git pull --rebase origin main
           git push origin main
-      - name: Fail if build or strict JSON validation failed
-        if: steps.build.outcome != 'success' || steps.strict_json.outcome != 'success'
+      - name: Fail if build, strict JSON or multiyear validation failed
+        if: steps.build.outcome != 'success' || steps.strict_json.outcome != 'success' || steps.multiyear.outcome != 'success'
         run: exit 1
