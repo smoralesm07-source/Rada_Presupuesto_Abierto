@@ -6,9 +6,10 @@ on:
       - 'docs/index.html'
       - 'docs/assets/spend_v2_fast.js'
       - 'docs/assets/json_compat.js'
-      - 'docs/assets/spend_v3_enhance.js'
-      - 'docs/assets/spend_v3.css'
+      - 'docs/assets/spend_v4_explorer.js'
+      - 'docs/assets/spend_v4.css'
       - 'docs/data/spend_view_v2.json'
+      - 'docs/data/spend_years_v1.json'
       - 'docs/data/entity_enrichment_v1.json'
       - '.github/workflows/check-spend-ui.yml'
   workflow_dispatch:
@@ -25,26 +26,59 @@ jobs:
         run: |
           node --check docs/assets/spend_v2_fast.js
           node --check docs/assets/json_compat.js
-          node --check docs/assets/spend_v3_enhance.js
+          node --check docs/assets/spend_v4_explorer.js
       - name: Check HTML references
         id: html
         continue-on-error: true
         run: |
           grep -q 'assets/json_compat.js' docs/index.html
           grep -q 'assets/spend_v2_fast.js' docs/index.html
-          grep -q 'assets/spend_v3_enhance.js' docs/index.html
-          grep -q 'assets/spend_v3.css' docs/index.html
+          grep -q 'assets/spend_v4_explorer.js' docs/index.html
+          grep -q 'assets/spend_v4.css' docs/index.html
+          ! grep -q 'assets/spend_v3_enhance.js' docs/index.html
           grep -q 'data/spend_view_v2.json' docs/assets/spend_v2_fast.js
+          grep -q 'data/spend_years_v1.json' docs/assets/spend_v4_explorer.js
       - name: Parse current data with browser JSON parser
         id: browser_json
         continue-on-error: true
         run: |
           node - <<'JS'
           const fs=require('fs');
-          const txt=fs.readFileSync('docs/data/spend_view_v2.json','utf8');
-          const d=JSON.parse(txt);
+          const d=JSON.parse(fs.readFileSync('docs/data/spend_view_v2.json','utf8'));
           if(d.schema!=='PRESUPUESTO_SPEND_VIEW_V2') throw new Error('unexpected schema');
           console.log('[OK] browser JSON.parse', d.published);
+          JS
+      - name: Validate multiyear explorer payload
+        id: multiyear
+        continue-on-error: true
+        run: |
+          if [ ! -f docs/data/spend_years_v1.json ]; then
+            echo "state=pending" >> "$GITHUB_OUTPUT"
+            echo "[INFO] multiyear payload pending first build"
+            exit 0
+          fi
+          node - <<'JS'
+          const fs=require('fs');
+          const d=JSON.parse(fs.readFileSync('docs/data/spend_years_v1.json','utf8'));
+          if(d.schema!=='PRESUPUESTO_SPEND_YEARS_V1') throw new Error('unexpected multiyear schema');
+          if(!Array.isArray(d.years)||d.years.length<2) throw new Error('insufficient year coverage');
+          if(!Array.isArray(d.reference_entities)||!d.reference_entities.some(x=>x.role==='UAF_REFERENCE')) throw new Error('UAF persistent reference missing');
+          if(!Array.isArray(d.marks)) throw new Error('marks catalogue missing');
+          console.log('[OK] years',d.years,'UAF',d.reference_entities,'marks',d.marks.length);
+          JS
+          echo "state=success" >> "$GITHUB_OUTPUT"
+      - name: Validate selective SII enrichment
+        id: sii
+        continue-on-error: true
+        run: |
+          node - <<'JS'
+          const fs=require('fs');
+          const d=JSON.parse(fs.readFileSync('docs/data/entity_enrichment_v1.json','utf8'));
+          if(d.schema!=='PRESUPUESTO_ENTITY_ENRICHMENT_V1') throw new Error('unexpected SII enrichment schema');
+          const es=Object.values(d.entities||{});
+          if(!es.length) throw new Error('empty SII enrichment');
+          if(!es.some(x=>x.start_date||x.sales_band_label||x.workers!=null||(x.acteco||[]).length)) throw new Error('SII dossier fields are empty');
+          console.log('[OK] SII entities',es.length,'with marks',es.filter(x=>(x.marks||[]).length).length);
           JS
       - name: Test legacy NaN browser fallback
         id: compat
@@ -80,6 +114,9 @@ jobs:
           JS_OUTCOME: ${{ steps.js.outcome }}
           HTML_OUTCOME: ${{ steps.html.outcome }}
           BROWSER_JSON_OUTCOME: ${{ steps.browser_json.outcome }}
+          MULTIYEAR_OUTCOME: ${{ steps.multiyear.outcome }}
+          MULTIYEAR_STATE: ${{ steps.multiyear.outputs.state }}
+          SII_OUTCOME: ${{ steps.sii.outcome }}
           COMPAT_OUTCOME: ${{ steps.compat.outcome }}
           SUPPLIER_OUTCOME: ${{ steps.supplier_scope.outcome }}
         run: |
@@ -92,6 +129,9 @@ jobs:
             'javascript':os.environ.get('JS_OUTCOME'),
             'html_references':os.environ.get('HTML_OUTCOME'),
             'browser_json_parse':os.environ.get('BROWSER_JSON_OUTCOME'),
+            'multiyear_validation':os.environ.get('MULTIYEAR_OUTCOME'),
+            'multiyear_state':os.environ.get('MULTIYEAR_STATE') or 'unknown',
+            'sii_enrichment':os.environ.get('SII_OUTCOME'),
             'legacy_nan_fallback':os.environ.get('COMPAT_OUTCOME'),
             'private_supplier_scope':os.environ.get('SUPPLIER_OUTCOME'),
           }
@@ -104,5 +144,5 @@ jobs:
           git pull --rebase origin main
           git push origin main
       - name: Fail if validation failed
-        if: steps.js.outcome != 'success' || steps.html.outcome != 'success' || steps.browser_json.outcome != 'success' || steps.compat.outcome != 'success' || steps.supplier_scope.outcome != 'success'
+        if: steps.js.outcome != 'success' || steps.html.outcome != 'success' || steps.browser_json.outcome != 'success' || steps.multiyear.outcome != 'success' || steps.sii.outcome != 'success' || steps.compat.outcome != 'success' || steps.supplier_scope.outcome != 'success'
         run: exit 1
