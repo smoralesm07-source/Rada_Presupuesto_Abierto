@@ -1,0 +1,22 @@
+{
+  "schema": "PRESUPUESTO_ENTITY_ENRICHMENT_V1",
+  "generated_at": null,
+  "sources": {
+    "RADAR_SII": {
+      "status": "CONTRACT_READY_SELECTIVE_EXTRACT_PENDING",
+      "key": "ENT-RUT-{RUT_NORMALIZADO}",
+      "fields": ["tax_status", "start_date", "acteco", "sales_band", "workers", "main_region"]
+    },
+    "RADAR_UAF": {
+      "status": "LIVE_PUBLIC_PAGE_LOOKUP",
+      "path": "/Radar_UAF/data/dashboard.json",
+      "key": "rut"
+    },
+    "RADAR_SANCIONES": {
+      "status": "LIVE_PUBLIC_PAGE_LOOKUP",
+      "path": "/Radar_sanciones/data/entities.json",
+      "key": "rut"
+    }
+  },
+  "entities": {}
+}
