@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-08-18T18:29:17+00:00",
+  "generated_at": "2026-08-18T18:58:52+00:00",
   "javascript": "success",
-  "html_references": "success",
+  "html_references": "failure",
   "browser_json_parse": "success",
   "legacy_nan_fallback": "success",
   "private_supplier_scope": "success"
