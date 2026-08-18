@@ -1,0 +1,27 @@
+{
+  "generated_at": "2026-08-18T17:32:49+00:00",
+  "workflow": "Build Spend View v2 fast",
+  "outcome": "failure",
+  "exit_code": 1,
+  "data_ready": false,
+  "log_tail": [
+    "Traceback (most recent call last):",
+    "  File \"<frozen runpy>\", line 198, in _run_module_as_main",
+    "  File \"<frozen runpy>\", line 88, in _run_code",
+    "  File \"/home/runner/work/Rada_Presupuesto_Abierto/Rada_Presupuesto_Abierto/src/radar_presupuesto/spend_view_fast.py\", line 166, in <module>",
+    "    main()",
+    "  File \"/home/runner/work/Rada_Presupuesto_Abierto/Rada_Presupuesto_Abierto/src/radar_presupuesto/spend_view_fast.py\", line 161, in main",
+    "    payload = build_fast_spend_view(args.raw_paths, args.output)",
+    "              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+    "  File \"/home/runner/work/Rada_Presupuesto_Abierto/Rada_Presupuesto_Abierto/src/radar_presupuesto/spend_view_fast.py\", line 146, in build_fast_spend_view",
+    "    payload = build_spend_view_v2(light, output=output, prioritized_path=None)",
+    "              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+    "  File \"/home/runner/work/Rada_Presupuesto_Abierto/Rada_Presupuesto_Abierto/src/radar_presupuesto/spend_view.py\", line 56, in build_spend_view_v2",
+    "    months = _records(con, \"\"\"",
+    "             ^^^^^^^^^^^^^^^^^",
+    "  File \"/home/runner/work/Rada_Presupuesto_Abierto/Rada_Presupuesto_Abierto/src/radar_presupuesto/spend_view.py\", line 14, in _records",
+    "    df = con.execute(sql, params or []).df()",
+    "         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+    "_duckdb.NotImplementedException: Not implemented Error: Non-inner join on correlated columns not supported"
+  ]
+}
