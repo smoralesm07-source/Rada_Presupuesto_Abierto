@@ -96,18 +96,20 @@ provienen de `cgr_correlation.py` y conservan su condición de coincidencia cand
 
 ## Módulo web
 
-`docs/ejecucion.html` es un workbench de una sola página con navegación por vistas:
+`docs/ejecucion.html` es **una sola vista**, pensada para embeberse como módulo dentro de una aplicación mayor (no trae chrome propio: ni barra lateral ni navegación de app).
 
-| Vista | Herramientas |
+El mapa es el eje: al seleccionar una región, todo el módulo se filtra — indicadores, ritmo de ejecución, lecturas del período y las tres tablas.
+
+| Zona | Contenido |
 |---|---|
-| Panorama | Indicadores con tono, alertas, forma del año, ranking regional, Pareto |
-| Ejecución | Barras mensuales + curva acumulada (año y métrica seleccionables), tabla por período, histograma de días de pago, heatmap organismo×mes |
-| Territorio | Mapa coroplético de Chile con 9 métricas intercambiables, escala, tooltip, ranking sincronizado, ficha regional, Lorenz, macrozonas, heatmap región×mes |
-| Concentración | Dispersión de organismos (proveedores vs HHI, tamaño = devengado), Pareto, clasificadores, tabla ordenable |
-| Proveedores | Dispersión con ejes intercambiables, filtros por tier/contribución/región, tabla paginada con estacionalidad, ficha lateral |
-| Entrantes nuevos | Cohorte del último año, ranking de montos, tabla con ficha |
-| Simulador | Sliders de umbrales y pesos que recalculan el score en el navegador, efecto sobre los tiers, ranking con cambio de posición, matriz de concurrencia |
-| Método | Catálogo de indicadores, umbrales de la corrida, modelo del score, cobertura, guardarraíles |
+| Encabezado | Período, procedencia del dato y el filtro de región activo, con un botón para quitarlo |
+| Indicadores | Seis cifras de lectura ágil que cambian entre modo nacional y modo región |
+| Mapa | Coroplético de Chile con cinco métricas intercambiables (% del gasto, HHI, señales P1/100k, pagos sin OC, peso de diciembre), escala, tooltip y ranking sincronizado |
+| Ejecución | Devengado por mes; a nivel nacional agrega la curva acumulada del último año, a nivel regional muestra el perfil mensual de la región |
+| Lectura del período | Tres lecturas redactadas con su matiz: alertas nacionales o el diagnóstico de la región seleccionada |
+| Tabla | Pestañas de proveedores atípicos, entrantes nuevos y organismos compradores, con búsqueda, orden, paginación y exportación CSV |
+| Ficha | Panel lateral con el desglose del score, la estacionalidad del proveedor, su trayectoria anual, sus métricas y la verificación mínima sugerida |
+| Método | Bloque colapsado con guardarraíles, cobertura, pesos del score y resolución territorial |
 
 La página carga `data/spend_view_v1.json`; si no existe cae a `data/spend_view_demo_v1.json`. Con `window.__SPEND_VIEW__` incrustado funciona sin servidor:
 
@@ -116,7 +118,7 @@ PYTHONPATH=src python scripts/build_standalone_page.py \
     --data docs/data/spend_view_v1.json --output dist/ejecucion.html
 ```
 
-El simulador reimplementa el scoring en JavaScript a partir de las métricas crudas del artefacto. Sirve para probar la robustez de una hipótesis: si un caso sólo existe con un umbral exacto, es frágil. Los scores simulados no son comparables con la corrida oficial y la página lo advierte.
+El artefacto publica más bloques de los que consume esta vista (`heatmaps`, `distributions`, `pareto`, `reason_cooccurrence`, `score_model`): quedan disponibles para vistas de profundización dentro de la app anfitriona sin recalcular nada.
 
 ## Modo demostración
 
