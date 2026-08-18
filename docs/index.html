@@ -3,14 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Radar Presupuesto Abierto · Flujos L12</title>
-<meta name="description" content="Vista UI/UX conectada a datos reales del Radar Presupuesto Abierto: últimos 12 meses, servicios públicos, proveedores, concentración y flujo de fondos.">
-<link rel="stylesheet" href="assets/spend_v2.css?v=7">
+<title>Radar Presupuesto Abierto · Inteligencia de flujos L12</title>
+<meta name="description" content="Vista analítica del Radar Presupuesto Abierto: servicios públicos, proveedores privados, concentración económica, dependencia, cambio de escala y fichas 360 interoperables.">
+<link rel="stylesheet" href="assets/spend_v2.css?v=8">
+<link rel="stylesheet" href="assets/spend_v3.css?v=8">
 </head>
 <body>
 <main class="app">
-<header class="top"><div><div class="eyebrow">Radar Presupuesto Abierto · vista real L12</div><h1>Flujos, concentración y comportamiento del gasto</h1><p class="sub">Magnitud de servicios públicos en una ventana fija de últimos 12 meses y navegación bidireccional Servicio Público ↔ Proveedor. Cualquier elemento gráfico funciona como filtro reversible: un clic enfoca; el segundo clic sobre el mismo elemento libera.</p></div><div class="badges" id="badges"></div></header>
-<div class="notice" id="notice"><span class="dot"></span><span><b>Cargando datos reales…</b></span></div>
+<header class="top"><div><div class="eyebrow">Radar Presupuesto Abierto · vista real L12</div><h1>Flujos, concentración y comportamiento del gasto</h1><p class="sub">Magnitud de servicios públicos y navegación Servicio Público ↔ Proveedor privado en los últimos 12 meses disponibles. Los organismos públicos se excluyen del universo de proveedores. Los elementos gráficos actúan como filtros reversibles.</p></div><div class="badges" id="badges"></div></header>
+<div class="notice" id="notice"><span class="dot"></span><span><b>Cargando datos reales del radar…</b></span></div>
 <section class="toolbar" id="toolbar" hidden>
   <div class="field"><label>Servicio público</label><select id="serviceFilter"></select></div>
   <div class="field"><label>Proveedor</label><select id="providerFilter"></select></div>
@@ -22,16 +23,16 @@
 <section class="kpis" id="kpis"></section>
 <div id="content" hidden>
 <div class="grid g21">
-  <section class="card"><div class="ch"><div><h2>Flujo de fondos · Servicio público → Proveedor</h2><div class="hint" style="text-align:left;margin-top:2px">El grafo cambia de contexto: país = principales flujos; servicio = sus proveedores; proveedor = sus compradores. Clic en un vínculo fija el par completo.</div></div><span class="hint">grosor = monto</span></div><div class="flowWrap" id="flow"></div></section>
-  <section class="card"><div class="ch"><h2>Lectura inmediata</h2><span class="hint">Derivada del foco actual</span></div><div class="reads" id="reads"></div></section>
+  <section class="card"><div class="ch"><div><h2>Flujo de fondos · Servicio público → Proveedor privado</h2><div class="hint" style="text-align:left;margin-top:2px">País = principales flujos; servicio = sus proveedores privados; proveedor = sus compradores públicos. Las transferencias a otros organismos públicos no se clasifican como proveedores.</div></div><span class="hint">grosor = monto</span></div><div class="flowWrap" id="flow"></div></section>
+  <section class="card"><div class="ch"><div><h2>Lectura inmediata</h2><div class="hint" style="text-align:left;margin-top:2px">Seis casos descriptivos priorizados por magnitud, cambio, dependencia, influencia y trazabilidad.</div></div><span class="hint">clic = enfocar</span></div><div class="reads" id="reads"></div></section>
 </div>
 <div class="grid g11">
   <section class="card"><div class="ch"><div><h2>Magnitud de servicios públicos · últimos 12 meses</h2><div class="hint" style="text-align:left;margin-top:2px">Barra = monto L12 · microserie = distribución mensual. El ranking permanece fijo para conservar contexto.</div></div><span class="hint" id="rankHint"></span></div><div class="serviceRank" id="serviceRank"></div></section>
   <section class="card"><div class="ch"><div><h2>Ritmo mensual del flujo visible</h2><div class="hint" style="text-align:left;margin-top:2px">Clic en un mes filtra los demás gráficos; segundo clic vuelve a L12.</div></div><span class="hint" id="monthHint"></span></div><svg class="monthChart" id="monthChart" viewBox="0 0 620 295"></svg><div class="legend"><span><i style="background:#5f7f95"></i>Devengado</span><span><i style="background:#c45f17"></i>Mes seleccionado</span></div></section>
 </div>
 <div class="grid g11">
-  <section class="card"><div class="ch"><div><h2>Concentración de proveedores · Pareto</h2><div class="hint" style="text-align:left;margin-top:2px">Barras ordenadas por monto visible; línea = acumulado. Cada barra es filtro reversible.</div></div><span class="hint" id="paretoHint"></span></div><div class="paretoWrap"><svg class="chart" id="pareto" viewBox="0 0 620 276"></svg></div></section>
-  <section class="card"><div class="ch"><div><h2>Dependencia ↔ influencia</h2><div class="hint" style="text-align:left;margin-top:2px">Dependencia = cuánto del proveedor proviene de su principal comprador visible. Influencia = cuánto pesa en ese comprador.</div></div><span class="hint">tamaño = monto</span></div><div class="scatterWrap"><svg class="chart" id="scatter" viewBox="0 0 620 276"></svg></div><p class="scatterHelp">El cuadrante superior derecho prioriza relaciones económicas que merecen contexto, no constituye una señal de irregularidad por sí mismo.</p></section>
+  <section class="card"><div class="ch"><div><h2>Proveedores con cambio de escala</h2><div class="hint" style="text-align:left;margin-top:2px">Variación L12 vs 12 meses previos ponderada por materialidad. Prioriza cambios que merecen contexto, no irregularidades.</div></div><span class="hint" id="paretoHint"></span></div><div class="paretoWrap"><svg class="chart" id="pareto" viewBox="0 0 620 276"></svg></div></section>
+  <section class="card"><div class="ch"><div><h2>Dependencia ↔ influencia</h2><div class="hint" style="text-align:left;margin-top:2px">Eje X: cuánto del proveedor depende de su principal comprador público. Eje Y: cuánto pesa ese proveedor dentro del comprador. La selección no elimina el contexto.</div></div><span class="hint">tamaño = monto</span></div><div class="scatterWrap"><svg class="chart" id="scatter" viewBox="0 0 620 276"></svg></div><p class="scatterHelp">El cuadrante superior derecho prioriza relaciones económicas que merecen contexto; no constituye una señal de irregularidad por sí mismo.</p></section>
 </div>
 <section class="card"><div class="tabs"><button class="tab on" data-tab="providers">Proveedores</button><button class="tab" data-tab="services">Servicios públicos</button><button class="tab" data-tab="flows">Relaciones</button></div><div class="tableTools"><input type="search" id="search" placeholder="Buscar nombre, RUT o contraparte…"><button class="chip" id="exportBtn">Exportar CSV</button></div><div class="tw"><table class="tbl"><thead id="thead"></thead><tbody id="tbody"></tbody></table></div></section>
 <details class="method"><summary>Método y lectura prudente</summary><ul id="guardrails"></ul></details>
@@ -39,58 +40,20 @@
 <div id="errorBox"></div>
 </main>
 <div class="drawerBack" id="drawerBack"></div><aside class="drawer" id="drawer"></aside><div class="tip" id="tip"></div>
-<script src="assets/json_compat.js?v=7"></script>
+<script src="assets/json_compat.js?v=8"></script>
 <script>
 function wireTips(root){
-  if(!root) return;
+  if(!root)return;
   root.querySelectorAll('[data-tip]').forEach(function(n){
-    n.onmousemove=function(e){
-      var t=document.getElementById('tip'); if(!t) return;
-      t.innerHTML=n.dataset.tip||''; t.classList.add('on');
-      var x=e.clientX+13,y=e.clientY+13,w=t.offsetWidth,h=t.offsetHeight;
-      if(x+w>window.innerWidth-8)x=e.clientX-w-13;
-      if(y+h>window.innerHeight-8)y=e.clientY-h-13;
-      t.style.left=x+'px';t.style.top=y+'px';
-    };
+    n.onmousemove=function(e){var t=document.getElementById('tip');if(!t)return;t.innerHTML=n.dataset.tip||'';t.classList.add('on');var x=e.clientX+13,y=e.clientY+13,w=t.offsetWidth,h=t.offsetHeight;if(x+w>innerWidth-8)x=e.clientX-w-13;if(y+h>innerHeight-8)y=e.clientY-h-13;t.style.left=x+'px';t.style.top=y+'px'};
     n.onmouseleave=function(){var t=document.getElementById('tip');if(t)t.classList.remove('on')};
   });
 }
 function htmlEscape(s){return String(s==null?'':s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
-function showRuntimeError(message){
-  var box=document.getElementById('errorBox'),notice=document.getElementById('notice');
-  if(notice)notice.innerHTML='<span class="dot"></span><span><b>Error al cargar/renderizar datos.</b> Revisa el detalle inferior.</span>';
-  if(box)box.innerHTML='<div class="loadError"><b>Detalle técnico:</b><br><code>'+htmlEscape(message||'desconocido')+'</code></div>';
-}
+function showRuntimeError(message){var box=document.getElementById('errorBox'),notice=document.getElementById('notice');if(notice)notice.innerHTML='<span class="dot"></span><span><b>Error al cargar/renderizar datos.</b> Revisa el detalle inferior.</span>';if(box)box.innerHTML='<div class="loadError"><b>Detalle técnico:</b><br><code>'+htmlEscape(message||'desconocido')+'</code></div>'}
 window.addEventListener('error',function(e){showRuntimeError((e.error&&e.error.stack)||e.message)});
 window.addEventListener('unhandledrejection',function(e){showRuntimeError((e.reason&&e.reason.stack)||e.reason)});
-
-/* Prefetch único: evita descargar dos veces el JSON y muestra prueba de datos antes del render complejo. */
-window.__nativeFetch=window.fetch.bind(window);
-window.__PA_SPEND_PREFETCH__=window.__nativeFetch('data/spend_view_v2.json?v=7',{cache:'no-store'}).then(function(r){
-  if(!r.ok)throw new Error('JSON real HTTP '+r.status);
-  return r.json();
-}).then(function(d){
-  if(!d||d.schema!=='PRESUPUESTO_SPEND_VIEW_V2')throw new Error('Esquema de datos inesperado');
-  var nf=new Intl.NumberFormat('es-CL');
-  var money=function(v){v=Number(v||0);return v>=1e12?'$'+(v/1e12).toFixed(2).replace('.',',')+' bill.':'$'+nf.format(Math.round(v))};
-  var notice=document.getElementById('notice'),k=document.getElementById('kpis');
-  if(notice)notice.innerHTML='<span class="dot"></span><span><b>Datos reales recibidos.</b> Preparando visualización interactiva…</span>';
-  if(k&&d.overview)k.innerHTML=[
-    ['Devengado L12',money(d.overview.amount_l12_clp)],
-    ['Pagos L12',nf.format(Number(d.overview.transactions_l12||0))],
-    ['Servicios',nf.format(Number(d.overview.organizations_l12||0))],
-    ['Proveedores',nf.format(Number(d.overview.providers_l12||0))]
-  ].map(function(x){return '<div class="kpi"><div class="lab">'+x[0]+'</div><div class="val">'+x[1]+'</div><div class="small">datos reales · DIPRES</div></div>'}).join('');
-  return d;
-}).catch(function(e){showRuntimeError(e&&e.message?e.message:e);throw e});
-
-/* El renderer usa el mismo payload prefetcheado en vez de iniciar una segunda descarga. */
-window.fetch=function(input,init){
-  if(String(input).indexOf('data/spend_view_v2.json')===0){
-    return Promise.resolve({ok:true,status:200,json:function(){return window.__PA_SPEND_PREFETCH__}});
-  }
-  return window.__nativeFetch(input,init);
-};
 </script>
-<script src="assets/spend_v2_fast.js?v=7"></script>
+<script src="assets/spend_v2_fast.js?v=8"></script>
+<script src="assets/spend_v3_enhance.js?v=8"></script>
 </body></html>
