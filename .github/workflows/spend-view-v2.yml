@@ -23,8 +23,12 @@ jobs:
           cache: pip
       - run: python -m pip install -r requirements.txt
       - name: Build normalized facts required by L12 view
+        id: build
+        continue-on-error: true
+        shell: bash
         run: |
-          PYTHONPATH=src python - <<'PY'
+          set +e
+          PYTHONPATH=src python - <<'PY' 2>&1 | tee /tmp/spend-view-v2.log
           import json
           from pathlib import Path
           from radar_presupuesto.extract import download
@@ -54,12 +58,47 @@ jobs:
           print('[OK] ventana', payload['window'])
           print('[OK] publicados', payload['published'])
           PY
-      - name: Publish spend view data
+          CODE=${PIPESTATUS[0]}
+          echo "exit_code=$CODE" >> "$GITHUB_OUTPUT"
+          exit $CODE
+      - name: Write observable build status
+        if: always()
+        shell: bash
+        env:
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          BUILD_CODE: ${{ steps.build.outputs.exit_code }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          log_path = Path('/tmp/spend-view-v2.log')
+          lines = log_path.read_text(encoding='utf-8', errors='replace').splitlines() if log_path.exists() else []
+          payload = {
+              'generated_at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+              'workflow': 'Build Spend View v2',
+              'outcome': os.environ.get('BUILD_OUTCOME') or 'UNKNOWN',
+              'exit_code': int(os.environ.get('BUILD_CODE') or -1),
+              'data_ready': Path('docs/data/spend_view_v2.json').exists(),
+              'log_tail': lines[-80:],
+          }
+          Path('docs/data').mkdir(parents=True, exist_ok=True)
+          Path('docs/data/spend_view_v2_status.json').write_text(
+              json.dumps(payload, ensure_ascii=False, indent=2), encoding='utf-8'
+          )
+          PY
+      - name: Publish spend view data and status
+        if: always()
+        shell: bash
         run: |
           git config user.name "radar-presupuesto-bot"
           git config user.email "radar-presupuesto-bot@users.noreply.github.com"
-          git add docs/data/spend_view_v2.json
+          git add docs/data/spend_view_v2_status.json
+          if [ -f docs/data/spend_view_v2.json ]; then git add docs/data/spend_view_v2.json; fi
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "data: publica spend view L12 real"
+          git commit -m "data: publica estado spend view L12"
           git pull --rebase origin main
           git push origin main
+      - name: Fail if spend view build failed
+        if: steps.build.outcome != 'success'
+        run: exit 1
