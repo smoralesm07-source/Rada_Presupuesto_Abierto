@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import re
+import unicodedata
 from collections import defaultdict
 from pathlib import Path
 
@@ -20,11 +22,62 @@ def _strict_json(value):
     return value
 
 
+def _norm_name(value: object) -> str:
+    text = unicodedata.normalize("NFKD", str(value or "")).encode("ascii", "ignore").decode("ascii")
+    text = re.sub(r"[^A-Z0-9]+", " ", text.upper()).strip()
+    return re.sub(r"\s+", " ", text)
+
+
+_PUBLIC_PATTERNS = (
+    "TESORERIA GENERAL DE LA REPUBLICA",
+    "SERVICIO DE IMPUESTOS INTERNOS",
+    "SERVICIO DE REGISTRO CIVIL",
+    "SERVICIO MEDICO LEGAL",
+    "SERVICIO NACIONAL DE",
+    "SERVICIO DE SALUD",
+    "SUBSECRETARIA DE",
+    "MINISTERIO DE",
+    "MUNICIPALIDAD DE",
+    "ILUSTRE MUNICIPALIDAD",
+    "GOBIERNO REGIONAL",
+    "CONTRALORIA GENERAL DE LA REPUBLICA",
+    "FONDO NACIONAL DE SALUD",
+    "INSTITUTO DE PREVISION SOCIAL",
+    "DEFENSORIA PENAL PUBLICA",
+    "JUNTA NACIONAL DE",
+    "DIRECCION GENERAL DE",
+    "DIRECCION NACIONAL DE",
+    "POLICIA DE INVESTIGACIONES DE CHILE",
+    "CARABINEROS DE CHILE",
+    "EJERCITO DE CHILE",
+    "ARMADA DE CHILE",
+    "FUERZA AEREA DE CHILE",
+)
+
+
+def _is_public_provider(row: dict, service_names: set[str]) -> bool:
+    name = _norm_name(row.get("provider_name"))
+    if not name:
+        return False
+    if name in service_names:
+        return True
+    return any(pattern in name for pattern in _PUBLIC_PATTERNS)
+
+
 def compact(input_path: str, output_path: str, max_flows: int = 3200, per_service: int = 2) -> dict:
     src = Path(input_path)
     # Python accepts NaN in legacy JSON; sanitize it before re-publishing strict JSON.
     data = json.loads(src.read_text(encoding="utf-8"))
-    flows = list(data.get("flows") or [])
+
+    service_names = {
+        _norm_name(row.get("organization_name"))
+        for row in (data.get("services") or [])
+        if _norm_name(row.get("organization_name"))
+    }
+    raw_flows = list(data.get("flows") or [])
+    public_flows = [row for row in raw_flows if _is_public_provider(row, service_names)]
+    flows = [row for row in raw_flows if not _is_public_provider(row, service_names)]
+
     grouped: dict[str, list[dict]] = defaultdict(list)
     for row in flows:
         grouped[str(row.get("organization_id") or "")].append(row)
@@ -79,9 +132,13 @@ def compact(input_path: str, output_path: str, max_flows: int = 3200, per_servic
     data["flows"] = keep
     data["providers"] = providers
     data.setdefault("source", {})["ui_payload"] = "COMPACT_INITIAL_VIEW"
+    data["source"]["provider_scope"] = "PRIVATE_OR_NON_PUBLIC_COUNTERPARTIES"
+    data["source"]["public_provider_flows_excluded"] = len(public_flows)
     data["source"]["ui_note"] = (
-        "Todos los servicios L12 permanecen disponibles; el payload inicial conserva "
-        "las relaciones principales por servicio para acelerar GitHub Pages."
+        "Todos los servicios L12 permanecen disponibles. La vista de proveedores excluye "
+        "contrapartes identificadas como organismos públicos por coincidencia con el universo "
+        "institucional y patrones públicos de alta precisión; las relaciones principales se "
+        "acotan para acelerar GitHub Pages."
     )
     data["published"] = {
         **(data.get("published") or {}),
@@ -90,6 +147,7 @@ def compact(input_path: str, output_path: str, max_flows: int = 3200, per_servic
         "flows": len(keep),
         "flows_per_service_initial": per_service,
         "initial_flow_cap": max_flows,
+        "public_provider_flows_excluded": len(public_flows),
     }
 
     data = _strict_json(data)
@@ -108,6 +166,7 @@ def compact(input_path: str, output_path: str, max_flows: int = 3200, per_servic
         "services": len(data.get("services") or []),
         "providers": len(providers),
         "flows": len(keep),
+        "public_provider_flows_excluded": len(public_flows),
         "strict_json": True,
     }
 
