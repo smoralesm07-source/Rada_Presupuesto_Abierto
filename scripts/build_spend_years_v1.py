@@ -126,7 +126,6 @@ def build(parquet_path: str, output: str, flows_per_service_year: int = 3, globa
                 continue
             seen.add(key); keep.append(r)
 
-    # Always preserve UAF reference flows, even when outside the global ranking.
     uaf_ids = {
         str(r["organization_id"])
         for r in service_rows
@@ -140,6 +139,35 @@ def build(parquet_path: str, output: str, flows_per_service_year: int = 3, globa
         key = (str(r["organization_id"]), str(r["provider_id"]), int(r["year"]))
         if key not in seen:
             seen.add(key); keep.append(r)
+
+    selected_provider_ids = sorted({str(r["provider_id"]) for r in keep if r.get("provider_id")})
+    con.execute("CREATE OR REPLACE TEMP TABLE selected_providers(provider_id VARCHAR)")
+    if selected_provider_ids:
+        con.executemany("INSERT INTO selected_providers VALUES (?)", [(x,) for x in selected_provider_ids])
+
+    provider_month_rows = records(con, """
+        SELECT f.provider_id,
+               f.periodo AS year,
+               f.mes,
+               printf('%04d-%02d',f.periodo,f.mes) AS period,
+               sum(coalesce(f.monto_devengado,0)) AS amount_clp,
+               count(*) AS transactions
+        FROM facts f
+        JOIN selected_providers s USING(provider_id)
+        WHERE f.is_provider=TRUE AND coalesce(f.provider_id,'')<>''
+        GROUP BY 1,2,3
+        HAVING sum(coalesce(f.monto_devengado,0))<>0
+        ORDER BY 1,2,3
+    """)
+    provider_months: dict[str,list[dict]] = defaultdict(list)
+    for r in provider_month_rows:
+        provider_months[str(r["provider_id"])].append({
+            "year": int(r["year"]),
+            "month": int(r["mes"]),
+            "period": r["period"],
+            "amount_clp": r.get("amount_clp"),
+            "transactions": r.get("transactions"),
+        })
 
     provider_year: dict[tuple[str,int], dict] = {}
     for r in keep:
@@ -172,10 +200,8 @@ def build(parquet_path: str, output: str, flows_per_service_year: int = 3, globa
             FROM facts WHERE organization_id IN ({ph}) GROUP BY 1,2 ORDER BY 1,2
         """, list(uaf_ids))
 
-    # Existing PA catalogue marks that can be reproduced from the light fact surface.
     marks=[]
     max_year=max(years)
-    # YEAR_END_SPIKE
     monthly_by_org=records(con, """
         SELECT organization_id, periodo AS year, mes, sum(coalesce(monto_devengado,0)) amount
         FROM facts GROUP BY 1,2,3
@@ -190,7 +216,6 @@ def build(parquet_path: str, output: str, flows_per_service_year: int = 3, globa
         if base>0 and end/base>=2.5:
             marks.append({"scope":"service","entity_id":sid,"year":year,"signal_type":"YEAR_END_SPIKE","severity":"MEDIUM","metric":end/base,"why":"Promedio mensual nov-dic es al menos 2,5x el promedio ene-oct."})
 
-    # PROVIDER_CONCENTRATION (same thresholds as advanced_signals.py defaults).
     sy_tot=defaultdict(float); sy_providers=defaultdict(dict)
     for r in raw_flows:
         k=(str(r["organization_id"]),int(r["year"])); a=float(r.get("amount_clp") or 0); sy_tot[k]+=a; sy_providers[k][str(r["provider_id"])]=a
@@ -201,7 +226,6 @@ def build(parquet_path: str, output: str, flows_per_service_year: int = 3, globa
         if share>=.45 and hhi>=.25 and amount>=10_000_000:
             marks.append({"scope":"provider","entity_id":pid,"organization_id":sid,"year":year,"signal_type":"PROVIDER_CONCENTRATION","severity":"HIGH" if share>=.65 or hhi>=.40 else "MEDIUM","metric":share,"hhi":hhi,"why":"Proveedor dominante con concentración material dentro del organismo/año."})
 
-    # NEW_TO_SERIES_HIGH_SPEND.
     first_year={}
     for r in raw_flows:
         pid=str(r["provider_id"]); y=int(r["year"]); first_year[pid]=min(y,first_year.get(pid,y))
@@ -223,7 +247,7 @@ def build(parquet_path: str, output: str, flows_per_service_year: int = 3, globa
 
     provider_map={}
     for r in provider_rows:
-        pid=str(r["provider_id"]); p0=provider_map.setdefault(pid,{"provider_id":pid,"provider_name":r.get("provider_name") or pid,"rut":r.get("rut") or "","first_year":first_year.get(pid),"yearly":[]})
+        pid=str(r["provider_id"]); p0=provider_map.setdefault(pid,{"provider_id":pid,"provider_name":r.get("provider_name") or pid,"rut":r.get("rut") or "","first_year":first_year.get(pid),"yearly":[],"monthly":provider_months.get(pid,[])})
         p0["yearly"].append({k:r.get(k) for k in ("year","amount_clp","transactions","organizations")})
 
     flow_map={}
@@ -251,6 +275,7 @@ def build(parquet_path: str, output: str, flows_per_service_year: int = 3, globa
         "method":{
             "provider_scope":"PRIVATE_OR_NON_PUBLIC_COUNTERPARTIES",
             "flow_selection":"top relationships by service/year plus global material flows; UAF relationships always retained",
+            "provider_months":"Meses con monto devengado distinto de cero para proveedores publicados en la vista multianual.",
             "marks_catalog":["YEAR_END_SPIKE","PROVIDER_CONCENTRATION","NEW_TO_SERIES_HIGH_SPEND"],
             "guardrail":"Marca analítica prioriza revisión; no acredita irregularidad, incumplimiento ni LA/FT."
         }
@@ -258,7 +283,7 @@ def build(parquet_path: str, output: str, flows_per_service_year: int = 3, globa
     out=Path(output); out.parent.mkdir(parents=True,exist_ok=True)
     out.write_text(json.dumps(payload,ensure_ascii=False,separators=(",",":"),allow_nan=False),encoding="utf-8")
     con.close()
-    return {"years":years,"services":len(payload["services"]),"providers":len(payload["providers"]),"flows":len(payload["flows"]),"marks":len(marks),"uaf_references":len(reference),"bytes":out.stat().st_size}
+    return {"years":years,"services":len(payload["services"]),"providers":len(payload["providers"]),"flows":len(payload["flows"]),"provider_month_rows":len(provider_month_rows),"marks":len(marks),"uaf_references":len(reference),"bytes":out.stat().st_size}
 
 
 def main():
