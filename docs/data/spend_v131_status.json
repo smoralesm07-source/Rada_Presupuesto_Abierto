@@ -1,0 +1,15 @@
+{
+  "generated_at": "2026-08-18T21:40:02+00:00",
+  "mark_filter_bundle": "success",
+  "filter_mode": "single_toggle",
+  "uaf_reference": "optional_independent",
+  "synchronized_views": [
+    "flow",
+    "kpis",
+    "reads",
+    "service_rank",
+    "growth",
+    "dependence_influence",
+    "table"
+  ]
+}
