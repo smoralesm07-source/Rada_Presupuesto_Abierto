@@ -32,8 +32,19 @@ jobs:
       - name: Install Radar SII runtime
         run: python -m pip install -r external/radar-sii/requirements.txt
       - name: Build selective SII extract
-        run: PYTHONPATH=external/radar-sii/src python scripts/build_entity_enrichment_sii.py
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          PYTHONPATH=external/radar-sii/src python scripts/build_entity_enrichment_sii.py 2>&1 | tee /tmp/sii-enrichment.log
+          CODE=${PIPESTATUS[0]}
+          echo "exit_code=$CODE" >> "$GITHUB_OUTPUT"
+          exit $CODE
       - name: Validate enrichment
+        id: validate
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
         run: |
           python - <<'PY'
           import json
@@ -45,12 +56,41 @@ jobs:
           assert src.get('matched_entities',0)>0
           print('[OK]',src)
           PY
-      - name: Publish enrichment
+      - name: Write enrichment status
+        if: always()
+        env:
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          BUILD_CODE: ${{ steps.build.outputs.exit_code }}
+          VALIDATE_OUTCOME: ${{ steps.validate.outcome }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          log=Path('/tmp/sii-enrichment.log')
+          lines=log.read_text(encoding='utf-8',errors='replace').splitlines() if log.exists() else []
+          payload={
+            'generated_at':datetime.now(timezone.utc).isoformat(timespec='seconds'),
+            'workflow':'Enrich Spend Suppliers with SII',
+            'build':os.environ.get('BUILD_OUTCOME') or 'unknown',
+            'exit_code':int(os.environ.get('BUILD_CODE') or -1),
+            'validation':os.environ.get('VALIDATE_OUTCOME') or 'skipped',
+            'data_ready':Path('docs/data/entity_enrichment_v1.json').exists(),
+            'log_tail':lines[-80:]
+          }
+          Path('docs/data/entity_enrichment_sii_status.json').write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding='utf-8')
+          PY
+      - name: Publish enrichment and status
+        if: always()
         run: |
           git config user.name "radar-presupuesto-bot"
           git config user.email "radar-presupuesto-bot@users.noreply.github.com"
-          git add docs/data/entity_enrichment_v1.json
+          git add docs/data/entity_enrichment_sii_status.json
+          if [ -f docs/data/entity_enrichment_v1.json ]; then git add docs/data/entity_enrichment_v1.json; fi
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "data: enriquece proveedores con Radar SII"
+          git commit -m "data: publica enriquecimiento SII de proveedores"
           git pull --rebase origin main
           git push origin main
+      - name: Fail if enrichment failed
+        if: steps.build.outcome != 'success' || steps.validate.outcome != 'success'
+        run: exit 1
