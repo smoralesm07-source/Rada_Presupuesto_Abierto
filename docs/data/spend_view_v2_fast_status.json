@@ -1,10 +1,12 @@
 {
-  "generated_at": "2026-08-18T18:09:51+00:00",
+  "generated_at": "2026-08-18T18:55:45+00:00",
   "workflow": "Build Spend View v2 fast",
   "outcome": "success",
   "exit_code": 0,
   "strict_json": "success",
+  "multiyear": "success",
   "data_ready": true,
+  "multiyear_ready": true,
   "log_tail": [
     "[OK] ventana {'start_month': '2025-07-01', 'end_month': '2026-06-01', 'months': ['2025-07', '2025-08', '2025-09', '2025-10', '2025-11', '2025-12', '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'], 'label': 'últimos 12 meses disponibles'}",
     "[OK] publicados {'services': 1491, 'providers': 1500, 'flows': 10865, 'flows_per_service_cap': 8}",
