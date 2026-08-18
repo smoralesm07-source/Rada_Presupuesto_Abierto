@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Radar Presupuesto Abierto · Explorador multianual</title>
 <meta name="description" content="Vista analítica multianual del Radar Presupuesto Abierto: servicios públicos, proveedores privados, UAF como referencia persistente, marcas explicables y fichas 360 interoperables.">
-<link rel="stylesheet" href="assets/spend_v2.css?v=9">
-<link rel="stylesheet" href="assets/spend_v3.css?v=9">
-<link rel="stylesheet" href="assets/spend_v4.css?v=9">
+<link rel="stylesheet" href="assets/spend_v2.css?v=10">
+<link rel="stylesheet" href="assets/spend_v3.css?v=10">
+<link rel="stylesheet" href="assets/spend_v4.css?v=10">
 </head>
 <body>
 <main class="app">
@@ -43,7 +43,7 @@
 <div id="errorBox"></div>
 </main>
 <div class="drawerBack" id="drawerBack"></div><aside class="drawer" id="drawer"></aside><div class="tip" id="tip"></div>
-<script src="assets/json_compat.js?v=9"></script>
+<script src="assets/json_compat.js?v=10"></script>
 <script>
 function wireTips(root){
   if(!root)return;
@@ -56,7 +56,6 @@ function htmlEscape(s){return String(s==null?'':s).replace(/[&<>]/g,function(c){
 function showRuntimeError(message){var box=document.getElementById('errorBox'),notice=document.getElementById('notice');if(notice)notice.innerHTML='<span class="dot"></span><span><b>Error al cargar/renderizar datos.</b> Revisa el detalle inferior.</span>';if(box)box.innerHTML='<div class="loadError"><b>Detalle técnico:</b><br><code>'+htmlEscape(message||'desconocido')+'</code></div>'}
 window.addEventListener('error',function(e){showRuntimeError((e.error&&e.error.stack)||e.message)});
 window.addEventListener('unhandledrejection',function(e){showRuntimeError((e.reason&&e.reason.stack)||e.reason)});
-/* Expone una copia del payload real al explorador v4 sin alterar el renderer base. */
 window.__paNativeFetch=window.fetch.bind(window);
 window.fetch=async function(input,init){
   var r=await window.__paNativeFetch(input,init);
@@ -66,6 +65,6 @@ window.fetch=async function(input,init){
   return r;
 };
 </script>
-<script src="assets/spend_v2_fast.js?v=9"></script>
-<script src="assets/spend_v4_explorer.js?v=9"></script>
+<script src="assets/spend_v2_fast.js?v=10"></script>
+<script src="assets/spend_v4_explorer.js?v=10"></script>
 </body></html>
