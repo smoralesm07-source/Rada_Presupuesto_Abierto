@@ -1,0 +1,84 @@
+name: Build Spend View v2 fast
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/spend-view-fast-v2.yml'
+      - 'src/radar_presupuesto/spend_view_fast.py'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: spend-view-fast-v2
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Download latest three official bulk files
+        run: |
+          PYTHONPATH=src python - <<'PY'
+          import json
+          from pathlib import Path
+          from radar_presupuesto.extract import download
+          catalog=json.load(open('docs/data/source_catalog.json',encoding='utf-8'))
+          ok={'linked','linked_available','probed_available'}
+          rows=[x for x in catalog.get('downloads',[]) if x.get('status') in ok][-3:]
+          if len(rows)<2: raise SystemExit('No hay cobertura suficiente')
+          Path('data/raw').mkdir(parents=True,exist_ok=True)
+          for r in rows:
+              path=Path('data/raw')/f"pagos-{r['year']}.gz"
+              download(r['url'],path)
+              print('[OK] download',r['year'],path)
+          Path('/tmp/spend-years.txt').write_text(' '.join(str(r['year']) for r in rows))
+          PY
+      - name: Build lightweight real L12 view
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          YEARS=$(cat /tmp/spend-years.txt)
+          PATHS=""
+          for Y in $YEARS; do PATHS="$PATHS data/raw/pagos-$Y.gz"; done
+          PYTHONPATH=src python -m radar_presupuesto.spend_view_fast $PATHS --output docs/data/spend_view_v2.json 2>&1 | tee /tmp/spend-view-fast.log
+          CODE=${PIPESTATUS[0]}
+          echo "exit_code=$CODE" >> "$GITHUB_OUTPUT"
+          exit $CODE
+      - name: Write fast-build status
+        if: always()
+        env:
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          BUILD_CODE: ${{ steps.build.outputs.exit_code }}
+        run: |
+          python - <<'PY'
+          import json,os
+          from datetime import datetime,timezone
+          from pathlib import Path
+          log=Path('/tmp/spend-view-fast.log')
+          lines=log.read_text(encoding='utf-8',errors='replace').splitlines() if log.exists() else []
+          p={'generated_at':datetime.now(timezone.utc).isoformat(timespec='seconds'),'workflow':'Build Spend View v2 fast','outcome':os.environ.get('BUILD_OUTCOME') or 'UNKNOWN','exit_code':int(os.environ.get('BUILD_CODE') or -1),'data_ready':Path('docs/data/spend_view_v2.json').exists(),'log_tail':lines[-100:]}
+          Path('docs/data').mkdir(parents=True,exist_ok=True)
+          Path('docs/data/spend_view_v2_fast_status.json').write_text(json.dumps(p,ensure_ascii=False,indent=2),encoding='utf-8')
+          PY
+      - name: Publish real L12 data and build status
+        if: always()
+        run: |
+          git config user.name "radar-presupuesto-bot"
+          git config user.email "radar-presupuesto-bot@users.noreply.github.com"
+          git add docs/data/spend_view_v2_fast_status.json
+          if [ -f docs/data/spend_view_v2.json ]; then git add docs/data/spend_view_v2.json; fi
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "data: publica spend view L12 real"
+          git pull --rebase origin main
+          git push origin main
+      - name: Fail if fast build failed
+        if: steps.build.outcome != 'success'
+        run: exit 1
