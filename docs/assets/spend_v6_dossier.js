@@ -16,6 +16,7 @@ const SALES={
   13:'Más de 1.000.000,01 UF/año'
 };
 const S={history:null,sii:new Map(),providerByRut:new Map(),providerByName:new Map(),loaded:false,lastKey:''};
+let UAF_WRAP=null;
 const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim();
 const rutKey=v=>String(v||'').toUpperCase().replace(/[^0-9K]/g,'');
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -37,7 +38,10 @@ function patchOpen(){if(!S.loaded)return;const d=document.getElementById('drawer
   for(const b of blocks){const h=norm(b.querySelector('h3')?.textContent);if(h.startsWith('ACTECO VIGENTES')||h==='ACTECO')b.remove()}
   d.dataset.v6Patched='1';
 }
+function captureUafWrap(node){if(!node||node.nodeType!==1)return;const b=node.id==='uafRefToggle'?node:node.querySelector?.('#uafRefToggle');if(b)UAF_WRAP=b.closest('.uafRefField')||b.parentElement}
+function restoreUafToggle(){const tb=document.getElementById('toolbar');if(!tb)return;const current=document.getElementById('uafRefToggle');if(current){UAF_WRAP=current.closest('.uafRefField')||current.parentElement;if(UAF_WRAP){UAF_WRAP.hidden=false;UAF_WRAP.style.display=''}return}if(!UAF_WRAP)return;const reset=document.getElementById('reset');if(reset&&reset.parentElement===tb)tb.insertBefore(UAF_WRAP,reset);else tb.appendChild(UAF_WRAP);UAF_WRAP.hidden=false;UAF_WRAP.style.display=''}
+function watchUafToggle(){let observer=null;const attach=()=>{const tb=document.getElementById('toolbar');if(!tb)return false;if(observer)return true;observer=new MutationObserver(ms=>{for(const m of ms){for(const n of m.removedNodes||[])captureUafWrap(n);for(const n of m.addedNodes||[])captureUafWrap(n)}setTimeout(restoreUafToggle,0)});observer.observe(tb,{childList:true,subtree:true});restoreUafToggle();return true};let tries=0;const t=setInterval(()=>{tries++;attach();restoreUafToggle();if(tries>600)clearInterval(t)},100)}
 function observe(){const d=document.getElementById('drawer');if(!d)return;new MutationObserver(()=>setTimeout(patchOpen,20)).observe(d,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});document.addEventListener('click',e=>{if(e.target.closest('[data-v4-row-p],[data-v4-provider],[data-v4-growth],[data-v4-scatter],[data-v4-read-p],[data-v5-provider]'))setTimeout(()=>{if(d)d.dataset.v6Patched='0';patchOpen()},140)});document.addEventListener('click',e=>{if(e.target.closest('.yearBtn'))setTimeout(()=>{if(d)d.dataset.v6Patched='0';patchOpen()},120)})}
-function boot(){observe();load().catch(()=>{S.loaded=true})}
+function boot(){watchUafToggle();observe();load().catch(()=>{S.loaded=true})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();
