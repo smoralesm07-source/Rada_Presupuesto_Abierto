@@ -188,12 +188,44 @@ def test_institutions_answer_who_buys_from_whom(built):
     assert block["line_names"][line["line_name_index"]] == "INICIATIVAS DE INVERSION"
     assert sum(detail["m"]) > 0, "la serie mensual del servicio debe estar publicada"
 
-    # La participación anual suma el total del año, sin perder organismos.
+    # La matriz servicio×año se arma desde las filas: los totales por año deben
+    # cuadrar con la suma de todos los organismos publicados.
     participation = block["participation"]
     for index, year_total in enumerate(participation["totals"]):
         assert year_total == pytest.approx(
-            sum(s["amounts"][index] for s in participation["series"]), rel=1e-6
+            sum(r["amounts_by_year"][index] for r in block["rows"]), rel=1e-6
         )
+    assert participation["visible_rows"] >= 1
+    assert block["rows"] == sorted(block["rows"], key=lambda r: (-r["amount_clp"], r["organization_name"] or ""))
+
+    # Detalle por año: el mismo servicio, distinto foco temporal.
+    year = str(block["years"][-1])
+    slot = detail["y"][year]
+    year_top = dict(zip(block["detail_schema"]["y"]["p"], slot["p"][0]))
+    assert year_top["share_of_organization_year"] > 0
+    assert block["line_names"][slot["l"][0][1]]
+
+
+def test_pinned_institution_survives_the_size_cut(tmp_path: Path):
+    processed = tmp_path / "processed"
+    processed.mkdir()
+    _facts().to_parquet(processed / "transactions_2026.parquet", index=False)
+    config = tmp_path / "spend_view.yaml"
+    config.write_text(
+        "institutions:\n  max_rows: 1\n  always_include:\n    - SERVICIO B\n",
+        encoding="utf-8",
+    )
+    payload = build_spend_view(
+        str(processed / "transactions_*.parquet"),
+        str(tmp_path / "missing.parquet"),
+        str(tmp_path / "out.json"),
+        config_path=str(config),
+    )
+    rows = {r["organization_name"]: r for r in payload["institutions"]["rows"]}
+    # El corte por tamaño deja una fila, pero el servicio fijado igual aparece.
+    assert "SERVICIO B" in rows
+    assert rows["SERVICIO B"]["pinned"] is True
+    assert rows["SERVICIO B"]["detail_available"] is True
 
 
 def test_institution_detail_floor_is_declared(tmp_path: Path):

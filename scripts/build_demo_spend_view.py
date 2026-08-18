@@ -28,6 +28,34 @@ from radar_presupuesto.regions import REGION_CATALOG
 from radar_presupuesto.spend_view import build_spend_view
 
 SEED = 20260817
+
+# Nombres ficticios plausibles: la demo se juzga visualmente y "PROVEEDOR 032"
+# no permite evaluar la lectura de una ficha. Son combinaciones inventadas y el
+# artefacto declara que las entidades son ficticias.
+GIROS = [
+    "CONSTRUCTORA", "INGENIERIA", "SERVICIOS INTEGRALES", "COMERCIAL", "TRANSPORTES",
+    "SUMINISTROS", "TECNOLOGIAS", "CONSULTORA", "ALIMENTOS", "MANTENCION INDUSTRIAL",
+    "ARRIENDOS", "SEGURIDAD", "IMPRENTA", "LOGISTICA", "EQUIPAMIENTO MEDICO",
+]
+RAICES = [
+    "ALTIPLANO", "COIHUE", "PAMPA SECA", "RIO CLARO", "CERRO BLANCO", "QUEBRADA HONDA",
+    "VALLE ANCHO", "PUERTO VIEJO", "LOMAS DEL SUR", "CANAL AZUL", "TRES PUENTES",
+    "PIEDRA ROJA", "ALTO MIRADOR", "LAGUNA VERDE", "CAMPO LINDO", "MAR ABIERTO",
+    "SALAR NORTE", "BOSQUE NATIVO", "ESTERO FRIO", "COSTA BRAVA", "MONTE ALEGRE",
+    "ISLA NEGRA", "PASO ANCHO", "VIENTO SUR", "ARENA GRIS", "CUMBRE NEVADA",
+]
+SUFIJOS = ["SPA", "LTDA", "S.A.", "E.I.R.L."]
+
+SERVICIOS = [
+    "DIRECCION REGIONAL DE INFRAESTRUCTURA", "SERVICIO DE ATENCION PRIMARIA",
+    "DIRECCION DE PROGRAMAS SOCIALES", "SERVICIO REGIONAL DE EDUCACION TECNICA",
+    "UNIDAD DE GESTION TERRITORIAL", "DIRECCION DE OBRAS PORTUARIAS REGIONAL",
+    "SERVICIO DE SALUD ZONA CENTRO", "DIRECCION DE VIVIENDA REGIONAL",
+    "SERVICIO DE DEPORTES Y RECREACION", "DIRECCION DE SEGURIDAD PUBLICA REGIONAL",
+    "SERVICIO DE ASISTENCIA JUDICIAL", "UNIDAD DE FOMENTO PRODUCTIVO",
+    "DIRECCION DE CULTURA Y PATRIMONIO", "SERVICIO DE PROTECCION A LA INFANCIA",
+    "DIRECCION DE TRANSPORTE PUBLICO REGIONAL", "SERVICIO DE MEDIO AMBIENTE",
+]
 YEARS = (2024, 2025, 2026)
 
 # Servicios pequeños: ejercitan el eje institucional cuando el organismo no
@@ -79,6 +107,18 @@ def _rut(rng: random.Random) -> str:
     return f"{body}-{_check_digit(body)}"
 
 
+def _company(rng: random.Random, used: set[str]) -> str:
+    """Razón social ficticia sin números de serie visibles."""
+    for _ in range(60):
+        name = f"{rng.choice(GIROS)} {rng.choice(RAICES)} {rng.choice(SUFIJOS)}"
+        if name not in used:
+            used.add(name)
+            return name
+    name = f"{rng.choice(GIROS)} {rng.choice(RAICES)} {len(used)} {rng.choice(SUFIJOS)}"
+    used.add(name)
+    return name
+
+
 def _purchase_order(year: int, doc: int) -> str:
     return f"{1000 + (year + doc) % 9000}-{doc}-L{str(year)[2:]}"
 
@@ -107,7 +147,7 @@ def _row(
         "NOMBRE_PARTIDA": ministry[1],
         "CAPITULO": "01",
         "NOMBRE_CAPITULO": f"SUBSECRETARIA {ministry[1].split()[-1]}",
-        "AREA": area[:3],
+        "AREA": f"{sum(ord(c) for c in area) % 997:03d}",
         "NOMBRE_AREA": area,
         "SUBTITULO": subtitle[0],
         "NOMBRE_SUBTITULO": subtitle[1],
@@ -145,8 +185,9 @@ def build_frame() -> pd.DataFrame:
     # Dos poblaciones: proveedores históricos presentes en toda la serie y un
     # cohorte que aparece sólo en el último año, para ejercitar la vista de
     # entrantes nuevos con dispersión realista de montos.
-    historic = [(f"PROVEEDOR NACIONAL {i:03d} SPA", _rut(rng)) for i in range(1, 620)]
-    entrants = [(f"NUEVA SOCIEDAD {i:03d} SPA", _rut(rng)) for i in range(1, 61)]
+    used: set[str] = set()
+    historic = [(_company(rng, used), _rut(rng)) for _ in range(619)]
+    entrants = [(_company(rng, used), _rut(rng)) for _ in range(60)]
     rows: list[dict[str, object]] = []
     doc = 0
 
@@ -161,7 +202,7 @@ def build_frame() -> pd.DataFrame:
         base = rng.choice([1, 1, 1, 2, 4, 9, 22, 60]) * 1_000_000
         amount = int(base * rng.uniform(0.35, 1.9) * scale)
         rows.append(
-            _row(year, month, ministry, f"SERVICIO REGIONAL {region}", subtitle, region, rut, name,
+            _row(year, month, ministry, f"{SERVICIOS[int(region) % len(SERVICIOS)]} · {ministry[1].split()[-1]}", subtitle, region, rut, name,
                  amount, days_to_pay=rng.choice([12, 20, 28, 33, 45, 62]), doc=doc)
         )
 
@@ -258,7 +299,7 @@ def build_frame() -> pd.DataFrame:
         doc += 1
         rows.append(
             _row(YEARS[-1], (i % 12) + 1, MINISTRIES[0], "NIVEL CENTRAL", SUBTITLES[4],
-                 codes[i % len(codes)], f"1{i:07d}-{i % 10}", f"PERSONA NATURAL {i:03d}",
+                 codes[i % len(codes)], f"1{i:07d}-{i % 10}", f"BENEFICIARIO RESERVADO {i:03d}",
                  1_200_000 + i * 5_000, provider=False, with_purchase_order=False, person=True,
                  days_to_pay=15, doc=doc)
         )

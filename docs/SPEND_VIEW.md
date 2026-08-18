@@ -43,6 +43,8 @@ corrida, de modo que la página se actualiza junto con el resto del radar.
 
 `institutions` publica el universo de organismos compradores (hasta `max_rows`), su serie anual y sus señales. La **ficha detallada** —proveedores, clasificadores, ítems, meses y regiones— se publica sobre el piso `detail_min_amount_clp`; bajo ese piso sobrevive la fila compacta y la brecha queda declarada en `institutions.coverage`.
 
+`always_include` garantiza que un servicio de interés (por defecto la Unidad de Análisis Financiero) quede publicado y con ficha aunque su monto lo deje fuera del corte por tamaño; esas filas llegan marcadas con `pinned: true` y la vista las muestra sin desplegar.
+
 El detalle viaja **columnar, con tablas de nombres compartidas** (`provider_names`, `line_names`, `item_names`) y su formato descrito en `detail_schema`:
 
 ```json
@@ -51,11 +53,18 @@ El detalle viaja **columnar, con tablas de nombres compartidas** (`provider_name
   "l": [["22", 3, 3288599994, 0.58]],
   "i": [[7, 5669999988, 1.0]],
   "m": [318000000, 0, 604000000, "…"],
-  "r": [["13", 5669999988]]
+  "r": [["13", 5669999988]],
+  "y": {"2025": {
+    "p": [[12, 793800000, 0.42, 4, "PRV-RUT-84167947-4"]],
+    "l": [["22", 3, 1096200000, 0.58]],
+    "i": [[7, 1890000000, 1.0]]
+  }}
 }}
 ```
 
-Sin esa compresión el artefacto pesaba 7,2 MB con el universo real de ~1.600 organismos; con ella queda en 2,6 MB, que es lo que la página descarga entera.
+El bloque `y` responde “qué compró este servicio **ese año**”, que es distinto de su acumulado: un proveedor puede dominar 2025 y desaparecer en 2026.
+
+Sin esa compresión el artefacto pesaba 7,2 MB con el universo real de ~1.600 organismos; con ella queda en 3,9 MB incluyendo el detalle anual, que es lo que la página descarga entera (unos 500 KB con gzip).
 
 ## Semántica de "ejecución"
 
@@ -124,7 +133,10 @@ El mapa es el eje: al seleccionar una región, todo el módulo se filtra — ind
 
 | Zona | Contenido |
 |---|---|
-| Encabezado | Período, procedencia del dato y el filtro de región activo, con un botón para quitarlo |
+| Encabezado | Período, procedencia del dato y los filtros activos (servicio, año, región), cada uno con su botón para quitarlo |
+| Buscador | Cualquiera de los servicios publicados por nombre, no sólo los mayores |
+| Matriz servicio×año | Servicios en filas (los `participation_top` mayores más los fijados, con “ver más” para el resto) y años en columnas. Clic en el nombre abre el servicio en toda la serie; clic en una celda lo abre en ese año |
+| Ficha del servicio | Proveedores de mayor influencia y en qué gastó, en la serie completa o en el año seleccionado |
 | Indicadores | Seis cifras de lectura ágil que cambian entre modo nacional y modo región |
 | Mapa | Coroplético de Chile con cinco métricas intercambiables (% del gasto, HHI, señales P1/100k, pagos sin OC, peso de diciembre), escala, tooltip y ranking sincronizado |
 | Ejecución | Devengado por mes; a nivel nacional agrega la curva acumulada del último año, a nivel regional muestra el perfil mensual de la región |

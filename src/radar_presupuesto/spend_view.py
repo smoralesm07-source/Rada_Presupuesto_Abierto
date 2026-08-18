@@ -35,6 +35,7 @@ from typing import Any
 
 import duckdb
 
+from .ids import normalize_text
 from .regions import region_meta, region_reference
 
 SCHEMA = "PRESUPUESTO_SPEND_VIEW_V1"
@@ -61,8 +62,14 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "top_providers": 6,
         "top_lines": 6,
         "top_items": 4,
-        "participation_top": 12,
+        "participation_top": 20,
         "max_rows": 1200,
+        "year_top_providers": 5,
+        "year_top_lines": 3,
+        "year_top_items": 3,
+        # Servicios que el módulo debe poder mostrar siempre, aunque su monto
+        # los deje fuera del corte por tamaño.
+        "always_include": ["UNIDAD DE ANALISIS FINANCIERO"],
     },
     "output": {
         "top_regions": 20,
@@ -1681,8 +1688,12 @@ def _institutions(con: duckdb.DuckDBPyConnection, cfg: dict[str, Any], national_
     top_providers = int(inst_cfg.get("top_providers", 6))
     top_lines = int(inst_cfg.get("top_lines", 6))
     top_items = int(inst_cfg.get("top_items", 4))
-    participation_top = int(inst_cfg.get("participation_top", 12))
+    participation_top = int(inst_cfg.get("participation_top", 20))
     max_rows = int(inst_cfg.get("max_rows", 1200))
+    year_top_providers = int(inst_cfg.get("year_top_providers", 5))
+    year_top_lines = int(inst_cfg.get("year_top_lines", 3))
+    year_top_items = int(inst_cfg.get("year_top_items", 3))
+    always_include = [normalize_text(x) for x in (inst_cfg.get("always_include") or []) if str(x).strip()]
 
     years = [int(r["periodo"]) for r in _rows(con, "SELECT DISTINCT periodo FROM txr WHERE periodo IS NOT NULL ORDER BY 1")]
 
@@ -1717,8 +1728,43 @@ def _institutions(con: duckdb.DuckDBPyConnection, cfg: dict[str, Any], national_
                          "detail_min_amount_clp": detail_floor},
         }
 
+    if always_include:
+        # El corte por tamaño no puede esconder un servicio que el módulo
+        # promete mostrar: se rescata por nombre normalizado y se marca.
+        conditions = " OR ".join([f"upper(strip_accents(coalesce(nombre_area,nombre_capitulo,nombre_partida))) LIKE '%{name}%'" for name in always_include])
+        rescued = _rows(
+            con,
+            f"""
+            SELECT organization_id,
+                   any_value(coalesce(nombre_area,nombre_capitulo,nombre_partida)) AS organization_name,
+                   any_value(nombre_partida) AS partida,
+                   arg_max(region_code, devengado) AS main_region_code,
+                   count(*)::BIGINT AS transactions,
+                   coalesce(sum(devengado),0)::DOUBLE AS amount,
+                   coalesce(sum(devengado) FILTER (WHERE is_provider_payment),0)::DOUBLE AS provider_amount,
+                   count(DISTINCT provider_id) FILTER (WHERE is_provider_payment)::BIGINT AS providers,
+                   coalesce(sum(devengado) FILTER (WHERE mes=12),0)::DOUBLE AS december_amount,
+                   count(*) FILTER (WHERE is_provider_payment AND orden_compra IS NULL)::BIGINT AS provider_tx_without_oc,
+                   count(*) FILTER (WHERE is_provider_payment)::BIGINT AS provider_transactions,
+                   median(dias_pago) AS days_to_pay_median,
+                   min(periodo)::BIGINT AS first_year
+            FROM txr
+            WHERE coalesce(organization_id,'')<>'' AND ({conditions})
+            GROUP BY 1
+            """,
+        )
+        known = {str(r["organization_id"]) for r in base}
+        pinned_ids = {str(r["organization_id"]) for r in rescued}
+        base.extend(r for r in rescued if str(r["organization_id"]) not in known)
+    else:
+        pinned_ids = set()
+
     keep = {str(r["organization_id"]) for r in base}
-    detailed = {str(r["organization_id"]) for r in base if (_num(r["amount"]) or 0) >= detail_floor}
+    detailed = {
+        str(r["organization_id"])
+        for r in base
+        if (_num(r["amount"]) or 0) >= detail_floor or str(r["organization_id"]) in pinned_ids
+    }
 
     con.execute("CREATE OR REPLACE TEMP TABLE inst_ids(organization_id VARCHAR)")
     con.executemany("INSERT INTO inst_ids VALUES (?)", [(x,) for x in sorted(keep)])
@@ -1814,6 +1860,62 @@ def _institutions(con: duckdb.DuckDBPyConnection, cfg: dict[str, Any], national_
         ORDER BY organization_id, amount DESC
         """,
     )
+    year_providers = _rows(
+        con,
+        f"""
+        WITH agg AS (
+          SELECT t.organization_id, t.periodo AS year, t.provider_id,
+                 any_value(p.provider_name) AS provider_name,
+                 coalesce(sum(t.devengado),0)::DOUBLE AS amount,
+                 count(*)::BIGINT AS transactions
+          FROM txr t JOIN inst_detail_ids i USING(organization_id)
+          LEFT JOIN prov p USING(provider_id)
+          WHERE t.is_provider_payment AND t.periodo IS NOT NULL
+          GROUP BY 1,2,3
+        ), ranked AS (
+          SELECT *, row_number() OVER (PARTITION BY organization_id, year ORDER BY amount DESC) AS rn,
+                 sum(amount) OVER (PARTITION BY organization_id, year) AS total FROM agg
+        )
+        SELECT organization_id, year, provider_id, provider_name, amount, transactions,
+               CASE WHEN total>0 THEN amount/total END AS share
+        FROM ranked WHERE rn<={year_top_providers} ORDER BY organization_id, year, amount DESC
+        """,
+    )
+    year_lines = _rows(
+        con,
+        f"""
+        WITH agg AS (
+          SELECT t.organization_id, t.periodo AS year, coalesce(t.subtitulo,'—') AS code,
+                 any_value(coalesce(t.nombre_subtitulo,'Sin clasificador informado')) AS name,
+                 coalesce(sum(t.devengado),0)::DOUBLE AS amount
+          FROM txr t JOIN inst_detail_ids i USING(organization_id)
+          WHERE t.periodo IS NOT NULL GROUP BY 1,2,3
+        ), ranked AS (
+          SELECT *, row_number() OVER (PARTITION BY organization_id, year ORDER BY amount DESC) AS rn,
+                 sum(amount) OVER (PARTITION BY organization_id, year) AS total FROM agg
+        )
+        SELECT organization_id, year, code, name, amount, CASE WHEN total>0 THEN amount/total END AS share
+        FROM ranked WHERE rn<={year_top_lines} ORDER BY organization_id, year, amount DESC
+        """,
+    )
+    year_items = _rows(
+        con,
+        f"""
+        WITH agg AS (
+          SELECT t.organization_id, t.periodo AS year,
+                 coalesce(nullif(t.nombre_item,''),'Sin ítem informado') AS name,
+                 coalesce(sum(t.devengado),0)::DOUBLE AS amount
+          FROM txr t JOIN inst_detail_ids i USING(organization_id)
+          WHERE t.periodo IS NOT NULL GROUP BY 1,2,3
+        ), ranked AS (
+          SELECT *, row_number() OVER (PARTITION BY organization_id, year ORDER BY amount DESC) AS rn,
+                 sum(amount) OVER (PARTITION BY organization_id, year) AS total FROM agg
+        )
+        SELECT organization_id, year, name, amount, CASE WHEN total>0 THEN amount/total END AS share
+        FROM ranked WHERE rn<={year_top_items} ORDER BY organization_id, year, amount DESC
+        """,
+    )
+
     signals_by_org = {
         str(r["organization_id"]): r
         for r in _rows(
@@ -1877,8 +1979,34 @@ def _institutions(con: duckdb.DuckDBPyConnection, cfg: dict[str, Any], national_
     for row in region_rows:
         entry = detail.setdefault(str(row["organization_id"]), {"p": [], "l": [], "i": [], "m": [], "r": []})
         entry["r"].append([row["region_code"], int(round(_num(row["amount"]) or 0.0))])
+    def _year_slot(oid: str, year: Any) -> dict[str, list]:
+        entry = detail.setdefault(str(oid), {"p": [], "l": [], "i": [], "m": [], "r": [], "y": {}})
+        entry.setdefault("y", {})
+        return entry["y"].setdefault(str(int(year)), {"p": [], "l": [], "i": []})
+
+    for row in year_providers:
+        slot = _year_slot(row["organization_id"], row["year"])
+        slot["p"].append(
+            [
+                _intern(row["provider_name"], provider_names, provider_index),
+                int(round(_num(row["amount"]) or 0.0)),
+                _round(row["share"], 4),
+                int(row["transactions"] or 0),
+                row["provider_id"],
+            ]
+        )
+    for row in year_lines:
+        slot = _year_slot(row["organization_id"], row["year"])
+        slot["l"].append([row["code"], _intern(row["name"], line_names, line_index),
+                          int(round(_num(row["amount"]) or 0.0)), _round(row["share"], 3)])
+    for row in year_items:
+        slot = _year_slot(row["organization_id"], row["year"])
+        slot["i"].append([_intern(row["name"], item_names, item_index),
+                          int(round(_num(row["amount"]) or 0.0)), _round(row["share"], 3)])
+
     for oid in list(detail):
         detail[oid]["m"] = by_month.get(oid, [0] * 12)
+        detail[oid].setdefault("y", {})
 
     rows: list[dict[str, Any]] = []
     for row in base:
@@ -1909,6 +2037,7 @@ def _institutions(con: duckdb.DuckDBPyConnection, cfg: dict[str, Any], national_
                 "top_provider_share": None if not top else top[1],
                 "provider_hhi": hhi_of.get(oid),
                 "detail_available": oid in detail,
+                "pinned": oid in pinned_ids,
             }
         )
 
@@ -1916,27 +2045,7 @@ def _institutions(con: duckdb.DuckDBPyConnection, cfg: dict[str, Any], national_
     for entry in rows:
         for i, y in enumerate(years):
             year_totals[y] += entry["amounts_by_year"][i]
-    ranked = sorted(rows, key=lambda r: -(r["amount_clp"] or 0))
-    leaders, rest = ranked[:participation_top], ranked[participation_top:]
-    series = [
-        {
-            "organization_id": r["organization_id"],
-            "organization_name": r["organization_name"],
-            "amounts": r["amounts_by_year"],
-            "shares": [_share(r["amounts_by_year"][i], year_totals[y]) for i, y in enumerate(years)],
-        }
-        for r in leaders
-    ]
-    if rest:
-        rest_amounts = [int(sum(r["amounts_by_year"][i] for r in rest)) for i in range(len(years))]
-        series.append(
-            {
-                "organization_id": None,
-                "organization_name": f"Resto ({len(rest)} organismos)",
-                "amounts": rest_amounts,
-                "shares": [_share(rest_amounts[i], year_totals[y]) for i, y in enumerate(years)],
-            }
-        )
+    rows.sort(key=lambda r: (-(r["amount_clp"] or 0), r["organization_name"] or ""))
 
     detailed_amount = sum(r["amount_clp"] for r in rows if r["detail_available"])
     return {
@@ -1952,8 +2061,21 @@ def _institutions(con: duckdb.DuckDBPyConnection, cfg: dict[str, Any], national_
             "i": ["item_name_index", "amount_clp", "share_of_organization"],
             "m": "devengado por mes (enero→diciembre), CLP",
             "r": ["region_code", "amount_clp"],
+            "y": {
+                "p": ["provider_name_index", "amount_clp", "share_of_organization_year", "transactions", "provider_id"],
+                "l": ["subtitulo", "line_name_index", "amount_clp", "share_of_organization_year"],
+                "i": ["item_name_index", "amount_clp", "share_of_organization_year"],
+            },
         },
-        "participation": {"years": years, "totals": [int(year_totals[y]) for y in years], "series": series},
+        "participation": {
+            "years": years,
+            "totals": [int(year_totals[y]) for y in years],
+            "visible_rows": participation_top,
+            "note": (
+                "Las filas vienen ordenadas por monto; la matriz servicio×año se arma "
+                "con las primeras y el resto queda disponible al desplegar."
+            ),
+        },
         "coverage": {
             "organizations_published": len(rows),
             "organizations_with_detail": len(detail),

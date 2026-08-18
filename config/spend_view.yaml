@@ -46,6 +46,14 @@ institutions:
   top_providers: 6
   top_lines: 6
   top_items: 4
-  # Servicios dibujados individualmente en el gráfico de participación anual.
-  participation_top: 12
+  # Servicios visibles sin desplegar en la matriz servicio×año.
+  participation_top: 20
+  # Detalle por año, para responder "qué compró este servicio ese año".
+  year_top_providers: 5
+  year_top_lines: 3
+  year_top_items: 3
+  # Servicios que el módulo debe poder mostrar siempre, aunque su monto los
+  # deje fuera del corte por tamaño.
+  always_include:
+    - UNIDAD DE ANALISIS FINANCIERO
   max_rows: 1200

@@ -42,7 +42,8 @@ jobs:
               assert p['reasons'], 'todo proveedor listado debe traer contribuciones explicables'
           inst=sv['institutions']
           assert inst['rows'], 'el eje institucional no puede quedar vacío'
-          assert inst['participation']['series'], 'falta la participación anual de los servicios'
+          assert inst['participation']['totals'], 'falta la participación anual de los servicios'
+          assert inst['years'], 'el eje institucional necesita años'
           for org in inst['rows']:
               assert len(org['amounts_by_year']) == len(inst['years'])
               if org['detail_available']:
