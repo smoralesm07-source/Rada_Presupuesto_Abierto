@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/spend-view-fast-v2.yml'
       - 'src/radar_presupuesto/spend_view_fast.py'
+      - 'src/radar_presupuesto/spend_view_fast2.py'
   workflow_dispatch:
 permissions:
   contents: write
@@ -48,7 +49,7 @@ jobs:
           YEARS=$(cat /tmp/spend-years.txt)
           PATHS=""
           for Y in $YEARS; do PATHS="$PATHS data/raw/pagos-$Y.gz"; done
-          PYTHONPATH=src python -m radar_presupuesto.spend_view_fast $PATHS --output docs/data/spend_view_v2.json 2>&1 | tee /tmp/spend-view-fast.log
+          PYTHONPATH=src python -m radar_presupuesto.spend_view_fast2 $PATHS --output docs/data/spend_view_v2.json 2>&1 | tee /tmp/spend-view-fast.log
           CODE=${PIPESTATUS[0]}
           echo "exit_code=$CODE" >> "$GITHUB_OUTPUT"
           exit $CODE
