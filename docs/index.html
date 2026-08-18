@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Radar Presupuesto Abierto · Flujos L12</title>
 <meta name="description" content="Vista UI/UX conectada a datos reales del Radar Presupuesto Abierto: últimos 12 meses, servicios públicos, proveedores, concentración y flujo de fondos.">
-<link rel="stylesheet" href="assets/spend_v2.css?v=5">
+<link rel="stylesheet" href="assets/spend_v2.css?v=6">
 </head>
 <body>
 <main class="app">
 <header class="top"><div><div class="eyebrow">Radar Presupuesto Abierto · vista real L12</div><h1>Flujos, concentración y comportamiento del gasto</h1><p class="sub">Magnitud de servicios públicos en una ventana fija de últimos 12 meses y navegación bidireccional Servicio Público ↔ Proveedor. Cualquier elemento gráfico funciona como filtro reversible: un clic enfoca; el segundo clic sobre el mismo elemento libera.</p></div><div class="badges" id="badges"></div></header>
-<div class="notice" id="notice"><span class="dot"></span><span><b>Cargando datos reales optimizados…</b></span></div>
+<div class="notice" id="notice"><span class="dot"></span><span><b>Cargando datos reales…</b></span></div>
 <section class="toolbar" id="toolbar" hidden>
   <div class="field"><label>Servicio público</label><select id="serviceFilter"></select></div>
   <div class="field"><label>Proveedor</label><select id="providerFilter"></select></div>
@@ -44,10 +44,8 @@ function wireTips(root){
   if(!root) return;
   root.querySelectorAll('[data-tip]').forEach(function(n){
     n.onmousemove=function(e){
-      var t=document.getElementById('tip');
-      if(!t) return;
-      t.innerHTML=n.dataset.tip||'';
-      t.classList.add('on');
+      var t=document.getElementById('tip'); if(!t) return;
+      t.innerHTML=n.dataset.tip||''; t.classList.add('on');
       var x=e.clientX+13,y=e.clientY+13,w=t.offsetWidth,h=t.offsetHeight;
       if(x+w>window.innerWidth-8)x=e.clientX-w-13;
       if(y+h>window.innerHeight-8)y=e.clientY-h-13;
@@ -56,13 +54,42 @@ function wireTips(root){
     n.onmouseleave=function(){var t=document.getElementById('tip');if(t)t.classList.remove('on')};
   });
 }
+function htmlEscape(s){return String(s==null?'':s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
 function showRuntimeError(message){
-  var box=document.getElementById('errorBox'), notice=document.getElementById('notice');
-  if(notice)notice.innerHTML='<span class="dot"></span><span><b>Error al renderizar datos.</b> Revisa el detalle inferior.</span>';
-  if(box)box.innerHTML='<div class="loadError"><b>Error JavaScript:</b><br><code>'+String(message||'desconocido').replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})+'</code></div>';
+  var box=document.getElementById('errorBox'),notice=document.getElementById('notice');
+  if(notice)notice.innerHTML='<span class="dot"></span><span><b>Error al cargar/renderizar datos.</b> Revisa el detalle inferior.</span>';
+  if(box)box.innerHTML='<div class="loadError"><b>Detalle técnico:</b><br><code>'+htmlEscape(message||'desconocido')+'</code></div>';
 }
 window.addEventListener('error',function(e){showRuntimeError((e.error&&e.error.stack)||e.message)});
 window.addEventListener('unhandledrejection',function(e){showRuntimeError((e.reason&&e.reason.stack)||e.reason)});
+
+/* Prefetch único: evita descargar dos veces el JSON y muestra prueba de datos antes del render complejo. */
+window.__nativeFetch=window.fetch.bind(window);
+window.__PA_SPEND_PREFETCH__=window.__nativeFetch('data/spend_view_v2.json?v=6',{cache:'no-store'}).then(function(r){
+  if(!r.ok)throw new Error('JSON real HTTP '+r.status);
+  return r.json();
+}).then(function(d){
+  if(!d||d.schema!=='PRESUPUESTO_SPEND_VIEW_V2')throw new Error('Esquema de datos inesperado');
+  var nf=new Intl.NumberFormat('es-CL');
+  var money=function(v){v=Number(v||0);return v>=1e12?'$'+(v/1e12).toFixed(2).replace('.',',')+' bill.':'$'+nf.format(Math.round(v))};
+  var notice=document.getElementById('notice'),k=document.getElementById('kpis');
+  if(notice)notice.innerHTML='<span class="dot"></span><span><b>Datos reales recibidos.</b> Preparando visualización interactiva…</span>';
+  if(k&&d.overview)k.innerHTML=[
+    ['Devengado L12',money(d.overview.amount_l12_clp)],
+    ['Pagos L12',nf.format(Number(d.overview.transactions_l12||0))],
+    ['Servicios',nf.format(Number(d.overview.organizations_l12||0))],
+    ['Proveedores',nf.format(Number(d.overview.providers_l12||0))]
+  ].map(function(x){return '<div class="kpi"><div class="lab">'+x[0]+'</div><div class="val">'+x[1]+'</div><div class="small">datos reales · DIPRES</div></div>'}).join('');
+  return d;
+}).catch(function(e){showRuntimeError(e&&e.message?e.message:e);throw e});
+
+/* El renderer usa el mismo payload prefetcheado en vez de iniciar una segunda descarga. */
+window.fetch=function(input,init){
+  if(String(input).indexOf('data/spend_view_v2.json')===0){
+    return Promise.resolve({ok:true,status:200,json:function(){return window.__PA_SPEND_PREFETCH__}});
+  }
+  return window.__nativeFetch(input,init);
+};
 </script>
-<script src="assets/spend_v2_fast.js?v=5"></script>
+<script src="assets/spend_v2_fast.js?v=6"></script>
 </body></html>
