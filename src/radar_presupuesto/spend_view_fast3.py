@@ -154,11 +154,11 @@ def materialize_light_facts_v3(raw_paths: list[str], output: str) -> dict:
     """)
 
     meta = con.execute(f"""
-      SELECT count(*) rows,
-             count(DISTINCT organization_id) services,
-             count(DISTINCT concat(partida,'|',capitulo,'|',area)) areas,
-             count(DISTINCT provider_id) FILTER (WHERE is_provider AND provider_id<>'') providers,
-             max(make_date(periodo,mes,1)) FILTER (WHERE coalesce(monto_devengado,0)<>0) latest_devengo_month
+      SELECT count(*) AS row_count,
+             count(DISTINCT organization_id) AS service_count,
+             count(DISTINCT concat(partida,'|',capitulo,'|',area)) AS area_count,
+             count(DISTINCT provider_id) FILTER (WHERE is_provider AND provider_id<>'') AS provider_count,
+             max(make_date(periodo,mes,1)) FILTER (WHERE coalesce(monto_devengado,0)<>0) AS latest_devengo_month
       FROM read_parquet('{q}')
     """).fetchone()
     con.close()
