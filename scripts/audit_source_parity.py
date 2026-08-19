@@ -61,8 +61,6 @@ def official_providers(year: int):
         if len(cells)>=5 and re.fullmatch(r"[0-9\.]+-[0-9Kk]",cells[2].replace(" ","")):
             top.append({"name":cells[1],"rut":cells[2],"amount_clp":money_int(cells[4])})
             if len(top)>=20: break
-    # La página usa estado dinámico para el año seleccionado. Sin datos
-    # renderizados en HTML no se presume que el año solicitado haya sido aplicado.
     parsed=bool(totals or top)
     return {
       "url":url,"year_requested":year,
@@ -94,8 +92,6 @@ def local_metrics(parquet:str,year:int):
       FROM f WHERE periodo=?
     """,[year]).fetchone()
 
-    # Paridad metodológica con la vista pública: receptor identificado por RUT,
-    # sólo filas transaccionales y excluyendo Gastos en Personal (ST21).
     pr=con.execute("""
       SELECT count(DISTINCT rut_beneficiario),sum(coalesce(monto_devengado,0))
       FROM f
@@ -103,8 +99,9 @@ def local_metrics(parquet:str,year:int):
         AND coalesce(rut_beneficiario,'')<>'' AND ltrim(coalesce(subtitulo,''),'0')<>'21'
     """,[year]).fetchone()
     top=con.execute("""
-      SELECT rut_beneficiario,arg_max(nombre_beneficiario,abs(monto_devengado)) name,
-             sum(coalesce(monto_devengado,0)) amount_clp
+      SELECT rut_beneficiario,
+             arg_max(nombre_beneficiario,abs(monto_devengado)) AS provider_name,
+             sum(coalesce(monto_devengado,0)) AS amount_clp
       FROM f
       WHERE periodo=? AND NOT coalesce(is_aggregated,false)
         AND coalesce(rut_beneficiario,'')<>'' AND ltrim(coalesce(subtitulo,''),'0')<>'21'
@@ -125,7 +122,7 @@ def local_metrics(parquet:str,year:int):
       "services_with_rows":int(base[0] or 0),"transactional_services_with_rows":int(base[1] or 0),"areas":int(base[2] or 0),"devengo_clp":float(base[3] or 0),"payment_clp":float(base[4] or 0),
       "provider_receiver_proxy":{"definition":"institución transaccional (AGREGADO=0) + RUT de cualquier beneficiario/receptor válido + subtítulo != 21","distinct_ruts":int(pr[0] or 0),"devengo_clp":float(pr[1] or 0),"top":[{"rut":r[0],"name":r[1],"amount_clp":float(r[2] or 0)} for r in top]},
       "source_provider_flag":{"definition":"PROVEEDOR=1, sin exclusión INTRAESTADO","distinct_provider_ids":int(source_provider[0] or 0),"devengo_clp":float(source_provider[1] or 0)},
-      "radar_provider_scope":{"definition":"PROVEEDOR=1 AND INTRAESTADO=0, antes del filtro nominal adicional","distinct_provider_ids":int(private[0] or 0),"devengo_clp":float(private[1] or 0)}
+      "radar_provider_scope":{"definition":"PROVEEDOR=1 AND INTRAESTADO=0 AND exclusión pública nominal de alta precisión","distinct_provider_ids":int(private[0] or 0),"devengo_clp":float(private[1] or 0)}
     }
 
 
@@ -153,6 +150,7 @@ def main():
         "service_grain":"PARTIDA_CAPITULO","area_separated":True,"payments_use_fecha_pago_monto_pago":True,
         "provider_receiver_definition_aligned":True,"transactional_filter_aligned":True,"intra_state_separated":True,
         "recipient_rut_scope":"ALL_BENEFICIARIES_AND_RECIPIENTS",
+        "radar_provider_scope":"PROVEEDOR_SOURCE_TRUE_AND_NOT_INTRAESTADO_AND_NOT_PUBLIC_NAME",
         "bulk_reachable":bool(head.get('reachable')),
         "official_ui_live_verified":ui_live_verified,
         "official_ui_status":"VERIFIED" if ui_live_verified else "DYNAMIC_PAGE_NOT_AUTOMATICALLY_VERIFIED",
