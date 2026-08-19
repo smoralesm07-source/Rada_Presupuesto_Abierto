@@ -1,7 +1,9 @@
 {
-  "generated_at": "2026-08-19T00:59:12+00:00",
+  "generated_at": "2026-08-19T01:07:00+00:00",
   "source": "https://api.presupuestoabierto.gob.cl/status",
   "services": [],
-  "services_count": 0,
-  "error": "EMPTY_STATUS_TABLE"
+  "services_count": null,
+  "parse_state": "UNAVAILABLE_FROM_STATIC_HTTP",
+  "error": "DYNAMIC_STATUS_NOT_PARSEABLE_WITH_STATIC_HTTP",
+  "note": "Un valor nulo no significa cero servicios. La tabla oficial puede renderizarse dinámicamente; la paridad externa consulta la vista renderizada o una API oficial equivalente."
 }
