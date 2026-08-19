@@ -108,7 +108,9 @@ jobs:
           if(!Array.isArray(d.reference_entities)||!d.reference_entities.some(x=>x.role==='UAF_REFERENCE')) throw new Error('referencia UAF ausente');
           const l12=JSON.parse(fs.readFileSync('docs/data/spend_view_v2.json','utf8'));
           if(l12.source?.organization_grain!=='PARTIDA_CAPITULO') throw new Error('L12 no usa capítulo');
-          console.log('[OK] corrected semantics',d.coverage,d.method);
+          if(l12.source?.provider_base_rule!=='PROVEEDOR_SOURCE_TRUE_AND_NOT_INTRAESTADO') throw new Error('regla INTRAESTADO no activa');
+          if(!Array.isArray(l12.source?.source_flags_preserved)||!l12.source.source_flags_preserved.includes('AGREGADO')) throw new Error('flag AGREGADO no preservado');
+          console.log('[OK] corrected semantics',d.coverage,d.method,l12.source);
           JS
           python - <<'PY'
           import json
@@ -141,6 +143,8 @@ jobs:
             'download':os.environ.get('DOWNLOAD'),'facts':os.environ.get('FACTS'),'multiyear':os.environ.get('MULTIYEAR'),
             'parity_audit':os.environ.get('PARITY'),'compact':os.environ.get('COMPACT'),'validation':os.environ.get('VALIDATE'),
             'service_grain':'PARTIDA_CAPITULO','provider_metrics':'FULL_PRIVATE_RELATION_UNIVERSE','payment_basis':'FECHA_PAGO_AND_MONTO_PAGO',
+            'provider_base_rule':'PROVEEDOR_SOURCE_TRUE_AND_NOT_INTRAESTADO',
+            'coverage_probe_owner':'source-probe.yml',
             'source_parity_ready':Path('docs/data/source_parity.json').exists(),
             'logs':{'download':tail('/tmp/download-v3.log'),'facts':tail('/tmp/corrected-v3.log'),'multiyear':tail('/tmp/multiyear-v3.log'),'parity':tail('/tmp/parity.log'),'compact':tail('/tmp/compact-v3.log'),'validation':tail('/tmp/validate-v3.log')}
           }
@@ -152,7 +156,7 @@ jobs:
         run: |
           git config user.name "radar-presupuesto-bot"
           git config user.email "radar-presupuesto-bot@users.noreply.github.com"
-          git add docs/data/source_catalog.json docs/data/coverage.json docs/data/spend_corrected_v3_status.json
+          git add docs/data/source_catalog.json docs/data/spend_corrected_v3_status.json
           if [ "${{ steps.validate.outcome }}" = "success" ]; then
             git add docs/data/spend_view_v2.json docs/data/spend_years_v1.json
           fi
