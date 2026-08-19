@@ -1,0 +1,50 @@
+name: Observe Corrected Spend v3
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/observe-corrected-v3.yml'
+permissions:
+  actions: read
+  contents: write
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+      - name: Read latest corrected v3 run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p docs/data
+          gh run list --workflow "Corrected Spend Data v3" --limit 5 \
+            --json databaseId,status,conclusion,headSha,event,createdAt,updatedAt,url \
+            > /tmp/v3-runs.json
+          python - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+          runs=json.load(open('/tmp/v3-runs.json',encoding='utf-8'))
+          payload={
+            'generated_at':datetime.now(timezone.utc).isoformat(timespec='seconds'),
+            'workflow':'Corrected Spend Data v3',
+            'latest':runs[0] if runs else None,
+            'recent':runs,
+          }
+          Path('docs/data/spend_corrected_v3_observer.json').write_text(
+            json.dumps(payload,ensure_ascii=False,indent=2),encoding='utf-8'
+          )
+          print(json.dumps(payload,ensure_ascii=False,indent=2))
+          PY
+      - name: Publish observer snapshot
+        run: |
+          git config user.name "radar-presupuesto-bot"
+          git config user.email "radar-presupuesto-bot@users.noreply.github.com"
+          git add docs/data/spend_corrected_v3_observer.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "ci: publica estado observado de v3"
+          git pull --rebase origin main
+          git push origin main
