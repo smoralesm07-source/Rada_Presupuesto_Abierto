@@ -1,104 +1,13 @@
-name: Build Spend View v2
+name: Legacy Spend View v2 diagnostic
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/spend-view-v2.yml'
-      - 'src/radar_presupuesto/spend_view.py'
   workflow_dispatch:
 permissions:
-  contents: write
-concurrency:
-  group: spend-view-v2
-  cancel-in-progress: true
+  contents: read
 jobs:
-  build:
+  legacy-notice:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: pip
-      - run: python -m pip install -r requirements.txt
-      - name: Build normalized facts required by L12 view
-        id: build
-        continue-on-error: true
-        shell: bash
-        run: |
-          set +e
-          PYTHONPATH=src python - <<'PY' 2>&1 | tee /tmp/spend-view-v2.log
-          import json
-          from pathlib import Path
-          from radar_presupuesto.extract import download
-          from radar_presupuesto.normalize import normalize_to_parquet
-          from radar_presupuesto.spend_view import build_spend_view_v2
-
-          catalog = json.load(open('docs/data/source_catalog.json', encoding='utf-8'))
-          ok = {'linked', 'linked_available', 'probed_available'}
-          available = [x for x in catalog.get('downloads', []) if x.get('status') in ok]
-          years = [x['year'] for x in available[-3:]]
-          if len(years) < 2:
-              raise SystemExit('Se requieren al menos dos años disponibles para construir L12')
-          by_year = {x['year']: x for x in available}
-          for year in years:
-              src = by_year[year]
-              raw = Path('data/raw') / f'pagos-{year}.gz'
-              parquet = Path('data/processed') / f'transactions_{year}.parquet'
-              download(src['url'], raw)
-              meta = normalize_to_parquet(raw, parquet)
-              print(f'[OK] {year}: {meta["rows"]:,} hechos normalizados')
-
-          payload = build_spend_view_v2(
-              'data/processed/transactions_*.parquet',
-              output='docs/data/spend_view_v2.json',
-              prioritized_path=None,
-          )
-          print('[OK] ventana', payload['window'])
-          print('[OK] publicados', payload['published'])
-          PY
-          CODE=${PIPESTATUS[0]}
-          echo "exit_code=$CODE" >> "$GITHUB_OUTPUT"
-          exit $CODE
-      - name: Write observable build status
-        if: always()
-        shell: bash
-        env:
-          BUILD_OUTCOME: ${{ steps.build.outcome }}
-          BUILD_CODE: ${{ steps.build.outputs.exit_code }}
-        run: |
-          python - <<'PY'
-          import json, os
-          from datetime import datetime, timezone
-          from pathlib import Path
-          log_path = Path('/tmp/spend-view-v2.log')
-          lines = log_path.read_text(encoding='utf-8', errors='replace').splitlines() if log_path.exists() else []
-          payload = {
-              'generated_at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
-              'workflow': 'Build Spend View v2',
-              'outcome': os.environ.get('BUILD_OUTCOME') or 'UNKNOWN',
-              'exit_code': int(os.environ.get('BUILD_CODE') or -1),
-              'data_ready': Path('docs/data/spend_view_v2.json').exists(),
-              'log_tail': lines[-80:],
-          }
-          Path('docs/data').mkdir(parents=True, exist_ok=True)
-          Path('docs/data/spend_view_v2_status.json').write_text(
-              json.dumps(payload, ensure_ascii=False, indent=2), encoding='utf-8'
-          )
-          PY
-      - name: Publish spend view data and status
-        if: always()
-        shell: bash
-        run: |
-          git config user.name "radar-presupuesto-bot"
-          git config user.email "radar-presupuesto-bot@users.noreply.github.com"
-          git add docs/data/spend_view_v2_status.json
-          if [ -f docs/data/spend_view_v2.json ]; then git add docs/data/spend_view_v2.json; fi
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m "data: publica estado spend view L12"
-          git pull --rebase origin main
-          git push origin main
-      - name: Fail if spend view build failed
-        if: steps.build.outcome != 'success'
-        run: exit 1
+      - run: |
+          echo "Build Spend View v2 quedó retirado como publicador."
+          echo "La vista productiva se genera exclusivamente en Corrected Spend Data v3."
+          echo "Esto evita reintroducir la granularidad histórica de Área como Servicio."
