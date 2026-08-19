@@ -171,13 +171,16 @@ jobs:
         run: |
           git config user.name "radar-presupuesto-bot"
           git config user.email "radar-presupuesto-bot@users.noreply.github.com"
-          # `cli probe` también escribe coverage.json. V3 no es dueño de ese
-          # artefacto; restaurarlo evita cambios sin stage que bloqueen rebase.
+          # V3 no es dueño de coverage.json y no debe dejar payloads no
+          # validados modificados al intentar publicar un diagnóstico de fallo.
           git restore docs/data/coverage.json || true
-          git add docs/data/source_catalog.json docs/data/spend_corrected_v3_status.json
           if [ "${{ steps.validate.outcome }}" = "success" ]; then
             git add docs/data/spend_view_v2.json docs/data/spend_years_v1.json docs/data/source_parity.json
+          else
+            git restore docs/data/spend_view_v2.json docs/data/spend_years_v1.json docs/data/source_parity.json 2>/dev/null || true
           fi
+          git add docs/data/source_catalog.json docs/data/spend_corrected_v3_status.json
+          git status --short
           if git diff --cached --quiet; then exit 0; fi
           git commit -m "data: reconstruye Presupuesto Abierto con semántica corregida"
           git pull --rebase origin main
