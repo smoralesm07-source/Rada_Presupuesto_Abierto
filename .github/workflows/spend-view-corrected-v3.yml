@@ -92,7 +92,7 @@ jobs:
 
       - name: Validate corrected semantics and strict JSON
         id: validate
-        if: steps.multiyear.outcome == 'success' && steps.parity.outcome == 'success' && steps.compact.outcome == 'success'
+        if: ${{ always() && steps.multiyear.outcome == 'success' && steps.parity.outcome == 'success' && steps.compact.outcome == 'success' }}
         continue-on-error: true
         run: |
           set -o pipefail
@@ -117,6 +117,7 @@ jobs:
           const parity=JSON.parse(fs.readFileSync('docs/data/source_parity.json','utf8'));
           if(parity.assessment?.recipient_rut_scope!=='ALL_BENEFICIARIES_AND_RECIPIENTS') throw new Error('auditoría no usa todos los receptores');
           if(parity.assessment?.service_grain!=='PARTIDA_CAPITULO') throw new Error('auditoría no usa capítulo');
+          if(parity.assessment?.radar_provider_scope!=='PROVEEDOR_SOURCE_TRUE_AND_NOT_INTRAESTADO_AND_NOT_PUBLIC_NAME') throw new Error('auditoría no usa el universo proveedor unificado');
           if(!parity.local?.latest_devengo_month) throw new Error('auditoría sin fecha de devengo');
           console.log('[OK] corrected semantics',d.coverage,d.method,l12.source,parity.assessment);
           JS
@@ -171,13 +172,17 @@ jobs:
         run: |
           git config user.name "radar-presupuesto-bot"
           git config user.email "radar-presupuesto-bot@users.noreply.github.com"
-          # V3 no es dueño de coverage.json y no debe dejar payloads no
-          # validados modificados al intentar publicar un diagnóstico de fallo.
           git restore docs/data/coverage.json || true
           if [ "${{ steps.validate.outcome }}" = "success" ]; then
             git add docs/data/spend_view_v2.json docs/data/spend_years_v1.json docs/data/source_parity.json
           else
-            git restore docs/data/spend_view_v2.json docs/data/spend_years_v1.json docs/data/source_parity.json 2>/dev/null || true
+            git restore docs/data/spend_view_v2.json || true
+            git restore docs/data/spend_years_v1.json || true
+            if git ls-files --error-unmatch docs/data/source_parity.json >/dev/null 2>&1; then
+              git restore docs/data/source_parity.json || true
+            else
+              rm -f docs/data/source_parity.json
+            fi
           fi
           git add docs/data/source_catalog.json docs/data/spend_corrected_v3_status.json
           git status --short
@@ -187,5 +192,5 @@ jobs:
           git push origin main
 
       - name: Fail if corrected pipeline did not validate
-        if: steps.download.outcome != 'success' || steps.facts.outcome != 'success' || steps.multiyear.outcome != 'success' || steps.parity.outcome != 'success' || steps.compact.outcome != 'success' || steps.validate.outcome != 'success'
+        if: ${{ always() && (steps.download.outcome != 'success' || steps.facts.outcome != 'success' || steps.multiyear.outcome != 'success' || steps.parity.outcome != 'success' || steps.compact.outcome != 'success' || steps.validate.outcome != 'success') }}
         run: exit 1
