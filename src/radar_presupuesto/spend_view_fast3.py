@@ -11,6 +11,7 @@ from .ids import normalize_rut, provider_id
 from . import spend_view as _spend
 
 _ORIGINAL_RECORDS = _spend._records
+_TRUE = "('1','TRUE','T','SI','SÍ','YES','Y')"
 
 
 def _records_compatible(con, sql: str, params=None):
@@ -55,13 +56,13 @@ def _service_id(partida: object, capitulo: object, name: object = "") -> str:
 
 
 def materialize_light_facts_v3(raw_paths: list[str], output: str) -> dict:
-    """Materializa hechos de UI preservando la semántica oficial.
+    """Materializa hechos de UI con semántica oficial y flags de fuente.
 
-    - organization_id se fija a Partida+Capítulo (servicio/organismo oficial).
-    - Área se conserva como dimensión de detalle, no como servicio.
-    - Se preservan fecha_pago y monto_pago para no confundir devengo con pago.
-    - provider_id sigue requiriendo PROVEEDOR=1; los universos comparables con la
-      web oficial se calculan por separado en build_spend_years_v2.py.
+    `is_provider_source` conserva PROVEEDOR tal como viene del bulk.
+    `is_provider` es el universo analítico inicial: PROVEEDOR=1 e INTRAESTADO=0.
+    El filtrado nominal adicional de organismos públicos se aplica al construir
+    el explorador multianual. `is_aggregated` conserva AGREGADO para cuadrar la
+    vista oficial Proveedor/Receptor, que utiliza instituciones transaccionales.
     """
     if not raw_paths:
         raise ValueError("raw_paths no puede estar vacío")
@@ -91,10 +92,10 @@ def materialize_light_facts_v3(raw_paths: list[str], output: str) -> dict:
     con.execute("CREATE OR REPLACE TEMP TABLE svc_map AS SELECT * FROM svc_map_df")
 
     prov_cols = ["beneficiario", "nombre_beneficiario", "partida", "capitulo", "nombre_capitulo"]
-    prov = _clean(con.execute("""
+    prov = _clean(con.execute(f"""
         SELECT DISTINCT beneficiario,nombre_beneficiario,partida,capitulo,nombre_capitulo
         FROM raw_spend
-        WHERE upper(trim(coalesce(proveedor,''))) IN ('1','TRUE','T','SI','SÍ','YES','Y')
+        WHERE upper(trim(coalesce(proveedor,''))) IN {_TRUE}
     """).df(), prov_cols)
     prov["organization_id"] = [
         _service_id(r.partida, r.capitulo, r.nombre_capitulo)
@@ -120,8 +121,13 @@ def materialize_light_facts_v3(raw_paths: list[str], output: str) -> dict:
             try_cast(r.devengo AS DOUBLE) AS monto_devengado,
             try_cast(r.monto AS DOUBLE) AS monto_pago,
             coalesce(r.fecha_pago,'') AS fecha_pago,
-            upper(trim(coalesce(r.proveedor,''))) IN ('1','TRUE','T','SI','SÍ','YES','Y') AS is_provider,
-            upper(trim(coalesce(r.intraestado,''))) IN ('1','TRUE','T','SI','SÍ','YES','Y') AS is_intra_state,
+            upper(trim(coalesce(r.proveedor,''))) IN {_TRUE} AS is_provider_source,
+            (
+              upper(trim(coalesce(r.proveedor,''))) IN {_TRUE}
+              AND NOT (upper(trim(coalesce(r.intraestado,''))) IN {_TRUE})
+            ) AS is_provider,
+            upper(trim(coalesce(r.intraestado,''))) IN {_TRUE} AS is_intra_state,
+            upper(trim(coalesce(r.agregado,''))) IN {_TRUE} AS is_aggregated,
             coalesce(pm.provider_id,'') AS provider_id,
             coalesce(r.beneficiario,'') AS beneficiario_source_id,
             '' AS transaction_id,
@@ -158,14 +164,15 @@ def materialize_light_facts_v3(raw_paths: list[str], output: str) -> dict:
              count(DISTINCT organization_id) AS service_count,
              count(DISTINCT concat(partida,'|',capitulo,'|',area)) AS area_count,
              count(DISTINCT provider_id) FILTER (WHERE is_provider AND provider_id<>'') AS provider_count,
+             count(DISTINCT provider_id) FILTER (WHERE is_provider_source AND provider_id<>'') AS source_provider_count,
              max(make_date(periodo,mes,1)) FILTER (WHERE coalesce(monto_devengado,0)<>0) AS latest_devengo_month
       FROM read_parquet('{q}')
     """).fetchone()
     con.close()
     return {
         "path": str(out), "rows": int(meta[0]), "services": int(meta[1]),
-        "areas": int(meta[2]), "providers": int(meta[3]),
-        "latest_devengo_month": str(meta[4]) if meta[4] else None,
+        "areas": int(meta[2]), "providers": int(meta[3]), "source_providers": int(meta[4]),
+        "latest_devengo_month": str(meta[5]) if meta[5] else None,
         "organization_grain": "PARTIDA_CAPITULO",
     }
 
@@ -186,11 +193,15 @@ def build_fast_spend_view_v3(raw_paths: list[str], output: str = "docs/data/spen
         "ui_staging_rows": meta["rows"],
         "source_services": meta["services"],
         "source_areas": meta["areas"],
+        "source_provider_ids": meta["source_providers"],
+        "analytic_provider_ids_pre_name_filter": meta["providers"],
         "organization_grain": "PARTIDA_CAPITULO",
         "area_grain_preserved": True,
         "payment_fields_preserved": True,
+        "source_flags_preserved": ["PROVEEDOR", "INTRAESTADO", "AGREGADO"],
+        "provider_base_rule": "PROVEEDOR_SOURCE_TRUE_AND_NOT_INTRAESTADO",
         "calendar_join_compat": "DUCKDB_NON_CORRELATED_V3",
-        "ui_note": "Servicio se modela a nivel Partida+Capítulo; Área queda como detalle. Fecha y monto de pago se preservan separadamente del devengo.",
+        "ui_note": "Servicio se modela a nivel Partida+Capítulo; Área queda como detalle. Pago y devengo están separados; proveedor analítico excluye INTRAESTADO desde la fuente.",
     })
     return payload
 
