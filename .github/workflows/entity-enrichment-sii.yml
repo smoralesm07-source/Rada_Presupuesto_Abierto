@@ -6,6 +6,10 @@ on:
       - 'scripts/build_entity_enrichment_sii.py'
       - 'docs/data/spend_years_v1.json'
       - '.github/workflows/entity-enrichment-sii.yml'
+  workflow_run:
+    workflows:
+      - 'Corrected Spend Data v3'
+    types: [completed]
   workflow_dispatch:
   schedule:
     - cron: '15 11 12 * *'
@@ -16,10 +20,15 @@ concurrency:
   cancel-in-progress: true
 jobs:
   enrich:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: main
       - name: Checkout Radar SII
         uses: actions/checkout@v6
         with:
@@ -63,6 +72,7 @@ jobs:
           BUILD_OUTCOME: ${{ steps.build.outcome }}
           BUILD_CODE: ${{ steps.build.outputs.exit_code }}
           VALIDATE_OUTCOME: ${{ steps.validate.outcome }}
+          TRIGGER: ${{ github.event_name }}
         run: |
           python - <<'PY'
           import json, os
@@ -73,11 +83,13 @@ jobs:
           payload={
             'generated_at':datetime.now(timezone.utc).isoformat(timespec='seconds'),
             'workflow':'Enrich Spend Suppliers with SII',
+            'trigger':os.environ.get('TRIGGER'),
             'build':os.environ.get('BUILD_OUTCOME') or 'unknown',
             'exit_code':int(os.environ.get('BUILD_CODE') or -1),
             'validation':os.environ.get('VALIDATE_OUTCOME') or 'skipped',
             'data_ready':Path('docs/data/entity_enrichment_v1.json').exists(),
             'supplier_universe':'docs/data/spend_years_v1.json',
+            'upstream':'Corrected Spend Data v3',
             'log_tail':lines[-80:]
           }
           Path('docs/data/entity_enrichment_sii_status.json').write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding='utf-8')
