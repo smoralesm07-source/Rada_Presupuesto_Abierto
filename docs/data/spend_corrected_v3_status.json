@@ -1,0 +1,10 @@
+{
+  "generated_at": "2026-08-19T00:24:37+00:00",
+  "workflow": "Corrected Spend Data v3",
+  "validation": "skipped",
+  "parity_audit": "skipped",
+  "service_grain": "PARTIDA_CAPITULO",
+  "provider_metrics": "FULL_PRIVATE_RELATION_UNIVERSE",
+  "payment_basis": "FECHA_PAGO_AND_MONTO_PAGO",
+  "source_parity_ready": false
+}
