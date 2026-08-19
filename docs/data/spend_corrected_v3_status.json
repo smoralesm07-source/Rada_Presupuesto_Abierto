@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-19T00:59:33+00:00",
+  "generated_at": "2026-08-19T02:12:33+00:00",
   "workflow": "Corrected Spend Data v3",
   "download": "cancelled",
   "facts": "skipped",
@@ -10,9 +10,17 @@
   "service_grain": "PARTIDA_CAPITULO",
   "provider_metrics": "FULL_PRIVATE_RELATION_UNIVERSE",
   "payment_basis": "FECHA_PAGO_AND_MONTO_PAGO",
+  "recipient_rut_scope": "ALL_BENEFICIARIES_AND_RECIPIENTS",
+  "provider_base_rule": "PROVEEDOR_SOURCE_TRUE_AND_NOT_INTRAESTADO_AND_NOT_PUBLIC_NAME",
+  "coverage_probe_owner": "source-probe.yml",
+  "official_ui_status": null,
   "source_parity_ready": false,
   "logs": {
-    "download": [],
+    "download": [
+      "[OK] 2024 217663314 7cb93d3398e68773196387732a01d329c991c807e799eb6be39fec1eb99986bd",
+      "[OK] 2025 215651424 a5b5d4c26c290725b9fe796c905820a5b532312082eb9a081a65ca66148e0966",
+      "[OK] 2026 96674111 0328c5d065240509312f9f9ba72781575f357e5ea6c7ad18213238f91b3ebd71"
+    ],
     "facts": [],
     "multiyear": [],
     "parity": [],
