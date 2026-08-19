@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import re
 import unicodedata
 from pathlib import Path
@@ -238,6 +239,16 @@ def build_fast_spend_view_v3(raw_paths: list[str], output: str = "docs/data/spen
         "calendar_join_compat": "DUCKDB_NON_CORRELATED_V3",
         "ui_note": "Servicio=Partida+Capítulo; Área queda como detalle. Pago y devengo están separados. RUT cubre todo receptor. El universo proveedor AML excluye INTRAESTADO y contrapartes públicas nominales de alta precisión desde la capa de hechos.",
     })
+    # build_spend_view_v2 escribe el archivo antes de que fast3 agregue esta
+    # metadata. Persistirla explícitamente evita que el compactor reciba el
+    # contrato v2 incompleto y garantiza que la validación semántica examine
+    # exactamente lo que se publicará.
+    out = Path(output)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(
+        json.dumps(payload, ensure_ascii=False, separators=(",", ":"), default=str),
+        encoding="utf-8",
+    )
     return payload
 
 
