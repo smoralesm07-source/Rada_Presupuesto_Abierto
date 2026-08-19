@@ -1,11 +1,13 @@
 {
-  "generated_at": "2026-08-19T00:52:53+00:00",
+  "generated_at": "2026-08-19T01:53:21+00:00",
   "workflow": "Enrich Spend Suppliers with SII",
+  "trigger": "push",
   "build": "success",
   "exit_code": 0,
   "validation": "success",
   "data_ready": true,
   "supplier_universe": "docs/data/spend_years_v1.json",
+  "upstream": "Corrected Spend Data v3",
   "log_tail": [
     "[OK] fuente sii_names_current miembros 1",
     "[OK] fuente sii_activities_current miembros 1",
