@@ -10,7 +10,7 @@ import duckdb
 import requests
 from bs4 import BeautifulSoup
 
-UA={"User-Agent":"RadarPresupuestoAbierto/3.0 (+public source parity audit)"}
+UA={"User-Agent":"RadarPresupuestoAbierto/3.1 (+public source parity audit)"}
 BASE="https://api.presupuestoabierto.gob.cl"
 
 
@@ -37,8 +37,6 @@ def official_status():
 
 
 def official_providers(year: int):
-    # El ranking usa el año seleccionado en la propia página; el parámetro se conserva
-    # como metadato porque el HTML inicial suele cargar el año vigente.
     r=get(BASE+"/providers"); soup=BeautifulSoup(r.text,"html.parser"); txt=soup.get_text(" ",strip=True)
     totals=[int(x) for x in re.findall(r"Total\s+(\d+)",txt,re.I)]
     top=[]
@@ -62,11 +60,21 @@ def local_metrics(parquet:str,year:int):
     payexpr="coalesce(try_strptime(fecha_pago,'%d/%m/%Y'),try_strptime(fecha_pago,'%d-%m-%Y'),try_strptime(fecha_pago,'%Y-%m-%d'))"
     latestpay=con.execute(f"SELECT max({payexpr}) FROM f WHERE coalesce(monto_pago,0)<>0").fetchone()[0]
     base=con.execute("""SELECT count(DISTINCT organization_id),count(DISTINCT concat(partida,'|',capitulo,'|',area)),sum(coalesce(monto_devengado,0)),sum(coalesce(monto_pago,0)) FROM f WHERE periodo=?""",[year]).fetchone()
-    # Aproximación explícita a la vista Proveedor/Receptor: flag de fuente, RUT válido y exclusión ST21.
-    pr=con.execute("""SELECT count(DISTINCT rut_beneficiario),sum(coalesce(monto_devengado,0)) FROM f WHERE periodo=? AND is_provider=TRUE AND coalesce(rut_beneficiario,'')<>'' AND ltrim(coalesce(subtitulo,''),'0')<>'21'""",[year]).fetchone()
-    top=con.execute("""SELECT rut_beneficiario,arg_max(nombre_beneficiario,abs(monto_devengado)) name,sum(coalesce(monto_devengado,0)) amount_clp FROM f WHERE periodo=? AND is_provider=TRUE AND coalesce(rut_beneficiario,'')<>'' AND ltrim(coalesce(subtitulo,''),'0')<>'21' GROUP BY 1 ORDER BY 3 DESC LIMIT 20""",[year]).fetchall()
+
+    # Paridad con la definición pública: Proveedor/Receptor por RUT, excluyendo ST21.
+    # No exige PROVEEDOR=1 porque la vista oficial incluye también receptores de recursos.
+    pr=con.execute("""SELECT count(DISTINCT rut_beneficiario),sum(coalesce(monto_devengado,0)) FROM f WHERE periodo=? AND coalesce(rut_beneficiario,'')<>'' AND ltrim(coalesce(subtitulo,''),'0')<>'21'""",[year]).fetchone()
+    top=con.execute("""SELECT rut_beneficiario,arg_max(nombre_beneficiario,abs(monto_devengado)) name,sum(coalesce(monto_devengado,0)) amount_clp FROM f WHERE periodo=? AND coalesce(rut_beneficiario,'')<>'' AND ltrim(coalesce(subtitulo,''),'0')<>'21' GROUP BY 1 ORDER BY 3 DESC LIMIT 30""",[year]).fetchall()
+
+    # Universo analítico del radar: proveedor privado, separado de la paridad oficial.
+    private=con.execute("""SELECT count(DISTINCT provider_id),sum(coalesce(monto_devengado,0)) FROM f WHERE periodo=? AND is_provider=TRUE AND coalesce(provider_id,'')<>''""",[year]).fetchone()
     con.close()
-    return {"year":year,"latest_devengo_month":str(latest) if latest else None,"latest_payment_date":str(latestpay) if latestpay else None,"transactional_services":int(base[0] or 0),"areas":int(base[1] or 0),"devengo_clp":float(base[2] or 0),"payment_clp":float(base[3] or 0),"provider_receiver_proxy":{"definition":"PROVEEDOR=1 + RUT válido + subtítulo != 21","distinct_ruts":int(pr[0] or 0),"devengo_clp":float(pr[1] or 0),"top":[{"rut":r[0],"name":r[1],"amount_clp":float(r[2] or 0)} for r in top]}}
+    return {
+      "year":year,"latest_devengo_month":str(latest) if latest else None,"latest_payment_date":str(latestpay) if latestpay else None,
+      "transactional_services":int(base[0] or 0),"areas":int(base[1] or 0),"devengo_clp":float(base[2] or 0),"payment_clp":float(base[3] or 0),
+      "provider_receiver_proxy":{"definition":"RUT beneficiario válido + subtítulo != 21; incluye proveedores y otros receptores","distinct_ruts":int(pr[0] or 0),"devengo_clp":float(pr[1] or 0),"top":[{"rut":r[0],"name":r[1],"amount_clp":float(r[2] or 0)} for r in top]},
+      "radar_provider_scope":{"definition":"PROVEEDOR=1 antes de exclusiones analíticas de organismos públicos","distinct_provider_ids":int(private[0] or 0),"devengo_clp":float(private[1] or 0)}
+    }
 
 
 def compare_top(local,official):
@@ -83,8 +91,12 @@ def compare_top(local,official):
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('--parquet',required=True); ap.add_argument('--year',type=int,required=True); ap.add_argument('--output',default='docs/data/source_parity.json'); a=ap.parse_args()
     status=official_status(); providers=official_providers(a.year); local=local_metrics(a.parquet,a.year); head=bulk_head(a.year); matches=compare_top(local,providers)
-    payload={"generated_at":datetime.now(timezone.utc).isoformat(timespec='seconds'),"source":"Presupuesto Abierto - DIPRES","year":a.year,"official":{"status":status,"providers":providers,"bulk":head},"local":local,"top_provider_matches":matches,"assessment":{"service_grain":"PARTIDA_CAPITULO","area_separated":True,"payments_use_fecha_pago_monto_pago":True,"provider_comparison_is_proxy":True,"note":"La comparación proveedor/receptor es una aproximación trazable al criterio público. Diferencias pueden persistir por reglas internas de la web, fecha de actualización o ajustes de fuente."}}
+    payload={
+      "generated_at":datetime.now(timezone.utc).isoformat(timespec='seconds'),"source":"Presupuesto Abierto - DIPRES","year":a.year,
+      "official":{"status":status,"providers":providers,"bulk":head},"local":local,"top_provider_matches":matches,
+      "assessment":{"service_grain":"PARTIDA_CAPITULO","area_separated":True,"payments_use_fecha_pago_monto_pago":True,"provider_comparison_is_proxy":True,"provider_receiver_definition_aligned":True,"note":"La paridad Proveedor/Receptor usa beneficiarios con RUT y excluye Subtítulo 21, de acuerdo con las notas públicas. El universo de proveedores privados del radar permanece separado. Diferencias residuales pueden responder a reglas internas de la web, fecha de actualización o ajustes de fuente."}
+    }
     Path(a.output).parent.mkdir(parents=True,exist_ok=True); Path(a.output).write_text(json.dumps(payload,ensure_ascii=False,indent=2,allow_nan=False),encoding='utf-8')
-    print('[OK] parity',json.dumps({"official_services":status.get('services_total'),"official_transactional":status.get('services_transactional'),"local_services":local.get('transactional_services'),"official_provider_total":providers.get('total_displayed'),"local_provider_proxy":local.get('provider_receiver_proxy',{}).get('distinct_ruts'),"latest_devengo":local.get('latest_devengo_month'),"latest_payment":local.get('latest_payment_date'),"top_matches":len(matches)},ensure_ascii=False))
+    print('[OK] parity',json.dumps({"official_services":status.get('services_total'),"official_transactional":status.get('services_transactional'),"local_services":local.get('transactional_services'),"official_provider_total":providers.get('total_displayed'),"local_provider_receiver_ruts":local.get('provider_receiver_proxy',{}).get('distinct_ruts'),"radar_provider_ids":local.get('radar_provider_scope',{}).get('distinct_provider_ids'),"latest_devengo":local.get('latest_devengo_month'),"latest_payment":local.get('latest_payment_date'),"top_matches":len(matches)},ensure_ascii=False))
 
 if __name__=='__main__': main()
