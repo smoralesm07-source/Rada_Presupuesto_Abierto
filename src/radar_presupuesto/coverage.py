@@ -9,7 +9,7 @@ STATUS_URL="https://api.presupuestoabierto.gob.cl/status"
 
 
 def fetch_service_coverage(timeout:int=30)->list[dict]:
-    headers={"User-Agent":"RadarPresupuestoAbierto/3.0 (+public OSINT research)"}
+    headers={"User-Agent":"RadarPresupuestoAbierto/3.1 (+public OSINT research)"}
     r=requests.get(STATUS_URL,timeout=timeout,headers=headers); r.raise_for_status()
     soup=BeautifulSoup(r.text,"html.parser"); rows=[]
     for tr in soup.select("table tr"):
@@ -23,10 +23,18 @@ def write_coverage(path:str="docs/data/coverage.json")->list[dict]:
     try:
         services=fetch_service_coverage(); error=None
         if not services:
-            error="EMPTY_STATUS_TABLE"
+            error="DYNAMIC_STATUS_NOT_PARSEABLE_WITH_STATIC_HTTP"
     except requests.RequestException as exc:
         services,error=[],type(exc).__name__
-    payload={"generated_at":datetime.now(timezone.utc).isoformat(timespec="seconds"),"source":STATUS_URL,"services":services,"services_count":len(services),"error":error}
+    payload={
+        "generated_at":datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "source":STATUS_URL,
+        "services":services,
+        "services_count":len(services) if services else None,
+        "parse_state":"SUCCESS" if services else "UNAVAILABLE_FROM_STATIC_HTTP",
+        "error":error,
+        "note":"Un valor nulo no significa cero servicios. La página oficial de estado puede renderizar su tabla dinámicamente; la paridad externa debe consultar la vista renderizada o una API oficial equivalente."
+    }
     out=Path(path); out.parent.mkdir(parents=True,exist_ok=True)
     out.write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding="utf-8")
     return services
