@@ -171,6 +171,9 @@ jobs:
         run: |
           git config user.name "radar-presupuesto-bot"
           git config user.email "radar-presupuesto-bot@users.noreply.github.com"
+          # `cli probe` también escribe coverage.json. V3 no es dueño de ese
+          # artefacto; restaurarlo evita cambios sin stage que bloqueen rebase.
+          git restore docs/data/coverage.json || true
           git add docs/data/source_catalog.json docs/data/spend_corrected_v3_status.json
           if [ "${{ steps.validate.outcome }}" = "success" ]; then
             git add docs/data/spend_view_v2.json docs/data/spend_years_v1.json docs/data/source_parity.json
