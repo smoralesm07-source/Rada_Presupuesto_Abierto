@@ -8,7 +8,32 @@ import duckdb
 import pandas as pd
 
 from .ids import normalize_rut, provider_id
-from .spend_view import build_spend_view_v2
+from . import spend_view as _spend
+
+_ORIGINAL_RECORDS = _spend._records
+
+
+def _records_compatible(con, sql: str, params=None):
+    """Evita el LEFT JOIN correlacionado que algunas versiones de DuckDB rechazan."""
+    if "FROM bounds b, range(12) t(i)" in sql:
+        sql = """
+        WITH calendar AS (
+          SELECT i,
+                 (b.start_month + i * INTERVAL '1 month')::DATE AS month_date
+          FROM bounds b CROSS JOIN range(12) t(i)
+        )
+        SELECT strftime(c.month_date,'%Y-%m') AS period,
+               coalesce(sum(l.amount),0) AS amount_clp,
+               coalesce(sum(l.amount) FILTER (
+                 WHERE l.is_provider=TRUE AND coalesce(l.provider_id,'')<>''
+               ),0) AS provider_amount_clp,
+               count(*) FILTER (WHERE l.organization_id IS NOT NULL) AS transactions
+        FROM calendar c
+        LEFT JOIN l12 l ON l.month_date = c.month_date
+        GROUP BY c.i, c.month_date
+        ORDER BY c.i
+        """
+    return _ORIGINAL_RECORDS(con, sql, params)
 
 
 def _clean(df: pd.DataFrame, cols: list[str]) -> pd.DataFrame:
@@ -148,16 +173,23 @@ def materialize_light_facts_v3(raw_paths: list[str], output: str) -> dict:
 def build_fast_spend_view_v3(raw_paths: list[str], output: str = "docs/data/spend_view_v2.json") -> dict:
     light = "data/processed/spend_view_light.parquet"
     meta = materialize_light_facts_v3(raw_paths, light)
-    payload = build_spend_view_v2(
-        light, output=output, prioritized_path=None,
-        service_limit=400, provider_limit=1500, flow_limit=5000, flows_per_service=6,
-    )
+    _spend._records = _records_compatible
+    try:
+        payload = _spend.build_spend_view_v2(
+            light, output=output, prioritized_path=None,
+            service_limit=400, provider_limit=1500, flow_limit=5000, flows_per_service=6,
+        )
+    finally:
+        _spend._records = _ORIGINAL_RECORDS
     payload.setdefault("source", {}).update({
         "ui_staging": "LIGHT_CANONICAL_FACT_V3",
         "ui_staging_rows": meta["rows"],
+        "source_services": meta["services"],
+        "source_areas": meta["areas"],
         "organization_grain": "PARTIDA_CAPITULO",
         "area_grain_preserved": True,
         "payment_fields_preserved": True,
+        "calendar_join_compat": "DUCKDB_NON_CORRELATED_V3",
         "ui_note": "Servicio se modela a nivel Partida+Capítulo; Área queda como detalle. Fecha y monto de pago se preservan separadamente del devengo.",
     })
     return payload
