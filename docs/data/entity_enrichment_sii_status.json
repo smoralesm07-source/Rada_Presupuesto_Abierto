@@ -1,14 +1,15 @@
 {
-  "generated_at": "2026-08-18T18:58:16+00:00",
+  "generated_at": "2026-08-19T00:52:53+00:00",
   "workflow": "Enrich Spend Suppliers with SII",
   "build": "success",
   "exit_code": 0,
   "validation": "success",
   "data_ready": true,
+  "supplier_universe": "docs/data/spend_years_v1.json",
   "log_tail": [
     "[OK] fuente sii_names_current miembros 1",
     "[OK] fuente sii_activities_current miembros 1",
     "[OK] fuente sii_company_year miembros 5",
-    "[OK] enrichment {'targets': 1664, 'matched': 1664, 'names': 1664, 'activities': 5484, 'company_year': 7340, 'marks': 592}"
+    "[OK] enrichment {'targets': 1911, 'matched': 1911, 'names': 1911, 'activities': 6179, 'company_year': 8467, 'marks': 669}"
   ]
 }
