@@ -21,6 +21,8 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: main
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -71,7 +73,7 @@ jobs:
           set -o pipefail
           python scripts/build_spend_years_v2.py --parquet data/processed/spend_view_light.parquet --output docs/data/spend_years_v1.json --max-seed-providers 1400 --max-flows 24000 2>&1 | tee /tmp/multiyear-v3.log
 
-      - name: Audit live parity with Presupuesto Abierto
+      - name: Audit source parity and data freshness
         id: parity
         if: steps.multiyear.outcome == 'success'
         continue-on-error: true
@@ -90,7 +92,7 @@ jobs:
 
       - name: Validate corrected semantics and strict JSON
         id: validate
-        if: steps.multiyear.outcome == 'success' && steps.compact.outcome == 'success'
+        if: steps.multiyear.outcome == 'success' && steps.parity.outcome == 'success' && steps.compact.outcome == 'success'
         continue-on-error: true
         run: |
           set -o pipefail
@@ -109,12 +111,17 @@ jobs:
           const l12=JSON.parse(fs.readFileSync('docs/data/spend_view_v2.json','utf8'));
           if(l12.source?.organization_grain!=='PARTIDA_CAPITULO') throw new Error('L12 no usa capítulo');
           if(l12.source?.provider_base_rule!=='PROVEEDOR_SOURCE_TRUE_AND_NOT_INTRAESTADO') throw new Error('regla INTRAESTADO no activa');
+          if(l12.source?.recipient_rut_scope!=='ALL_BENEFICIARIES_AND_RECIPIENTS') throw new Error('RUT no cubre todo receptor');
           if(!Array.isArray(l12.source?.source_flags_preserved)||!l12.source.source_flags_preserved.includes('AGREGADO')) throw new Error('flag AGREGADO no preservado');
-          console.log('[OK] corrected semantics',d.coverage,d.method,l12.source);
+          const parity=JSON.parse(fs.readFileSync('docs/data/source_parity.json','utf8'));
+          if(parity.assessment?.recipient_rut_scope!=='ALL_BENEFICIARIES_AND_RECIPIENTS') throw new Error('auditoría no usa todos los receptores');
+          if(parity.assessment?.service_grain!=='PARTIDA_CAPITULO') throw new Error('auditoría no usa capítulo');
+          if(!parity.local?.latest_devengo_month) throw new Error('auditoría sin fecha de devengo');
+          console.log('[OK] corrected semantics',d.coverage,d.method,l12.source,parity.assessment);
           JS
           python - <<'PY'
           import json
-          for p in ['docs/data/spend_years_v1.json','docs/data/spend_view_v2.json']:
+          for p in ['docs/data/spend_years_v1.json','docs/data/spend_view_v2.json','docs/data/source_parity.json']:
               with open(p,encoding='utf-8') as f: json.load(f,parse_constant=lambda x: (_ for _ in ()).throw(ValueError(x)))
           print('[OK] strict JSON')
           PY
@@ -137,14 +144,21 @@ jobs:
           def tail(path,n=45):
               p=Path(path)
               return p.read_text(encoding='utf-8',errors='replace').splitlines()[-n:] if p.exists() else []
+          parity={}
+          pp=Path('docs/data/source_parity.json')
+          if pp.exists():
+              try: parity=json.loads(pp.read_text(encoding='utf-8')).get('assessment',{})
+              except Exception: parity={}
           payload={
             'generated_at':datetime.now(timezone.utc).isoformat(timespec='seconds'),
             'workflow':'Corrected Spend Data v3',
             'download':os.environ.get('DOWNLOAD'),'facts':os.environ.get('FACTS'),'multiyear':os.environ.get('MULTIYEAR'),
             'parity_audit':os.environ.get('PARITY'),'compact':os.environ.get('COMPACT'),'validation':os.environ.get('VALIDATE'),
             'service_grain':'PARTIDA_CAPITULO','provider_metrics':'FULL_PRIVATE_RELATION_UNIVERSE','payment_basis':'FECHA_PAGO_AND_MONTO_PAGO',
+            'recipient_rut_scope':'ALL_BENEFICIARIES_AND_RECIPIENTS',
             'provider_base_rule':'PROVEEDOR_SOURCE_TRUE_AND_NOT_INTRAESTADO',
             'coverage_probe_owner':'source-probe.yml',
+            'official_ui_status':parity.get('official_ui_status'),
             'source_parity_ready':Path('docs/data/source_parity.json').exists(),
             'logs':{'download':tail('/tmp/download-v3.log'),'facts':tail('/tmp/corrected-v3.log'),'multiyear':tail('/tmp/multiyear-v3.log'),'parity':tail('/tmp/parity.log'),'compact':tail('/tmp/compact-v3.log'),'validation':tail('/tmp/validate-v3.log')}
           }
@@ -158,14 +172,13 @@ jobs:
           git config user.email "radar-presupuesto-bot@users.noreply.github.com"
           git add docs/data/source_catalog.json docs/data/spend_corrected_v3_status.json
           if [ "${{ steps.validate.outcome }}" = "success" ]; then
-            git add docs/data/spend_view_v2.json docs/data/spend_years_v1.json
+            git add docs/data/spend_view_v2.json docs/data/spend_years_v1.json docs/data/source_parity.json
           fi
-          if [ -f docs/data/source_parity.json ]; then git add docs/data/source_parity.json; fi
           if git diff --cached --quiet; then exit 0; fi
           git commit -m "data: reconstruye Presupuesto Abierto con semántica corregida"
           git pull --rebase origin main
           git push origin main
 
       - name: Fail if corrected pipeline did not validate
-        if: steps.download.outcome != 'success' || steps.facts.outcome != 'success' || steps.multiyear.outcome != 'success' || steps.compact.outcome != 'success' || steps.validate.outcome != 'success'
+        if: steps.download.outcome != 'success' || steps.facts.outcome != 'success' || steps.multiyear.outcome != 'success' || steps.parity.outcome != 'success' || steps.compact.outcome != 'success' || steps.validate.outcome != 'success'
         run: exit 1
