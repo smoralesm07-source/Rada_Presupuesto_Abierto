@@ -1,10 +1,45 @@
 {
-  "generated_at": "2026-08-19T00:30:25+00:00",
+  "generated_at": "2026-08-19T00:32:35+00:00",
   "workflow": "Corrected Spend Data v3",
-  "validation": "skipped",
+  "download": "success",
+  "facts": "failure",
+  "multiyear": "skipped",
   "parity_audit": "skipped",
+  "compact": "skipped",
+  "validation": "skipped",
   "service_grain": "PARTIDA_CAPITULO",
   "provider_metrics": "FULL_PRIVATE_RELATION_UNIVERSE",
   "payment_basis": "FECHA_PAGO_AND_MONTO_PAGO",
-  "source_parity_ready": false
+  "source_parity_ready": false,
+  "logs": {
+    "download": [
+      "[OK] 2024 217663314 7cb93d3398e68773196387732a01d329c991c807e799eb6be39fec1eb99986bd",
+      "[OK] 2025 215651424 a5b5d4c26c290725b9fe796c905820a5b532312082eb9a081a65ca66148e0966",
+      "[OK] 2026 96674111 0328c5d065240509312f9f9ba72781575f357e5ea6c7ad18213238f91b3ebd71"
+    ],
+    "facts": [
+      "Traceback (most recent call last):",
+      "  File \"<frozen runpy>\", line 198, in _run_module_as_main",
+      "  File \"<frozen runpy>\", line 88, in _run_code",
+      "  File \"/home/runner/work/Rada_Presupuesto_Abierto/Rada_Presupuesto_Abierto/src/radar_presupuesto/spend_view_fast3.py\", line 210, in <module>",
+      "    main()",
+      "  File \"/home/runner/work/Rada_Presupuesto_Abierto/Rada_Presupuesto_Abierto/src/radar_presupuesto/spend_view_fast3.py\", line 203, in main",
+      "    payload = build_fast_spend_view_v3(args.raw_paths, args.output)",
+      "              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+      "  File \"/home/runner/work/Rada_Presupuesto_Abierto/Rada_Presupuesto_Abierto/src/radar_presupuesto/spend_view_fast3.py\", line 175, in build_fast_spend_view_v3",
+      "    meta = materialize_light_facts_v3(raw_paths, light)",
+      "           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+      "  File \"/home/runner/work/Rada_Presupuesto_Abierto/Rada_Presupuesto_Abierto/src/radar_presupuesto/spend_view_fast3.py\", line 156, in materialize_light_facts_v3",
+      "    meta = con.execute(f\"\"\"",
+      "           ^^^^^^^^^^^^^^^^",
+      "_duckdb.ParserException: Parser Error: syntax error at or near \"rows\"",
+      "",
+      "LINE 2:       SELECT count(*) rows,",
+      "                              ^"
+    ],
+    "multiyear": [],
+    "parity": [],
+    "compact": [],
+    "validation": []
+  }
 }
