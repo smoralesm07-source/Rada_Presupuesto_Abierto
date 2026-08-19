@@ -1,6 +1,10 @@
 name: Observe Corrected Spend v3
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows:
+      - 'Corrected Spend Data v3'
+    types: [completed]
   push:
     branches: [main]
     paths:
