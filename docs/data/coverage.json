@@ -1,6 +1,7 @@
 {
-  "generated_at": "2026-08-19T00:31:21+00:00",
-  "source": "https://presupuestoabierto.gob.cl/status",
+  "generated_at": "2026-08-19T00:59:12+00:00",
+  "source": "https://api.presupuestoabierto.gob.cl/status",
   "services": [],
-  "error": null
+  "services_count": 0,
+  "error": "EMPTY_STATUS_TABLE"
 }
