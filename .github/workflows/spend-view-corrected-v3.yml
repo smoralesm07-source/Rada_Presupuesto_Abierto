@@ -31,8 +31,11 @@ jobs:
         run: PYTHONPATH=src python -m radar_presupuesto.cli probe
 
       - name: Download latest three available official bulks
+        id: download
+        continue-on-error: true
         run: |
-          PYTHONPATH=src python - <<'PY'
+          set -o pipefail
+          PYTHONPATH=src python - <<'PY' 2>&1 | tee /tmp/download-v3.log
           import json
           from pathlib import Path
           from radar_presupuesto.extract import download
@@ -51,30 +54,47 @@ jobs:
 
       - name: Build corrected service-level L12 facts
         id: facts
+        if: steps.download.outcome == 'success'
+        continue-on-error: true
         run: |
+          set -o pipefail
           YEARS=$(cat /tmp/years.txt)
           PATHS=""
           for Y in $YEARS; do PATHS="$PATHS data/raw/pagos-$Y.gz"; done
-          PYTHONPATH=src python -m radar_presupuesto.spend_view_fast3 $PATHS --output docs/data/spend_view_v2.json | tee /tmp/corrected-v3.log
+          PYTHONPATH=src python -m radar_presupuesto.spend_view_fast3 $PATHS --output docs/data/spend_view_v2.json 2>&1 | tee /tmp/corrected-v3.log
 
       - name: Build corrected multiyear explorer
+        id: multiyear
+        if: steps.facts.outcome == 'success'
+        continue-on-error: true
         run: |
-          python scripts/build_spend_years_v2.py --parquet data/processed/spend_view_light.parquet --output docs/data/spend_years_v1.json --max-seed-providers 1400 --max-flows 24000
+          set -o pipefail
+          python scripts/build_spend_years_v2.py --parquet data/processed/spend_view_light.parquet --output docs/data/spend_years_v1.json --max-seed-providers 1400 --max-flows 24000 2>&1 | tee /tmp/multiyear-v3.log
 
       - name: Audit live parity with Presupuesto Abierto
         id: parity
+        if: steps.multiyear.outcome == 'success'
         continue-on-error: true
         run: |
+          set -o pipefail
           Y=$(cat /tmp/latest-year.txt)
-          python scripts/audit_source_parity.py --parquet data/processed/spend_view_light.parquet --year "$Y" --output docs/data/source_parity.json | tee /tmp/parity.log
+          python scripts/audit_source_parity.py --parquet data/processed/spend_view_light.parquet --year "$Y" --output docs/data/source_parity.json 2>&1 | tee /tmp/parity.log
 
       - name: Compact L12 browser payload only
+        id: compact
+        if: steps.multiyear.outcome == 'success'
+        continue-on-error: true
         run: |
-          python scripts/compact_spend_view.py --input docs/data/spend_view_v2.json --output docs/data/spend_view_v2.json --max-flows 3200 --per-service 4
+          set -o pipefail
+          python scripts/compact_spend_view.py --input docs/data/spend_view_v2.json --output docs/data/spend_view_v2.json --max-flows 3200 --per-service 4 2>&1 | tee /tmp/compact-v3.log
 
       - name: Validate corrected semantics and strict JSON
         id: validate
+        if: steps.multiyear.outcome == 'success' && steps.compact.outcome == 'success'
+        continue-on-error: true
         run: |
+          set -o pipefail
+          {
           node - <<'JS'
           const fs=require('fs');
           const d=JSON.parse(fs.readFileSync('docs/data/spend_years_v1.json','utf8'));
@@ -83,7 +103,7 @@ jobs:
           if(d.method?.organization_grain!=='PARTIDA_CAPITULO') throw new Error('servicio no está a nivel capítulo');
           if(d.method?.provider_metrics_basis!=='FULL_PRIVATE_RELATION_UNIVERSE') throw new Error('métricas de proveedor siguen recortadas');
           if(d.method?.payment_months_basis!=='FECHA_PAGO_AND_MONTO_PAGO') throw new Error('meses de pago no usan fecha/monto pago');
-          if(!Array.isArray(d.services)||d.services.length<100||d.services.length>400) throw new Error('cantidad de servicios fuera de rango plausible');
+          if(!Array.isArray(d.services)||d.services.length<100||d.services.length>400) throw new Error('cantidad de servicios fuera de rango plausible: '+d.services?.length);
           if(!Array.isArray(d.providers)||!d.providers.some(p=>Array.isArray(p.payment_monthly))) throw new Error('payment_monthly ausente');
           if(!Array.isArray(d.reference_entities)||!d.reference_entities.some(x=>x.role==='UAF_REFERENCE')) throw new Error('referencia UAF ausente');
           const l12=JSON.parse(fs.readFileSync('docs/data/spend_view_v2.json','utf8'));
@@ -96,19 +116,35 @@ jobs:
               with open(p,encoding='utf-8') as f: json.load(f,parse_constant=lambda x: (_ for _ in ()).throw(ValueError(x)))
           print('[OK] strict JSON')
           PY
+          } 2>&1 | tee /tmp/validate-v3.log
 
       - name: Write corrected build status
         if: always()
         env:
+          DOWNLOAD: ${{ steps.download.outcome }}
+          FACTS: ${{ steps.facts.outcome }}
+          MULTIYEAR: ${{ steps.multiyear.outcome }}
           PARITY: ${{ steps.parity.outcome }}
+          COMPACT: ${{ steps.compact.outcome }}
           VALIDATE: ${{ steps.validate.outcome }}
         run: |
           python - <<'PY'
           import json,os
           from datetime import datetime,timezone
           from pathlib import Path
-          p={'generated_at':datetime.now(timezone.utc).isoformat(timespec='seconds'),'workflow':'Corrected Spend Data v3','validation':os.environ.get('VALIDATE'),'parity_audit':os.environ.get('PARITY'),'service_grain':'PARTIDA_CAPITULO','provider_metrics':'FULL_PRIVATE_RELATION_UNIVERSE','payment_basis':'FECHA_PAGO_AND_MONTO_PAGO','source_parity_ready':Path('docs/data/source_parity.json').exists()}
-          Path('docs/data/spend_corrected_v3_status.json').write_text(json.dumps(p,ensure_ascii=False,indent=2,allow_nan=False),encoding='utf-8')
+          def tail(path,n=45):
+              p=Path(path)
+              return p.read_text(encoding='utf-8',errors='replace').splitlines()[-n:] if p.exists() else []
+          payload={
+            'generated_at':datetime.now(timezone.utc).isoformat(timespec='seconds'),
+            'workflow':'Corrected Spend Data v3',
+            'download':os.environ.get('DOWNLOAD'),'facts':os.environ.get('FACTS'),'multiyear':os.environ.get('MULTIYEAR'),
+            'parity_audit':os.environ.get('PARITY'),'compact':os.environ.get('COMPACT'),'validation':os.environ.get('VALIDATE'),
+            'service_grain':'PARTIDA_CAPITULO','provider_metrics':'FULL_PRIVATE_RELATION_UNIVERSE','payment_basis':'FECHA_PAGO_AND_MONTO_PAGO',
+            'source_parity_ready':Path('docs/data/source_parity.json').exists(),
+            'logs':{'download':tail('/tmp/download-v3.log'),'facts':tail('/tmp/corrected-v3.log'),'multiyear':tail('/tmp/multiyear-v3.log'),'parity':tail('/tmp/parity.log'),'compact':tail('/tmp/compact-v3.log'),'validation':tail('/tmp/validate-v3.log')}
+          }
+          Path('docs/data/spend_corrected_v3_status.json').write_text(json.dumps(payload,ensure_ascii=False,indent=2,allow_nan=False),encoding='utf-8')
           PY
 
       - name: Publish corrected artifacts
@@ -116,13 +152,16 @@ jobs:
         run: |
           git config user.name "radar-presupuesto-bot"
           git config user.email "radar-presupuesto-bot@users.noreply.github.com"
-          git add docs/data/source_catalog.json docs/data/coverage.json docs/data/spend_view_v2.json docs/data/spend_years_v1.json docs/data/spend_corrected_v3_status.json
+          git add docs/data/source_catalog.json docs/data/coverage.json docs/data/spend_corrected_v3_status.json
+          if [ "${{ steps.validate.outcome }}" = "success" ]; then
+            git add docs/data/spend_view_v2.json docs/data/spend_years_v1.json
+          fi
           if [ -f docs/data/source_parity.json ]; then git add docs/data/source_parity.json; fi
           if git diff --cached --quiet; then exit 0; fi
           git commit -m "data: reconstruye Presupuesto Abierto con semántica corregida"
           git pull --rebase origin main
           git push origin main
 
-      - name: Fail if semantic validation failed
-        if: steps.validate.outcome != 'success'
+      - name: Fail if corrected pipeline did not validate
+        if: steps.download.outcome != 'success' || steps.facts.outcome != 'success' || steps.multiyear.outcome != 'success' || steps.compact.outcome != 'success' || steps.validate.outcome != 'success'
         run: exit 1
