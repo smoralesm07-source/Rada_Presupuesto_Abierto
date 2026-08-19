@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import re
+import unicodedata
 from pathlib import Path
 
 import duckdb
@@ -12,6 +14,21 @@ from . import spend_view as _spend
 
 _ORIGINAL_RECORDS = _spend._records
 _TRUE = "('1','TRUE','T','SI','SÍ','YES','Y')"
+_PUBLIC_PATTERNS = (
+    "TESORERIA GENERAL DE LA REPUBLICA", "SERVICIO DE IMPUESTOS INTERNOS",
+    "SERVICIO DE REGISTRO CIVIL", "SERVICIO MEDICO LEGAL", "SERVICIO NACIONAL DE",
+    "SERVICIO DE SALUD", "SUBSECRETARIA DE", "MINISTERIO DE", "MUNICIPALIDAD DE",
+    "ILUSTRE MUNICIPALIDAD", "GOBIERNO REGIONAL", "CONTRALORIA GENERAL DE LA REPUBLICA",
+    "FONDO NACIONAL DE SALUD", "INSTITUTO DE PREVISION SOCIAL", "DEFENSORIA PENAL PUBLICA",
+    "JUNTA NACIONAL DE", "DIRECCION GENERAL DE", "DIRECCION NACIONAL DE",
+    "POLICIA DE INVESTIGACIONES DE CHILE", "CARABINEROS DE CHILE", "EJERCITO DE CHILE",
+    "ARMADA DE CHILE", "FUERZA AEREA DE CHILE",
+)
+
+
+def _norm_name(value: object) -> str:
+    text = unicodedata.normalize("NFKD", str(value or "")).encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"\s+", " ", re.sub(r"[^A-Z0-9]+", " ", text.upper())).strip()
 
 
 def _records_compatible(con, sql: str, params=None):
@@ -56,16 +73,14 @@ def _service_id(partida: object, capitulo: object, name: object = "") -> str:
 
 
 def materialize_light_facts_v3(raw_paths: list[str], output: str) -> dict:
-    """Materializa hechos de UI con semántica oficial y flags de fuente.
+    """Materializa hechos de UI con semántica oficial y un universo AML consistente.
 
-    - `organization_id` usa Partida+Capítulo: Capítulo es el servicio/organismo.
-    - `is_provider_source` conserva PROVEEDOR tal como viene del bulk.
-    - `is_provider` es el universo analítico inicial: PROVEEDOR=1 e INTRAESTADO=0.
-    - El RUT se normaliza para TODO beneficiario/receptor, no sólo PROVEEDOR=1,
-      porque la vista oficial Proveedor/Receptor también incluye otros receptores.
-    - `provider_id` sólo se habilita para contrapartes que aparecen con PROVEEDOR=1.
-    - `is_aggregated` conserva AGREGADO para la cuadratura con instituciones
-      transaccionales de Presupuesto Abierto.
+    - Servicio = Partida+Capítulo; Área queda como drill-down.
+    - RUT se normaliza para todo beneficiario/receptor.
+    - `is_provider_source` conserva PROVEEDOR de la fuente.
+    - `is_provider` exige PROVEEDOR=1, INTRAESTADO=0 y exclusión pública nominal
+      de alta precisión, de modo que L12 y multianual compartan el mismo universo.
+    - `is_aggregated` conserva AGREGADO para la paridad con la vista pública.
     """
     if not raw_paths:
         raise ValueError("raw_paths no puede estar vacío")
@@ -91,12 +106,10 @@ def materialize_light_facts_v3(raw_paths: list[str], output: str) -> dict:
         _service_id(r.partida, r.capitulo, r.nombre_capitulo)
         for r in svc.itertuples(index=False)
     ]
+    service_names = {_norm_name(x) for x in svc["nombre_capitulo"] if _norm_name(x)}
     con.register("svc_map_df", svc)
     con.execute("CREATE OR REPLACE TEMP TABLE svc_map AS SELECT * FROM svc_map_df")
 
-    # Mapa universal de beneficiarios/receptores. La marca source_provider_any
-    # permite mantener provider_id restringido al universo PROVEEDOR de la fuente,
-    # pero rut_beneficiario queda disponible también para otros receptores.
     prov_cols = ["beneficiario", "nombre_beneficiario", "partida", "capitulo", "nombre_capitulo"]
     prov = _clean(con.execute(f"""
         SELECT beneficiario,nombre_beneficiario,partida,capitulo,nombre_capitulo,
@@ -117,6 +130,10 @@ def materialize_light_facts_v3(raw_paths: list[str], output: str) -> dict:
     ]
     rut_by_raw = {raw: normalize_rut(raw) for raw in prov["beneficiario"].drop_duplicates()}
     prov["rut_beneficiario"] = prov["beneficiario"].map(rut_by_raw).fillna("")
+    prov["is_public_name"] = [
+        bool((n := _norm_name(name)) and (n in service_names or any(p in n for p in _PUBLIC_PATTERNS)))
+        for name in prov["nombre_beneficiario"]
+    ]
     con.register("provider_map_df", prov)
     con.execute("CREATE OR REPLACE TEMP TABLE provider_map AS SELECT * FROM provider_map_df")
 
@@ -135,8 +152,10 @@ def materialize_light_facts_v3(raw_paths: list[str], output: str) -> dict:
             (
               upper(trim(coalesce(r.proveedor,''))) IN {_TRUE}
               AND NOT (upper(trim(coalesce(r.intraestado,''))) IN {_TRUE})
+              AND NOT coalesce(pm.is_public_name,false)
             ) AS is_provider,
             upper(trim(coalesce(r.intraestado,''))) IN {_TRUE} AS is_intra_state,
+            coalesce(pm.is_public_name,false) AS is_public_counterparty_name,
             upper(trim(coalesce(r.agregado,''))) IN {_TRUE} AS is_aggregated,
             coalesce(pm.provider_id,'') AS provider_id,
             coalesce(r.beneficiario,'') AS beneficiario_source_id,
@@ -176,6 +195,7 @@ def materialize_light_facts_v3(raw_paths: list[str], output: str) -> dict:
              count(DISTINCT provider_id) FILTER (WHERE is_provider AND provider_id<>'') AS provider_count,
              count(DISTINCT provider_id) FILTER (WHERE is_provider_source AND provider_id<>'') AS source_provider_count,
              count(DISTINCT rut_beneficiario) FILTER (WHERE rut_beneficiario<>'') AS recipient_rut_count,
+             count(DISTINCT provider_id) FILTER (WHERE is_provider_source AND is_public_counterparty_name AND provider_id<>'') AS public_name_provider_count,
              max(make_date(periodo,mes,1)) FILTER (WHERE coalesce(monto_devengado,0)<>0) AS latest_devengo_month
       FROM read_parquet('{q}')
     """).fetchone()
@@ -183,8 +203,8 @@ def materialize_light_facts_v3(raw_paths: list[str], output: str) -> dict:
     return {
         "path": str(out), "rows": int(meta[0]), "services": int(meta[1]),
         "areas": int(meta[2]), "providers": int(meta[3]), "source_providers": int(meta[4]),
-        "recipient_ruts": int(meta[5]),
-        "latest_devengo_month": str(meta[6]) if meta[6] else None,
+        "recipient_ruts": int(meta[5]), "public_name_providers": int(meta[6]),
+        "latest_devengo_month": str(meta[7]) if meta[7] else None,
         "organization_grain": "PARTIDA_CAPITULO",
     }
 
@@ -206,16 +226,17 @@ def build_fast_spend_view_v3(raw_paths: list[str], output: str = "docs/data/spen
         "source_services": meta["services"],
         "source_areas": meta["areas"],
         "source_provider_ids": meta["source_providers"],
-        "analytic_provider_ids_pre_name_filter": meta["providers"],
+        "analytic_provider_ids": meta["providers"],
         "recipient_ruts_normalized": meta["recipient_ruts"],
+        "public_name_provider_ids_excluded": meta["public_name_providers"],
         "organization_grain": "PARTIDA_CAPITULO",
         "area_grain_preserved": True,
         "payment_fields_preserved": True,
         "recipient_rut_scope": "ALL_BENEFICIARIES_AND_RECIPIENTS",
         "source_flags_preserved": ["PROVEEDOR", "INTRAESTADO", "AGREGADO"],
-        "provider_base_rule": "PROVEEDOR_SOURCE_TRUE_AND_NOT_INTRAESTADO",
+        "provider_base_rule": "PROVEEDOR_SOURCE_TRUE_AND_NOT_INTRAESTADO_AND_NOT_PUBLIC_NAME",
         "calendar_join_compat": "DUCKDB_NON_CORRELATED_V3",
-        "ui_note": "Servicio se modela a nivel Partida+Capítulo; Área queda como detalle. Pago y devengo están separados. RUT se normaliza para todo receptor; proveedor AML excluye INTRAESTADO.",
+        "ui_note": "Servicio=Partida+Capítulo; Área queda como detalle. Pago y devengo están separados. RUT cubre todo receptor. El universo proveedor AML excluye INTRAESTADO y contrapartes públicas nominales de alta precisión desde la capa de hechos.",
     })
     return payload
 
