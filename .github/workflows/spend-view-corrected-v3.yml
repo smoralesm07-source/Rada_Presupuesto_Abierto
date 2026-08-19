@@ -1,0 +1,128 @@
+name: Corrected Spend Data v3
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/spend-view-corrected-v3.yml'
+      - 'src/radar_presupuesto/spend_view_fast3.py'
+      - 'scripts/build_spend_years_v2.py'
+      - 'scripts/audit_source_parity.py'
+  schedule:
+    - cron: '25 10 2 * *'
+permissions:
+  contents: write
+concurrency:
+  group: corrected-spend-data-v3
+  cancel-in-progress: true
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+
+      - name: Refresh official source catalogue
+        run: PYTHONPATH=src python -m radar_presupuesto.cli probe
+
+      - name: Download latest three available official bulks
+        run: |
+          PYTHONPATH=src python - <<'PY'
+          import json
+          from pathlib import Path
+          from radar_presupuesto.extract import download
+          c=json.load(open('docs/data/source_catalog.json',encoding='utf-8'))
+          ok={'linked','linked_available','probed_available'}
+          rows=[x for x in c.get('downloads',[]) if x.get('status') in ok][-3:]
+          if len(rows)<2: raise SystemExit('No hay al menos dos años oficiales disponibles')
+          Path('data/raw').mkdir(parents=True,exist_ok=True)
+          for r in rows:
+              p=Path('data/raw')/f"pagos-{r['year']}.gz"
+              meta=download(r['url'],p)
+              print('[OK]',r['year'],meta['bytes'],meta['sha256'])
+          Path('/tmp/years.txt').write_text(' '.join(str(r['year']) for r in rows))
+          Path('/tmp/latest-year.txt').write_text(str(max(int(r['year']) for r in rows)))
+          PY
+
+      - name: Build corrected service-level L12 facts
+        id: facts
+        run: |
+          YEARS=$(cat /tmp/years.txt)
+          PATHS=""
+          for Y in $YEARS; do PATHS="$PATHS data/raw/pagos-$Y.gz"; done
+          PYTHONPATH=src python -m radar_presupuesto.spend_view_fast3 $PATHS --output docs/data/spend_view_v2.json | tee /tmp/corrected-v3.log
+
+      - name: Build corrected multiyear explorer
+        run: |
+          python scripts/build_spend_years_v2.py --parquet data/processed/spend_view_light.parquet --output docs/data/spend_years_v1.json --max-seed-providers 1400 --max-flows 24000
+
+      - name: Audit live parity with Presupuesto Abierto
+        id: parity
+        continue-on-error: true
+        run: |
+          Y=$(cat /tmp/latest-year.txt)
+          python scripts/audit_source_parity.py --parquet data/processed/spend_view_light.parquet --year "$Y" --output docs/data/source_parity.json | tee /tmp/parity.log
+
+      - name: Compact L12 browser payload only
+        run: |
+          python scripts/compact_spend_view.py --input docs/data/spend_view_v2.json --output docs/data/spend_view_v2.json --max-flows 3200 --per-service 4
+
+      - name: Validate corrected semantics and strict JSON
+        id: validate
+        run: |
+          node - <<'JS'
+          const fs=require('fs');
+          const d=JSON.parse(fs.readFileSync('docs/data/spend_years_v1.json','utf8'));
+          if(d.schema!=='PRESUPUESTO_SPEND_YEARS_V1') throw new Error('schema multiyear inesperado');
+          if(d.build_version!=='2.0-corrected') throw new Error('builder corregido no activo');
+          if(d.method?.organization_grain!=='PARTIDA_CAPITULO') throw new Error('servicio no está a nivel capítulo');
+          if(d.method?.provider_metrics_basis!=='FULL_PRIVATE_RELATION_UNIVERSE') throw new Error('métricas de proveedor siguen recortadas');
+          if(d.method?.payment_months_basis!=='FECHA_PAGO_AND_MONTO_PAGO') throw new Error('meses de pago no usan fecha/monto pago');
+          if(!Array.isArray(d.services)||d.services.length<100||d.services.length>400) throw new Error('cantidad de servicios fuera de rango plausible');
+          if(!Array.isArray(d.providers)||!d.providers.some(p=>Array.isArray(p.payment_monthly))) throw new Error('payment_monthly ausente');
+          if(!Array.isArray(d.reference_entities)||!d.reference_entities.some(x=>x.role==='UAF_REFERENCE')) throw new Error('referencia UAF ausente');
+          const l12=JSON.parse(fs.readFileSync('docs/data/spend_view_v2.json','utf8'));
+          if(l12.source?.organization_grain!=='PARTIDA_CAPITULO') throw new Error('L12 no usa capítulo');
+          console.log('[OK] corrected semantics',d.coverage,d.method);
+          JS
+          python - <<'PY'
+          import json
+          for p in ['docs/data/spend_years_v1.json','docs/data/spend_view_v2.json']:
+              with open(p,encoding='utf-8') as f: json.load(f,parse_constant=lambda x: (_ for _ in ()).throw(ValueError(x)))
+          print('[OK] strict JSON')
+          PY
+
+      - name: Write corrected build status
+        if: always()
+        env:
+          PARITY: ${{ steps.parity.outcome }}
+          VALIDATE: ${{ steps.validate.outcome }}
+        run: |
+          python - <<'PY'
+          import json,os
+          from datetime import datetime,timezone
+          from pathlib import Path
+          p={'generated_at':datetime.now(timezone.utc).isoformat(timespec='seconds'),'workflow':'Corrected Spend Data v3','validation':os.environ.get('VALIDATE'),'parity_audit':os.environ.get('PARITY'),'service_grain':'PARTIDA_CAPITULO','provider_metrics':'FULL_PRIVATE_RELATION_UNIVERSE','payment_basis':'FECHA_PAGO_AND_MONTO_PAGO','source_parity_ready':Path('docs/data/source_parity.json').exists()}
+          Path('docs/data/spend_corrected_v3_status.json').write_text(json.dumps(p,ensure_ascii=False,indent=2,allow_nan=False),encoding='utf-8')
+          PY
+
+      - name: Publish corrected artifacts
+        if: always()
+        run: |
+          git config user.name "radar-presupuesto-bot"
+          git config user.email "radar-presupuesto-bot@users.noreply.github.com"
+          git add docs/data/source_catalog.json docs/data/coverage.json docs/data/spend_view_v2.json docs/data/spend_years_v1.json docs/data/spend_corrected_v3_status.json
+          if [ -f docs/data/source_parity.json ]; then git add docs/data/source_parity.json; fi
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "data: reconstruye Presupuesto Abierto con semántica corregida"
+          git pull --rebase origin main
+          git push origin main
+
+      - name: Fail if semantic validation failed
+        if: steps.validate.outcome != 'success'
+        run: exit 1
