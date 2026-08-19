@@ -67,7 +67,7 @@ def build(parquet_path: str, output: str, max_seed_providers: int = 1400, max_fl
              arg_max(nullif(trim(region),''),abs(monto_devengado)) main_region,
              arg_max(nullif(trim(partida),''),abs(monto_devengado)) partida,
              arg_max(nullif(trim(capitulo),''),abs(monto_devengado)) capitulo,
-             periodo year, sum(coalesce(monto_devengado,0)) amount_clp, count(*) transactions
+             periodo AS "year", sum(coalesce(monto_devengado,0)) amount_clp, count(*) transactions
       FROM facts GROUP BY 1,6 ORDER BY 6,7 DESC
     """)
     service_names = {norm(r.get("organization_name")) for r in service_rows if norm(r.get("organization_name"))}
@@ -82,18 +82,28 @@ def build(parquet_path: str, output: str, max_seed_providers: int = 1400, max_fl
     for r in area_rows:
         areas_by_service[str(r["organization_id"])].append({"area":r.get("area") or "","area_name":r.get("area_name") or "","amount_clp":r.get("amount_clp")})
 
+    source_flag_flow_count = int(con.execute("""
+      SELECT count(*) FROM (
+        SELECT organization_id, provider_id, periodo
+        FROM facts
+        WHERE is_provider_source=TRUE AND coalesce(provider_id,'')<>''
+        GROUP BY 1,2,3
+      )
+    """).fetchone()[0] or 0)
+
     raw_flows = rec(con, """
       SELECT organization_id,
              arg_max(coalesce(nullif(trim(nombre_capitulo),''),organization_id),abs(monto_devengado)) organization_name,
              provider_id,
              arg_max(coalesce(nullif(trim(nombre_beneficiario),''),provider_id),abs(monto_devengado)) provider_name,
              arg_max(nullif(trim(rut_beneficiario),''),abs(monto_devengado)) rut,
-             periodo year, sum(coalesce(monto_devengado,0)) amount_clp, count(*) transactions
+             periodo AS "year", sum(coalesce(monto_devengado,0)) amount_clp, count(*) transactions
       FROM facts
       WHERE is_provider=TRUE AND coalesce(provider_id,'')<>''
       GROUP BY 1,3,6 HAVING sum(coalesce(monto_devengado,0))<>0
     """)
-    source_flag_flow_count = len(raw_flows)
+    # Defensa adicional e idempotente: fast3 ya excluye contrapartes públicas
+    # nominales, pero este filtro protege el payload si cambia el staging futuro.
     raw_flows = [r for r in raw_flows if not is_public(r.get("provider_name"), service_names)]
 
     # Agregados COMPLETOS. Nunca se calculan métricas sobre el recorte visual.
@@ -115,7 +125,7 @@ def build(parquet_path: str, output: str, max_seed_providers: int = 1400, max_fl
 
     marks=[]
     max_year=max(years)
-    monthly_org=rec(con,"""SELECT organization_id,periodo year,mes,sum(coalesce(monto_devengado,0)) amount FROM facts GROUP BY 1,2,3""")
+    monthly_org=rec(con,"""SELECT organization_id,periodo AS "year",mes,sum(coalesce(monto_devengado,0)) amount FROM facts GROUP BY 1,2,3""")
     buckets=defaultdict(lambda:{"base":[],"end":[]})
     for r in monthly_org:
         b=buckets[(str(r["organization_id"]),int(r["year"]))]
@@ -136,7 +146,7 @@ def build(parquet_path: str, output: str, max_seed_providers: int = 1400, max_fl
     amts=sorted(float(r.get("amount_clp") or 0) for r in new_rows); q99=amts[max(0,math.ceil(len(amts)*.99)-1)] if amts else 0; threshold=max(50_000_000,q99)
     for r in new_rows:
         if float(r.get("amount_clp") or 0)>=threshold:
-            marks.append({"scope":"provider","entity_id":str(r["provider_id"]),"year":max_year,"signal_type":"NEW_TO_SERIES_HIGH_SPEND","severity":"HIGH" if int(r.get("organizations") or 0)>=3 else "MEDIUM","metric":float(r.get("amount_clp") or 0),"why":"Proveedor no observado en años anteriores entra con gasto acumulado material."})
+            marks.append({"scope":"provider","entity_id":str(r["provider_id"]),"year":max_year,"signal_type":"NEW_TO_SERIES_HIGH_SPEND","severity":"HIGH" if int(r.get("organizations") or 0)>=3 else "MEDIUM","metric":float(r.get("amount_clp") or 0),"why":"Proveedor no observado en los años cargados anteriores entra con gasto acumulado material."})
 
     # Selección de publicación: top material + proveedores con marca + vinculados a UAF.
     uaf_ids={str(r["organization_id"]) for r in service_rows if "UNIDAD DE ANALISIS FINANCIERO" in norm(r.get("organization_name"))}
@@ -168,7 +178,7 @@ def build(parquet_path: str, output: str, max_seed_providers: int = 1400, max_fl
     # Meses de PAGO real, separados de meses de devengo.
     pay_expr=parse_payment_expr()
     pay_month_rows=rec(con,f"""
-      SELECT f.provider_id, year({pay_expr}) year, month({pay_expr}) month,
+      SELECT f.provider_id, year({pay_expr}) AS "year", month({pay_expr}) AS "month",
              strftime({pay_expr},'%Y-%m') period,
              sum(coalesce(f.monto_pago,0)) amount_clp, count(*) transactions
       FROM facts f JOIN selected_providers s USING(provider_id)
@@ -180,7 +190,7 @@ def build(parquet_path: str, output: str, max_seed_providers: int = 1400, max_fl
         pay_by[str(r["provider_id"])].append({"year":int(r["year"]),"month":int(r["month"]),"period":r["period"],"amount_clp":r.get("amount_clp"),"transactions":r.get("transactions")})
 
     dev_month_rows=rec(con,"""
-      SELECT f.provider_id,f.periodo year,f.mes,printf('%04d-%02d',f.periodo,f.mes) period,
+      SELECT f.provider_id,f.periodo AS "year",f.mes,printf('%04d-%02d',f.periodo,f.mes) period,
              sum(coalesce(f.monto_devengado,0)) amount_clp,count(*) transactions
       FROM facts f JOIN selected_providers s USING(provider_id)
       WHERE f.is_provider=TRUE GROUP BY 1,2,3 HAVING sum(coalesce(f.monto_devengado,0))<>0 ORDER BY 1,2,3
@@ -210,7 +220,7 @@ def build(parquet_path: str, output: str, max_seed_providers: int = 1400, max_fl
         f["yearly"].append({"year":int(r["year"]),"amount_clp":r.get("amount_clp"),"transactions":r.get("transactions")})
 
     month_rows=rec(con,f"""
-      SELECT periodo year,mes,printf('%04d-%02d',periodo,mes) period,
+      SELECT periodo AS "year",mes,printf('%04d-%02d',periodo,mes) period,
              sum(coalesce(monto_devengado,0)) amount_clp,count(*) transactions,
              sum(coalesce(monto_pago,0)) payment_amount_clp
       FROM facts GROUP BY 1,2 ORDER BY 1,2
@@ -227,7 +237,7 @@ def build(parquet_path: str, output: str, max_seed_providers: int = 1400, max_fl
       "years":years,"default_years":years,"reference_entities":reference,
       "services":list(service_map.values()),"providers":list(provider_map.values()),"flows":list(flow_map.values()),"months":month_rows,"uaf_months":[],"marks":marks,
       "coverage":{"latest_devengo_month":str(latest_dev) if latest_dev else None,"latest_payment_date":str(latest_pay) if latest_pay else None,"service_count_transactional":len(service_map),"area_count_transactional":sum(len(s.get("areas",[])) for s in service_map.values()),"source_provider_flag_relations":source_flag_flow_count,"private_relations_full":len(raw_flows),"published_provider_profiles":len(provider_map),"published_relations":len(flow_map)},
-      "method":{"organization_grain":"PARTIDA_CAPITULO","organization_definition":"Capítulo = organismo/servicio; Área se conserva como drill-down.","provider_source_scope":"PROVEEDOR_FLAG_SOURCE","provider_analytic_scope":"PRIVATE_OR_NON_PUBLIC_COUNTERPARTIES","provider_metrics_basis":"FULL_PRIVATE_RELATION_UNIVERSE","flow_publication":"COMPLETE_RELATIONS_FOR_PUBLISHED_PROVIDERS_PLUS_SERVICE_COVERAGE","payment_months_basis":"FECHA_PAGO_AND_MONTO_PAGO","devengo_basis":"PERIODO_MES_AND_DEVENGO","source_comparison_note":"Proveedor privado analítico no equivale a Proveedor/Receptor de la web; la paridad se audita por separado."}
+      "method":{"organization_grain":"PARTIDA_CAPITULO","organization_definition":"Capítulo = organismo/servicio; Área se conserva como drill-down.","provider_source_scope":"PROVEEDOR_FLAG_SOURCE","provider_analytic_scope":"PROVEEDOR_SOURCE_TRUE_AND_NOT_INTRAESTADO_AND_NOT_PUBLIC_NAME","provider_metrics_basis":"FULL_PRIVATE_RELATION_UNIVERSE","flow_publication":"COMPLETE_RELATIONS_FOR_PUBLISHED_PROVIDERS_PLUS_SERVICE_COVERAGE","payment_months_basis":"FECHA_PAGO_AND_MONTO_PAGO","devengo_basis":"PERIODO_MES_AND_DEVENGO","new_provider_baseline":"EARLIEST_YEAR_IN_LOADED_SERIES","source_comparison_note":"Proveedor privado analítico no equivale a Proveedor/Receptor de la web; la paridad se audita por separado."}
     })
     Path(output).write_text(json.dumps(payload,ensure_ascii=False,separators=(",",":"),allow_nan=False),encoding="utf-8")
     con.close()
