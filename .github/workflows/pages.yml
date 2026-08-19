@@ -9,6 +9,8 @@ on:
     workflows:
       - 'Bootstrap real 2026'
       - 'Radar monthly analysis'
+      - 'Corrected Spend Data v3'
+      - 'Enrich Spend Suppliers with SII'
     types: [completed]
   workflow_dispatch:
 permissions:
