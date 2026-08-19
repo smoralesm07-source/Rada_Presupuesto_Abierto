@@ -1,25 +1,25 @@
 {
-  "generated_at": "2026-08-19T02:18:53+00:00",
+  "generated_at": "2026-08-19T02:21:10+00:00",
   "workflow": "Corrected Spend Data v3",
   "latest": {
-    "conclusion": "",
+    "conclusion": "failure",
     "createdAt": "2026-08-19T02:18:29Z",
     "databaseId": 32208086653,
     "event": "push",
     "headSha": "8576aaddc6adb88ac22036e90244644b6067798a",
-    "status": "in_progress",
-    "updatedAt": "2026-08-19T02:18:47Z",
+    "status": "completed",
+    "updatedAt": "2026-08-19T02:21:01Z",
     "url": "https://github.com/smoralesm07-source/Rada_Presupuesto_Abierto/actions/runs/32208086653"
   },
   "recent": [
     {
-      "conclusion": "",
+      "conclusion": "failure",
       "createdAt": "2026-08-19T02:18:29Z",
       "databaseId": 32208086653,
       "event": "push",
       "headSha": "8576aaddc6adb88ac22036e90244644b6067798a",
-      "status": "in_progress",
-      "updatedAt": "2026-08-19T02:18:47Z",
+      "status": "completed",
+      "updatedAt": "2026-08-19T02:21:01Z",
       "url": "https://github.com/smoralesm07-source/Rada_Presupuesto_Abierto/actions/runs/32208086653"
     },
     {
