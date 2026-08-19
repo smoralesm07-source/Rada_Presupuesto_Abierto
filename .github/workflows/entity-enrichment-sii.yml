@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/build_entity_enrichment_sii.py'
+      - 'docs/data/spend_years_v1.json'
       - '.github/workflows/entity-enrichment-sii.yml'
   workflow_dispatch:
   schedule:
@@ -76,6 +77,7 @@ jobs:
             'exit_code':int(os.environ.get('BUILD_CODE') or -1),
             'validation':os.environ.get('VALIDATE_OUTCOME') or 'skipped',
             'data_ready':Path('docs/data/entity_enrichment_v1.json').exists(),
+            'supplier_universe':'docs/data/spend_years_v1.json',
             'log_tail':lines[-80:]
           }
           Path('docs/data/entity_enrichment_sii_status.json').write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding='utf-8')
