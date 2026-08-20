@@ -19,6 +19,7 @@ from .normalize import normalize_frame, normalize_to_parquet
 from .prioritization import prioritize_signals
 from .quality import audit_quality
 from .search import build_fts, build_fts_from_parquet
+from .sii_document_candidates import build_sii_document_candidates
 from .source_discovery import write_catalog
 from .spend_view import build_spend_view_v2
 
@@ -106,6 +107,7 @@ def _run_analytics(parquet_glob: str, cfg: dict, cgr_dir: str) -> dict:
         output="docs/data/spend_view_v2.json",
         prioritized_path="data/signals/prioritized_signals.parquet",
     )
+    sii_document_candidates = build_sii_document_candidates(parquet_glob)
     return {
         "base": base,
         "extended": extended,
@@ -113,6 +115,7 @@ def _run_analytics(parquet_glob: str, cfg: dict, cgr_dir: str) -> dict:
         "queue": queue,
         "dashboard": dashboard,
         "spend_view": spend_view,
+        "sii_document_candidates": sii_document_candidates,
     }
 
 
@@ -127,7 +130,7 @@ def run_sample(sample: str, cgr_dir: str = DEFAULT_CGR_DIR) -> None:
     if quality["transaction_id_collision_ratio"] != 0:
         raise RuntimeError("transaction_id debe ser único para cada fila fuente")
     result = _run_analytics(parquet, load_config(), cgr_dir)
-    print(f"[OK] muestra: {len(df):,} filas | señales={result['extended']['signals']:,} | prioridad={result['queue']['priority_tiers']}")
+    print(f"[OK] muestra: {len(df):,} filas | señales={result['extended']['signals']:,} | prioridad={result['queue']['priority_tiers']} | candidatos SII={result['sii_document_candidates']['rows']:,}")
 
 
 def run_years(years: list[int], build_search_index: bool = True, cgr_dir: str = DEFAULT_CGR_DIR) -> None:
@@ -167,6 +170,10 @@ def run_years(years: list[int], build_search_index: bool = True, cgr_dir: str = 
         f"[OK] spend-view L12: {len(result['spend_view']['services']):,} servicios | "
         f"{len(result['spend_view']['providers']):,} proveedores | "
         f"{len(result['spend_view']['flows']):,} flujos publicados"
+    )
+    print(
+        f"[OK] candidatos documentales SII: {result['sii_document_candidates']['rows']:,} entidades | "
+        f"{result['sii_document_candidates']['min_document_date'] or '—'} a {result['sii_document_candidates']['max_document_date'] or '—'}"
     )
 
     if build_search_index:
