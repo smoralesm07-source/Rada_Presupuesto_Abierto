@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-19T02:25:11+00:00",
+  "generated_at": "2026-09-02T14:36:10+00:00",
   "source": "Presupuesto Abierto - DIPRES",
   "year": 2026,
   "official": {
@@ -22,187 +22,187 @@
     "bulk": {
       "url": "https://api.presupuestoabierto.gob.cl/data/pagos-2026.gz",
       "status": 200,
-      "content_length": 96674111,
-      "last_modified": "Fri, 31 Jul 2026 22:02:49 GMT",
-      "etag": "W/\"5c3213f-19fba33918e\"",
+      "content_length": 118034862,
+      "last_modified": "Tue, 01 Sep 2026 02:22:54 GMT",
+      "etag": "W/\"70911ae-1a05ac6d37c\"",
       "reachable": true
     }
   },
   "local": {
     "year": 2026,
-    "latest_devengo_month": "2026-06-01",
-    "latest_payment_date": "2026-07-11 00:00:00",
+    "latest_devengo_month": "2026-07-01",
+    "latest_payment_date": "2026-08-13 00:00:00",
     "services_with_rows": 254,
     "transactional_services_with_rows": 219,
-    "areas": 1467,
-    "devengo_clp": 43492268097872.0,
-    "payment_clp": 30005043744763.0,
+    "areas": 1468,
+    "devengo_clp": 49935369102261.0,
+    "payment_clp": 34799813304977.0,
     "provider_receiver_proxy": {
       "definition": "institución transaccional (AGREGADO=0) + RUT de cualquier beneficiario/receptor válido + subtítulo != 21",
-      "distinct_ruts": 74096,
-      "devengo_clp": 22210918104127.0,
+      "distinct_ruts": 79073,
+      "devengo_clp": 25417658229745.0,
       "top": [
         {
           "rut": "60805000-0",
           "name": "TESORERIA GENERAL DE LA REPUBLICA",
-          "amount_clp": 2195259823609.0
+          "amount_clp": 2417933729658.0
         },
         {
           "rut": "61108000-K",
           "name": "CAJA DE PREVISION DE LA DEFENSA NACIONAL",
-          "amount_clp": 1689556569437.0
+          "amount_clp": 1965223649979.0
         },
         {
           "rut": "61513000-1",
           "name": "DIRECCION PREVISION DE CARABINEROS DE CHILE",
-          "amount_clp": 1434563875198.0
+          "amount_clp": 1669144268631.0
         },
         {
           "rut": "99597320-0",
           "name": "ADMINISTRADOR FINANCIERO DE TRANSANTIAGO S A",
-          "amount_clp": 565116069736.0
+          "amount_clp": 669113558172.0
         },
         {
           "rut": "97030000-7",
           "name": "BANCO DEL ESTADO DE CHILE",
-          "amount_clp": 388373162084.0
+          "amount_clp": 450941456627.0
         },
         {
           "rut": "70574900-0",
           "name": "FUNDACION EDUCACIONAL PARA EL DESAROLLO INTEGRAL DE LA NIÑEZ",
-          "amount_clp": 263957809000.0
+          "amount_clp": 297816809000.0
         },
         {
           "rut": "61608700-2",
           "name": "CENTRAL DE ABASTECIMIENTO DEL SISTEMA NACIONAL DE SERVICIO DE SALUD",
-          "amount_clp": 255962240878.0
+          "amount_clp": 287628744599.0
         },
         {
           "rut": "61812000-7",
           "name": "SERVICIO DE VIVIENDA Y URBANIZACION AREA METROPOLITANA",
-          "amount_clp": 213605307751.0
+          "amount_clp": 222266454146.0
         },
         {
           "rut": "96781350-8",
           "name": "EDENRED CHILE SOCIEDAD ANONIMA",
-          "amount_clp": 150363558554.0
+          "amount_clp": 179665821189.0
         },
         {
           "rut": "96987050-9",
           "name": "SOC DE SERVICIOS DE ALIMENTACION S A",
-          "amount_clp": 136426650780.0
+          "amount_clp": 156114577840.0
         },
         {
           "rut": "96597810-0",
           "name": "SERVICIOS ALIMENTICIOS HENDAYA SAC",
-          "amount_clp": 128582705105.0
+          "amount_clp": 138964093595.0
         },
         {
           "rut": "76105050-8",
           "name": "SALUD Y VIDA S.A.",
-          "amount_clp": 118581560731.0
+          "amount_clp": 137807931585.0
         },
         {
           "rut": "79690660-K",
           "name": "COMERCIAL DE ALIMENTOS SOCIEDAD ANONIMA",
-          "amount_clp": 93106894666.0
-        },
-        {
-          "rut": "82999400-3",
-          "name": "ROCHE CHILE LIMITADA",
-          "amount_clp": 81990142356.0
+          "amount_clp": 107227548092.0
         },
         {
           "rut": "76549864-3",
           "name": "FEDIR CHILE SPA",
-          "amount_clp": 80744910147.0
+          "amount_clp": 94555158290.0
         },
         {
           "rut": "96556930-8",
           "name": "PLUXEE CHILE S.A",
-          "amount_clp": 75993028858.0
+          "amount_clp": 91548988816.0
+        },
+        {
+          "rut": "82999400-3",
+          "name": "ROCHE CHILE LIMITADA",
+          "amount_clp": 90545383754.0
         },
         {
           "rut": "61979440-0",
           "name": "INSTITUTO DE PREVISION SOCIAL",
-          "amount_clp": 72767049152.0
+          "amount_clp": 89821816905.0
         },
         {
           "rut": "96872930-6",
           "name": "SOC ADMINISTRADORA DE CASINOS Y SERVICIOS ALISERVICE S A",
-          "amount_clp": 70218455573.0
-        },
-        {
-          "rut": "60910000-1",
-          "name": "UNIVERSIDAD DE CHILE",
-          "amount_clp": 64401986306.0
+          "amount_clp": 83756502874.0
         },
         {
           "rut": "69220100-0",
           "name": "MUNICIPALIDAD DE PUERTO MONTT",
-          "amount_clp": 63671304129.0
+          "amount_clp": 74712800740.0
         },
         {
           "rut": "69110400-1",
           "name": "MUNICIPALIDAD DE TALCA",
-          "amount_clp": 62645748255.0
+          "amount_clp": 71117295325.0
+        },
+        {
+          "rut": "60910000-1",
+          "name": "UNIVERSIDAD DE CHILE",
+          "amount_clp": 70594432024.0
         },
         {
           "rut": "71102600-2",
           "name": "CORP MUNICIPAL DE DESARROLLO SOCIAL DE A",
-          "amount_clp": 60061606425.0
+          "amount_clp": 69595384133.0
         },
         {
           "rut": "99507130-4",
           "name": "NEPHROCARE CHILE S A",
-          "amount_clp": 59440551636.0
+          "amount_clp": 68559090140.0
         },
         {
           "rut": "69170100-K",
           "name": "MUNICIPALIDAD DE LOS ÁNGELES",
-          "amount_clp": 57497870632.0
+          "amount_clp": 67961855945.0
         },
         {
           "rut": "69190700-7",
           "name": "MUNICIPALIDAD DE TEMUCO",
-          "amount_clp": 57001421648.0
+          "amount_clp": 65457864454.0
         },
         {
           "rut": "60901007-K",
           "name": "SECRETARIA MINISTERIAL DE EDUCACION DE LA QUINTA REGION",
-          "amount_clp": 56825455405.0
+          "amount_clp": 64987715855.0
         },
         {
           "rut": "92580000-7",
           "name": "EMPRESA NACIONAL DE TELECOMUNICACIONES S A",
-          "amount_clp": 55744951047.0
-        },
-        {
-          "rut": "76317736-K",
-          "name": "SOCIEDAD CONCESIONARIA SALUD SIGLO XXI S.A.",
-          "amount_clp": 54830348021.0
+          "amount_clp": 58624746189.0
         },
         {
           "rut": "2536-4",
           "name": "GLOBAL AFP",
-          "amount_clp": 49885589096.0
+          "amount_clp": 56571232552.0
         },
         {
-          "rut": "59144380-1",
-          "name": "IDEMIA IDENTITY & SECURITY CHILE",
-          "amount_clp": 49482812023.0
+          "rut": "76317736-K",
+          "name": "SOCIEDAD CONCESIONARIA SALUD SIGLO XXI S.A.",
+          "amount_clp": 55144214108.0
+        },
+        {
+          "rut": "93745000-1",
+          "name": "JOHNSON Y JOHNSON DE CHILE S A",
+          "amount_clp": 54641299880.0
         }
       ]
     },
     "source_provider_flag": {
       "definition": "PROVEEDOR=1, sin exclusión INTRAESTADO",
-      "distinct_provider_ids": 33506,
-      "devengo_clp": 21549500830990.0
+      "distinct_provider_ids": 35104,
+      "devengo_clp": 24671414007371.0
     },
     "radar_provider_scope": {
       "definition": "PROVEEDOR=1 AND INTRAESTADO=0 AND exclusión pública nominal de alta precisión",
-      "distinct_provider_ids": 32698,
-      "devengo_clp": 12932319288562.0
+      "distinct_provider_ids": 34284,
+      "devengo_clp": 14911956445898.0
     }
   },
   "top_provider_matches": [],

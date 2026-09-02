@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-19T02:25:14+00:00",
+  "generated_at": "2026-09-02T14:36:11+00:00",
   "workflow": "Corrected Spend Data v3",
   "download": "success",
   "facts": "success",
@@ -19,22 +19,22 @@
     "download": [
       "[OK] 2024 217663314 7cb93d3398e68773196387732a01d329c991c807e799eb6be39fec1eb99986bd",
       "[OK] 2025 215651424 a5b5d4c26c290725b9fe796c905820a5b532312082eb9a081a65ca66148e0966",
-      "[OK] 2026 96674111 0328c5d065240509312f9f9ba72781575f357e5ea6c7ad18213238f91b3ebd71"
+      "[OK] 2026 118034862 616b1fc5418df79a4fbe7b9e66cfcff3704cc6d84fc0f02409e1f468820391ad"
     ],
     "facts": [
-      "[OK] ventana {'start_month': '2025-07-01', 'end_month': '2026-06-01', 'months': ['2025-07', '2025-08', '2025-09', '2025-10', '2025-11', '2025-12', '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'], 'label': 'últimos 12 meses disponibles'}",
-      "[OK] publicados {'services': 255, 'providers': 1500, 'flows': 1304, 'flows_per_service_cap': 6}",
-      "[OK] source {'system': 'PRESUPUESTO_ABIERTO', 'publisher': 'DIPRES', 'record_class': 'AGGREGATED_FROM_NORMALIZED_FACT', 'note': 'Agregados UI derivados de hechos normalizados; no modifica la fuente ni reinterpreta señales como hallazgos.', 'ui_staging': 'LIGHT_CANONICAL_FACT_V3', 'ui_staging_rows': 15693500, 'source_services': 260, 'source_areas': 1596, 'source_provider_ids': 189776, 'analytic_provider_ids': 188841, 'recipient_ruts_normalized': 173225, 'public_name_provider_ids_excluded': 737, 'organization_grain': 'PARTIDA_CAPITULO', 'area_grain_preserved': True, 'payment_fields_preserved': True, 'recipient_rut_scope': 'ALL_BENEFICIARIES_AND_RECIPIENTS', 'source_flags_preserved': ['PROVEEDOR', 'INTRAESTADO', 'AGREGADO'], 'provider_base_rule': 'PROVEEDOR_SOURCE_TRUE_AND_NOT_INTRAESTADO_AND_NOT_PUBLIC_NAME', 'calendar_join_compat': 'DUCKDB_NON_CORRELATED_V3', 'ui_note': 'Servicio=Partida+Capítulo; Área queda como detalle. Pago y devengo están separados. RUT cubre todo receptor. El universo proveedor AML excluye INTRAESTADO y contrapartes públicas nominales de alta precisión desde la capa de hechos.'}"
+      "[OK] ventana {'start_month': '2025-08-01', 'end_month': '2026-07-01', 'months': ['2025-08', '2025-09', '2025-10', '2025-11', '2025-12', '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07'], 'label': 'últimos 12 meses disponibles'}",
+      "[OK] publicados {'services': 255, 'providers': 1500, 'flows': 1307, 'flows_per_service_cap': 6}",
+      "[OK] source {'system': 'PRESUPUESTO_ABIERTO', 'publisher': 'DIPRES', 'record_class': 'AGGREGATED_FROM_NORMALIZED_FACT', 'note': 'Agregados UI derivados de hechos normalizados; no modifica la fuente ni reinterpreta señales como hallazgos.', 'ui_staging': 'LIGHT_CANONICAL_FACT_V3', 'ui_staging_rows': 16262364, 'source_services': 260, 'source_areas': 1596, 'source_provider_ids': 190577, 'analytic_provider_ids': 189638, 'recipient_ruts_normalized': 175865, 'public_name_provider_ids_excluded': 740, 'organization_grain': 'PARTIDA_CAPITULO', 'area_grain_preserved': True, 'payment_fields_preserved': True, 'recipient_rut_scope': 'ALL_BENEFICIARIES_AND_RECIPIENTS', 'source_flags_preserved': ['PROVEEDOR', 'INTRAESTADO', 'AGREGADO'], 'provider_base_rule': 'PROVEEDOR_SOURCE_TRUE_AND_NOT_INTRAESTADO_AND_NOT_PUBLIC_NAME', 'calendar_join_compat': 'DUCKDB_NON_CORRELATED_V3', 'ui_note': 'Servicio=Partida+Capítulo; Área queda como detalle. Pago y devengo están separados. RUT cubre todo receptor. El universo proveedor AML excluye INTRAESTADO y contrapartes públicas nominales de alta precisión desde la capa de hechos.'}"
     ],
     "multiyear": [
-      "[OK] corrected multiyear {'latest_devengo_month': '2026-06-01', 'latest_payment_date': '2026-07-11 00:00:00', 'service_count_transactional': 260, 'area_count_transactional': 1040, 'source_provider_flag_relations': 535268, 'private_relations_full': 512444, 'published_provider_profiles': 1056, 'published_relations': 18232}",
+      "[OK] corrected multiyear {'latest_devengo_month': '2026-07-01', 'latest_payment_date': '2026-08-13 00:00:00', 'service_count_transactional': 260, 'area_count_transactional': 1040, 'source_provider_flag_relations': 542065, 'private_relations_full': 519059, 'published_provider_profiles': 1060, 'published_relations': 18380}",
       "[OK] method {'organization_grain': 'PARTIDA_CAPITULO', 'organization_definition': 'Capítulo = organismo/servicio; Área se conserva como drill-down.', 'provider_source_scope': 'PROVEEDOR_FLAG_SOURCE', 'provider_analytic_scope': 'PROVEEDOR_SOURCE_TRUE_AND_NOT_INTRAESTADO_AND_NOT_PUBLIC_NAME', 'provider_metrics_basis': 'FULL_PRIVATE_RELATION_UNIVERSE', 'flow_publication': 'COMPLETE_RELATIONS_FOR_PUBLISHED_PROVIDERS_PLUS_SERVICE_COVERAGE', 'payment_months_basis': 'FECHA_PAGO_AND_MONTO_PAGO', 'devengo_basis': 'PERIODO_MES_AND_DEVENGO', 'new_provider_baseline': 'EARLIEST_YEAR_IN_LOADED_SERIES', 'source_comparison_note': 'Proveedor privado analítico no equivale a Proveedor/Receptor de la web; la paridad se audita por separado.'}"
     ],
     "parity": [
-      "[OK] parity {\"official_status_parse\": \"DYNAMIC_HTML_UNAVAILABLE\", \"official_provider_parse\": \"DYNAMIC_HTML_UNAVAILABLE\", \"bulk_reachable\": true, \"local_services\": 254, \"local_transactional_services\": 219, \"local_provider_receiver_ruts\": 74096, \"radar_provider_ids\": 32698, \"latest_devengo\": \"2026-06-01\", \"latest_payment\": \"2026-07-11 00:00:00\", \"top_matches\": 0}"
+      "[OK] parity {\"official_status_parse\": \"DYNAMIC_HTML_UNAVAILABLE\", \"official_provider_parse\": \"DYNAMIC_HTML_UNAVAILABLE\", \"bulk_reachable\": true, \"local_services\": 254, \"local_transactional_services\": 219, \"local_provider_receiver_ruts\": 79073, \"radar_provider_ids\": 34284, \"latest_devengo\": \"2026-07-01\", \"latest_payment\": \"2026-08-13 00:00:00\", \"top_matches\": 0}"
     ],
     "compact": [
-      "{\"bytes\": 2217303, \"services\": 255, \"providers\": 897, \"flows\": 1304, \"public_provider_flows_excluded\": 0, \"strict_json\": true}"
+      "{\"bytes\": 2226150, \"services\": 255, \"providers\": 899, \"flows\": 1307, \"public_provider_flows_excluded\": 0, \"strict_json\": true}"
     ],
     "validation": [
       "  provider_metrics_basis: 'FULL_PRIVATE_RELATION_UNIVERSE',",
@@ -49,13 +49,13 @@
       "  record_class: 'AGGREGATED_FROM_NORMALIZED_FACT',",
       "  note: 'Agregados UI derivados de hechos normalizados; no modifica la fuente ni reinterpreta señales como hallazgos.',",
       "  ui_staging: 'LIGHT_CANONICAL_FACT_V3',",
-      "  ui_staging_rows: 15693500,",
+      "  ui_staging_rows: 16262364,",
       "  source_services: 260,",
       "  source_areas: 1596,",
-      "  source_provider_ids: 189776,",
-      "  analytic_provider_ids: 188841,",
-      "  recipient_ruts_normalized: 173225,",
-      "  public_name_provider_ids_excluded: 737,",
+      "  source_provider_ids: 190577,",
+      "  analytic_provider_ids: 189638,",
+      "  recipient_ruts_normalized: 175865,",
+      "  public_name_provider_ids_excluded: 740,",
       "  organization_grain: 'PARTIDA_CAPITULO',",
       "  area_grain_preserved: true,",
       "  payment_fields_preserved: true,",
