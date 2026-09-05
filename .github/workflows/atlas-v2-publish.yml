@@ -1,0 +1,151 @@
+name: Publish Presupuesto Abierto to ATLAS v2
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ['Corrected Spend Data v3']
+    types: [completed]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: atlas-v2-presupuesto-publish
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout current governed snapshot
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Build compact ATLAS v2 source contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, hashlib
+          from pathlib import Path
+          from datetime import datetime, timezone
+
+          src=Path('docs/data/spend_view_v2.json')
+          data=json.loads(src.read_text(encoding='utf-8'))
+          if data.get('schema')!='PRESUPUESTO_SPEND_VIEW_V2':
+              raise SystemExit('unexpected source schema')
+          generated=data.get('generated_at')
+          if not generated:
+              raise SystemExit('source generated_at missing')
+          overview=data.get('overview') or {}
+          window=data.get('window') or {}
+          monthly=data.get('monthly') or []
+          services=list(data.get('services') or [])
+          providers=list(data.get('providers') or [])
+          flows=list(data.get('flows') or [])
+          if not overview or not window or not monthly:
+              raise SystemExit('required analytical sections missing')
+
+          def num(row, *keys):
+              for key in keys:
+                  try:
+                      v=row.get(key)
+                      if v is not None: return float(v)
+                  except Exception:
+                      pass
+              return 0.0
+
+          services=sorted(services,key=lambda r:num(r,'amount_l12','amount_clp'),reverse=True)
+          providers=sorted(providers,key=lambda r:num(r,'amount_l12','amount_clp'),reverse=True)
+
+          # This contract deliberately publishes only the compact ranking layer.
+          # Full interactive drill-down will be served by governed backend contracts,
+          # not by moving the legacy browser graph into ATLAS.
+          top_services=services[:50]
+          top_providers=providers[:100]
+          end=str(window.get('end_month') or 'unknown')[:7].replace('-','')
+          sha=os.environ.get('GITHUB_SHA','unknown')
+          snapshot_id=f'PA-{end}-{sha[:12]}'
+          payload={
+              'contract':'ATLAS_BUDGET_EXECUTION_SOURCE_V2',
+              'source':data.get('source') or {},
+              'window':window,
+              'overview':overview,
+              'monthly':monthly,
+              'top_services':top_services,
+              'top_providers':top_providers,
+              'quality':{
+                  'semantic_status':'CORRECTED_V3_GOVERNED',
+                  'detail_mode':'TOP_ONLY',
+                  'full_service_count':len(services),
+                  'full_provider_count':len(providers),
+                  'legacy_flow_count':len(flows),
+                  'published_top_services':len(top_services),
+                  'published_top_providers':len(top_providers),
+                  'rule':'Overview and ranked context are publishable; full drill-down remains a separate governed backend contract.'
+              }
+          }
+          body={
+              'source_key':'presupuesto_abierto_l12',
+              'snapshot_id':snapshot_id,
+              'contract':'ATLAS_BUDGET_EXECUTION_SOURCE_V2',
+              'generated_at':generated,
+              'source_versions':{
+                  'source_schema':data.get('schema'),
+                  'publisher_workflow':'atlas-v2-publish.yml',
+                  'producer_sha':sha,
+                  'detail_mode':'TOP_ONLY'
+              },
+              'payload':payload
+          }
+          Path('/tmp/atlas-v2-source.json').write_text(json.dumps(body,ensure_ascii=False,separators=(',',':'),allow_nan=False),encoding='utf-8')
+          print(json.dumps({
+              'snapshot_id':snapshot_id,
+              'services_source':len(services),
+              'providers_source':len(providers),
+              'flows_source':len(flows),
+              'top_services':len(top_services),
+              'top_providers':len(top_providers),
+              'bytes':Path('/tmp/atlas-v2-source.json').stat().st_size,
+              'sha256':hashlib.sha256(Path('/tmp/atlas-v2-source.json').read_bytes()).hexdigest()
+          },ensure_ascii=False))
+          PY
+
+      - name: Obtain GitHub OIDC token for ATLAS v2
+        id: oidc
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=atlas-v2-source-ingest"
+          TOKEN_JSON=$(curl --fail --silent --show-error -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "$URL")
+          OIDC=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])' <<<"$TOKEN_JSON")
+          test -n "$OIDC"
+          echo "token=$OIDC" >> "$GITHUB_OUTPUT"
+
+      - name: Publish compact source contract
+        shell: bash
+        env:
+          OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
+        run: |
+          set -euo pipefail
+          CODE=$(curl --silent --show-error \
+            --output /tmp/atlas-v2-response.json \
+            --write-out '%{http_code}' \
+            -X POST \
+            -H "Authorization: Bearer ${OIDC_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            --data-binary @/tmp/atlas-v2-source.json \
+            'https://bzqxvidggykkdouotylg.supabase.co/functions/v1/atlas-v2-source-ingest')
+          cat /tmp/atlas-v2-response.json
+          test "$CODE" = "200"
+          python3 - <<'PY'
+          import json
+          r=json.load(open('/tmp/atlas-v2-response.json',encoding='utf-8'))
+          if r.get('ok') is not True: raise SystemExit(r)
+          print('ATLAS v2 source publication accepted')
+          PY
