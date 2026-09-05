@@ -1,0 +1,53 @@
+name: Publish Presupuesto Abierto to ATLAS v2
+
+on:
+  workflow_run:
+    workflows: ["Corrected Spend Data v3"]
+    types: [completed]
+  workflow_dispatch:
+  push:
+    branches: [atlas-v2-publisher]
+    paths:
+      - '.github/workflows/atlas-v2-publish.yml'
+      - 'scripts/publish_atlas_v2_snapshot.py'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: atlas-v2-presupuesto-publisher
+  cancel-in-progress: true
+
+jobs:
+  validate-branch:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate publisher syntax
+        run: python -m py_compile scripts/publish_atlas_v2_snapshot.py
+      - name: Build compact contract without publishing
+        run: python scripts/publish_atlas_v2_snapshot.py --dry-run
+
+  publish:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate publisher syntax
+        run: python -m py_compile scripts/publish_atlas_v2_snapshot.py
+      - name: Publish compact L12 contract to ATLAS v2
+        env:
+          ATLAS_V2_SOURCE_INGEST_URL: https://bzqxvidggykkdouotylg.supabase.co/functions/v1/atlas-v2-source-ingest
+        run: python scripts/publish_atlas_v2_snapshot.py
