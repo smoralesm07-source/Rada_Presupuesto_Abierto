@@ -22,7 +22,7 @@ jobs:
   publish:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Checkout current governed snapshot
         uses: actions/checkout@v4
@@ -30,7 +30,7 @@ jobs:
           ref: main
           fetch-depth: 1
 
-      - name: Build compact ATLAS v2 source contract
+      - name: Build ATLAS v2 source and detail batches
         shell: bash
         run: |
           set -euo pipefail
@@ -43,31 +43,37 @@ jobs:
           if data.get('schema')!='PRESUPUESTO_SPEND_VIEW_V2':
               raise SystemExit('unexpected source schema')
           generated=data.get('generated_at')
-          if not generated:
-              raise SystemExit('source generated_at missing')
+          if not generated: raise SystemExit('source generated_at missing')
           overview=data.get('overview') or {}
           window=data.get('window') or {}
           monthly=data.get('monthly') or []
-          services=list(data.get('services') or [])
-          providers=list(data.get('providers') or [])
-          flows=list(data.get('flows') or [])
-          if not overview or not window or not monthly:
-              raise SystemExit('required analytical sections missing')
+          if not overview or not window or not monthly: raise SystemExit('required analytical sections missing')
 
-          def num(row, *keys):
+          def sid(row): return str(row.get('organization_id') or row.get('buyer_id') or row.get('id') or '').strip()
+          def pid(row): return str(row.get('provider_id') or row.get('supplier_id') or row.get('id') or '').strip()
+          def fsid(row): return str(row.get('organization_id') or row.get('buyer_id') or '').strip()
+          def fpid(row): return str(row.get('provider_id') or row.get('supplier_id') or '').strip()
+          def dedupe(rows,keyfn):
+              out={}
+              for row in rows:
+                  key=keyfn(row)
+                  if key: out[key]=row
+              return list(out.values())
+          def num(row,*keys):
               for key in keys:
                   try:
                       v=row.get(key)
                       if v is not None: return float(v)
-                  except Exception:
-                      pass
+                  except Exception: pass
               return 0.0
 
+          services=dedupe(list(data.get('services') or []),sid)
+          providers=dedupe(list(data.get('providers') or []),pid)
+          flows=dedupe(list(data.get('flows') or []),lambda r:(fsid(r)+'|'+fpid(r)) if fsid(r) and fpid(r) else '')
           services=sorted(services,key=lambda r:num(r,'amount_l12','amount_clp'),reverse=True)
           providers=sorted(providers,key=lambda r:num(r,'amount_l12','amount_clp'),reverse=True)
+          flows=sorted(flows,key=lambda r:num(r,'amount_l12','amount_clp'),reverse=True)
 
-          # Publish the lightweight analytical/ranking contract only. Full drill-down
-          # is intentionally a separate backend concern in ATLAS Architecture v2.
           top_services=services[:50]
           top_providers=providers[:100]
           end=str(window.get('end_month') or 'unknown')[:7].replace('-','')
@@ -89,10 +95,11 @@ jobs:
                   'legacy_flow_count':len(flows),
                   'published_top_services':len(top_services),
                   'published_top_providers':len(top_providers),
-                  'rule':'Overview and ranked context are publishable; full drill-down remains a separate governed backend contract.'
+                  'rule':'Overview and ranking are compact; complete current GP2 drill-down is loaded separately into private ATLAS v2 tables.'
               }
           }
           body={
+              'operation':'source_snapshot',
               'source_key':'presupuesto_abierto_l12',
               'snapshot_id':snapshot_id,
               'contract':'ATLAS_BUDGET_EXECUTION_SOURCE_V2',
@@ -105,17 +112,23 @@ jobs:
               },
               'payload':payload
           }
-          out=Path('/tmp/atlas-v2-source.json')
-          out.write_text(json.dumps(body,ensure_ascii=False,separators=(',',':'),allow_nan=False),encoding='utf-8')
-          print(json.dumps({
-              'snapshot_id':snapshot_id,
-              'services_source':len(services),
-              'providers_source':len(providers),
-              'flows_source':len(flows),
-              'top_services':len(top_services),
-              'top_providers':len(top_providers),
-              'bytes':out.stat().st_size,
-              'sha256':hashlib.sha256(out.read_bytes()).hexdigest()
+          source_out=Path('/tmp/atlas-v2-source.json')
+          source_out.write_text(json.dumps(body,ensure_ascii=False,separators=(',',':'),allow_nan=False),encoding='utf-8')
+          plan={'snapshot_id':snapshot_id,'services':len(services),'providers':len(providers),'flows':len(flows)}
+          Path('/tmp/atlas-v2-plan.json').write_text(json.dumps(plan,separators=(',',':')),encoding='utf-8')
+
+          batch_dir=Path('/tmp/atlas-v2-batches'); batch_dir.mkdir(exist_ok=True)
+          seq=0
+          for kind,rows in [('services',services),('providers',providers),('flows',flows)]:
+              for start in range(0,len(rows),100):
+                  seq+=1
+                  batch={'operation':'budget_detail_batch','snapshot_id':snapshot_id,'kind':kind,'rows':rows[start:start+100]}
+                  (batch_dir/f'{seq:04d}-{kind}.json').write_text(json.dumps(batch,ensure_ascii=False,separators=(',',':'),allow_nan=False),encoding='utf-8')
+
+          print(json.dumps({**plan,
+              'batches':seq,
+              'source_bytes':source_out.stat().st_size,
+              'source_sha256':hashlib.sha256(source_out.read_bytes()).hexdigest()
           },ensure_ascii=False))
           PY
 
@@ -130,25 +143,45 @@ jobs:
           test -n "$OIDC"
           echo "token=$OIDC" >> "$GITHUB_OUTPUT"
 
-      - name: Publish compact source contract
+      - name: Publish source, full detail batches and finalize
         shell: bash
         env:
           OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
         run: |
           set -euo pipefail
-          CODE=$(curl --silent --show-error \
-            --output /tmp/atlas-v2-response.json \
-            --write-out '%{http_code}' \
-            -X POST \
-            -H "Authorization: Bearer ${OIDC_TOKEN}" \
-            -H 'Content-Type: application/json' \
-            --data-binary @/tmp/atlas-v2-source.json \
-            'https://bzqxvidggykkdouotylg.supabase.co/functions/v1/atlas-v2-source-ingest')
-          cat /tmp/atlas-v2-response.json
-          test "$CODE" = "200"
-          python3 - <<'PY'
+          ENDPOINT='https://bzqxvidggykkdouotylg.supabase.co/functions/v1/atlas-v2-source-ingest'
+          post() {
+            local file="$1" label="$2"
+            local code
+            code=$(curl --silent --show-error --output /tmp/atlas-v2-response.json --write-out '%{http_code}' \
+              -X POST -H "Authorization: Bearer ${OIDC_TOKEN}" -H 'Content-Type: application/json' \
+              --data-binary "@$file" "$ENDPOINT")
+            if [ "$code" != "200" ]; then echo "[$label] HTTP $code"; cat /tmp/atlas-v2-response.json; exit 1; fi
+            python3 - <<'PY'
           import json
           r=json.load(open('/tmp/atlas-v2-response.json',encoding='utf-8'))
           if r.get('ok') is not True: raise SystemExit(r)
-          print('ATLAS v2 source publication accepted')
           PY
+          }
+
+          post /tmp/atlas-v2-source.json source_snapshot
+          python3 - <<'PY'
+          import json
+          p=json.load(open('/tmp/atlas-v2-plan.json'))
+          req={'operation':'budget_detail_init','snapshot_id':p['snapshot_id'],'expected_services':p['services'],'expected_providers':p['providers'],'expected_flows':p['flows']}
+          json.dump(req,open('/tmp/atlas-v2-init.json','w'),separators=(',',':'))
+          PY
+          post /tmp/atlas-v2-init.json detail_init
+
+          for file in /tmp/atlas-v2-batches/*.json; do
+            post "$file" "$(basename "$file")"
+          done
+
+          python3 - <<'PY'
+          import json
+          p=json.load(open('/tmp/atlas-v2-plan.json'))
+          json.dump({'operation':'budget_detail_finalize','snapshot_id':p['snapshot_id']},open('/tmp/atlas-v2-finalize.json','w'),separators=(',',':'))
+          PY
+          post /tmp/atlas-v2-finalize.json detail_finalize
+          cat /tmp/atlas-v2-response.json
+          echo 'ATLAS v2 budget execution publication READY'
