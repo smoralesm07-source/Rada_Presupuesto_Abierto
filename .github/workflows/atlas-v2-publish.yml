@@ -2,6 +2,10 @@ name: Publish Presupuesto Abierto to ATLAS v2
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/atlas-v2-publish.yml'
   workflow_run:
     workflows: ['Corrected Spend Data v3']
     types: [completed]
@@ -16,7 +20,7 @@ concurrency:
 
 jobs:
   publish:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -33,7 +37,6 @@ jobs:
           python3 - <<'PY'
           import json, os, hashlib
           from pathlib import Path
-          from datetime import datetime, timezone
 
           src=Path('docs/data/spend_view_v2.json')
           data=json.loads(src.read_text(encoding='utf-8'))
@@ -63,9 +66,8 @@ jobs:
           services=sorted(services,key=lambda r:num(r,'amount_l12','amount_clp'),reverse=True)
           providers=sorted(providers,key=lambda r:num(r,'amount_l12','amount_clp'),reverse=True)
 
-          # This contract deliberately publishes only the compact ranking layer.
-          # Full interactive drill-down will be served by governed backend contracts,
-          # not by moving the legacy browser graph into ATLAS.
+          # Publish the lightweight analytical/ranking contract only. Full drill-down
+          # is intentionally a separate backend concern in ATLAS Architecture v2.
           top_services=services[:50]
           top_providers=providers[:100]
           end=str(window.get('end_month') or 'unknown')[:7].replace('-','')
@@ -103,7 +105,8 @@ jobs:
               },
               'payload':payload
           }
-          Path('/tmp/atlas-v2-source.json').write_text(json.dumps(body,ensure_ascii=False,separators=(',',':'),allow_nan=False),encoding='utf-8')
+          out=Path('/tmp/atlas-v2-source.json')
+          out.write_text(json.dumps(body,ensure_ascii=False,separators=(',',':'),allow_nan=False),encoding='utf-8')
           print(json.dumps({
               'snapshot_id':snapshot_id,
               'services_source':len(services),
@@ -111,8 +114,8 @@ jobs:
               'flows_source':len(flows),
               'top_services':len(top_services),
               'top_providers':len(top_providers),
-              'bytes':Path('/tmp/atlas-v2-source.json').stat().st_size,
-              'sha256':hashlib.sha256(Path('/tmp/atlas-v2-source.json').read_bytes()).hexdigest()
+              'bytes':out.stat().st_size,
+              'sha256':hashlib.sha256(out.read_bytes()).hexdigest()
           },ensure_ascii=False))
           PY
 
