@@ -16,17 +16,21 @@ on:
       - 'docs/assets/spend_safe_decision.css'
       - 'docs/assets/spend_safe_value_trace.js'
       - 'docs/assets/spend_safe_value_trace.css'
+      - 'docs/assets/spend_safe_causality.js'
+      - 'docs/assets/spend_safe_causality.css'
       - 'docs/assets/spend_safe_actor_map.js'
       - 'docs/assets/spend_safe_actor_map.css'
       - 'docs/assets/spend_safe_trace_dossier.js'
       - 'docs/assets/spend_safe_trace_dossier.css'
       - 'docs/RIGP_BENEFIT_CHAIN_METHOD.md'
+      - 'docs/RIGP_BENEFIT_CAUSALITY_METHOD.md'
       - 'scripts/build_benefit_context_for_pages.py'
       - 'scripts/build_findings_for_pages.py'
       - 'scripts/build_explore_context_for_pages.py'
       - 'docs/data/entity_enrichment_v1.json'
       - 'schemas/007_benefit_chain.sql'
       - 'schemas/008_public_decision_links.sql'
+      - 'schemas/009_benefit_causality.sql'
       - '.github/workflows/check-benefit-chain.yml'
   workflow_dispatch:
 permissions:
@@ -44,15 +48,16 @@ jobs:
           node --check docs/assets/spend_safe_benefit_convergence.js
           node --check docs/assets/spend_safe_decision.js
           node --check docs/assets/spend_safe_value_trace.js
+          node --check docs/assets/spend_safe_causality.js
           node --check docs/assets/spend_safe_actor_map.js
           node --check docs/assets/spend_safe_trace_dossier.js
           python3 -m py_compile scripts/build_benefit_context_for_pages.py
-          for f in docs/assets/spend_safe_benefit.js docs/assets/spend_safe_societary.js docs/assets/spend_safe_benefit_temporal.js docs/assets/spend_safe_benefit_convergence.js docs/assets/spend_safe_decision.js docs/assets/spend_safe_value_trace.js docs/assets/spend_safe_actor_map.js docs/assets/spend_safe_trace_dossier.js; do
+          for f in docs/assets/spend_safe_benefit.js docs/assets/spend_safe_societary.js docs/assets/spend_safe_benefit_temporal.js docs/assets/spend_safe_benefit_convergence.js docs/assets/spend_safe_decision.js docs/assets/spend_safe_value_trace.js docs/assets/spend_safe_causality.js docs/assets/spend_safe_actor_map.js docs/assets/spend_safe_trace_dossier.js; do
             ! grep -q 'MutationObserver' "$f"
             ! grep -q 'setInterval' "$f"
             ! grep -q 'spend_years_v1.json' "$f"
           done
-      - name: Validate benefit, actor and dossier traceability contract
+      - name: Validate benefit, causality, actor and dossier traceability contract
         run: |
           grep -q 'data-benefit-view>Beneficiarios' docs/index.html
           grep -q 'data-actor-view>Actores' docs/index.html
@@ -62,8 +67,10 @@ jobs:
           grep -q 'assets/spend_safe_benefit_convergence.js?v=1' docs/index.html
           grep -q 'assets/spend_safe_decision.js?v=1' docs/index.html
           grep -q 'assets/spend_safe_value_trace.js?v=1' docs/index.html
-          grep -q 'assets/spend_safe_actor_map.js?v=2' docs/index.html
-          grep -q 'assets/spend_safe_actor_map.css?v=2' docs/index.html
+          grep -q 'assets/spend_safe_causality.js?v=1' docs/index.html
+          grep -q 'assets/spend_safe_causality.css?v=1' docs/index.html
+          grep -q 'assets/spend_safe_actor_map.js?v=3' docs/index.html
+          grep -q 'assets/spend_safe_actor_map.css?v=3' docs/index.html
           grep -q 'assets/spend_safe_trace_dossier.js?v=1' docs/index.html
           grep -q 'assets/spend_safe_trace_dossier.css?v=1' docs/index.html
           grep -q 'Receptor económico directo' docs/assets/spend_safe_benefit.js
@@ -77,12 +84,15 @@ jobs:
           grep -q '¿Existe un vínculo documentado entre receptor y decisión pública?' docs/assets/spend_safe_decision.js
           grep -q '¿Quién terminó recibiendo, controlando o disponiendo del beneficio económico?' docs/assets/spend_safe_value_trace.js
           grep -q 'su licitud no se califica aquí' docs/assets/spend_safe_value_trace.js
+          grep -q 'Antecedente externo de integridad' docs/assets/spend_safe_causality.js
+          grep -q 'Nexo con el beneficio' docs/assets/spend_safe_causality.js
+          grep -q 'La coexistencia de un antecedente oficial y un flujo económico no demuestra causalidad' docs/assets/spend_safe_causality.js
+          grep -q 'NEXO_DOCUMENTADO' docs/assets/spend_safe_causality.js
           grep -q 'Actores y beneficio potencial' docs/assets/spend_safe_actor_map.js
           grep -q 'Personas y sociedades que requieren mayor trazabilidad' docs/assets/spend_safe_actor_map.js
-          grep -q 'Hecho ilícito de base' docs/assets/spend_safe_actor_map.js
+          grep -q 'Antecedente externo' docs/assets/spend_safe_actor_map.js
+          grep -q 'Nexo hecho–beneficio documentado' docs/assets/spend_safe_actor_map.js
           grep -q 'no “beneficiario de un ilícito”' docs/assets/spend_safe_actor_map.js
-          grep -q 'Disposición de valor documentada' docs/assets/spend_safe_actor_map.js
-          grep -q 'Para sostener un posible beneficio ilícito' docs/assets/spend_safe_actor_map.js
           grep -q 'Dossier de trazabilidad' docs/assets/spend_safe_trace_dossier.js
           grep -q 'Nivel de trazabilidad alcanzado' docs/assets/spend_safe_trace_dossier.js
           grep -q "code:'L1'" docs/assets/spend_safe_trace_dossier.js
@@ -120,10 +130,15 @@ jobs:
           PY
           grep -q 'Proveedor/receptor directo ≠ beneficiario final' docs/RIGP_BENEFIT_CHAIN_METHOD.md
           grep -q 'Hallazgo → Persona beneficiaria de delito' docs/RIGP_BENEFIT_CHAIN_METHOD.md
+          grep -q 'Hallazgo analítico → receptor directo → vínculo privado documentado' docs/RIGP_BENEFIT_CAUSALITY_METHOD.md
+          grep -q 'La coexistencia de un antecedente externo y una disposición de valor' docs/RIGP_BENEFIT_CAUSALITY_METHOD.md
+          grep -q 'NEXO_DOCUMENTADO' docs/RIGP_BENEFIT_CAUSALITY_METHOD.md
           grep -q 'benefit_confirmed_convergence' schemas/007_benefit_chain.sql
           grep -q 'temporal_relevance' schemas/007_benefit_chain.sql
           grep -q 'public_process_actors' schemas/008_public_decision_links.sql
           grep -q 'cross_side_relationships' schemas/008_public_decision_links.sql
           grep -q 'benefit_value_evidence' schemas/008_public_decision_links.sql
           grep -q 'documented_value_recipients' schemas/008_public_decision_links.sql
-          grep -q 'EVIDENCIA_CONFIRMADA' schemas/008_public_decision_links.sql
+          grep -q 'integrity_basis_evidence' schemas/009_benefit_causality.sql
+          grep -q 'benefit_causal_links' schemas/009_benefit_causality.sql
+          grep -q 'NEXO_DOCUMENTADO' schemas/009_benefit_causality.sql
