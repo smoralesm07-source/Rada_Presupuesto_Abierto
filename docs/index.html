@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="assets/spend_v9_review.css?v=16">
 <link rel="stylesheet" href="assets/spend_v10_learning.css?v=16">
 <link rel="stylesheet" href="assets/spend_v11_evidence.css?v=17">
+<link rel="stylesheet" href="assets/spend_v12_workqueue.css?v=18">
 </head>
 <body>
 <main class="app">
@@ -43,6 +44,19 @@
     <div class="fhLevels"><button class="on" data-fh-level="ACTIVE">Prioritarios</button><button data-fh-level="ATENCION_INMEDIATA">Sólo atención inmediata</button><button data-fh-level="ALL">Todos</button></div>
   </div>
   <div class="fhGrid" id="findingGrid"></div>
+</section>
+<section class="card iqHub" id="investigationQueue" hidden>
+  <div class="iqHead">
+    <div><div class="eyebrow">Trabajo diario</div><h2>Bandeja de investigación</h2><p>Ordena el trabajo humano sobre los hallazgos. Primero muestra revisiones ya iniciadas o que requieren profundización; después propone el siguiente hallazgo prioritario pendiente. Esta versión del piloto guarda el estado sólo en este navegador.</p></div>
+    <span class="iqPilot">piloto local</span>
+  </div>
+  <div class="iqSummary" id="iqSummary"></div>
+  <div class="iqFeature" id="iqFeature"></div>
+  <div class="iqToolbar">
+    <div class="iqViews"><button class="on" data-iq-view="NOW">Ahora</button><button data-iq-view="PENDING">Pendientes</button><button data-iq-view="ACTIVE">En curso</button><button data-iq-view="CLOSED">Resultados</button></div>
+    <div class="iqSearchWrap"><input id="iqSearch" type="search" placeholder="Buscar servicio, proveedor o tipo de hallazgo…"><span id="iqCount" class="iqCount"></span></div>
+  </div>
+  <div class="iqList" id="iqList"></div>
 </section>
 <div class="exploreLabel"><span>Explorar y comprobar el contexto</span></div>
 <section class="card" style="margin-bottom:10px"><div class="ch"><div><h2>Flujo de fondos · Servicio público → Proveedor privado</h2><div class="hint" style="text-align:left;margin-top:2px">El flujo responde al hallazgo o entidad seleccionada. Úsalo para entender magnitud, contraparte y contexto antes de abrir la ficha detallada.</div></div><span class="hint">grosor = monto</span></div><div class="flowWrap" id="flow"></div></section>
@@ -91,4 +105,6 @@ window.fetch=async function(input,init){
 <script src="assets/spend_v9_review.js?v=16"></script>
 <script src="assets/spend_v10_learning.js?v=16"></script>
 <script src="assets/spend_v11_evidence.js?v=17"></script>
+<script src="assets/spend_v12_workqueue_bridge.js?v=18"></script>
+<script src="assets/spend_v12_workqueue.js?v=18"></script>
 </body></html>
