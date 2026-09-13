@@ -1,0 +1,55 @@
+name: Enrich procurement with Mercado Público
+on:
+  workflow_run:
+    workflows:
+      - 'Radar monthly analysis'
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: mercado-publico-targeted-enrichment
+  cancel-in-progress: true
+jobs:
+  enrich:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build targeted Mercado Público evidence
+        env:
+          MERCADO_PUBLICO_TICKET: ${{ secrets.MERCADO_PUBLICO_TICKET }}
+        run: PYTHONPATH=src python -m radar_presupuesto.mercado_publico_bridge
+      - name: Validate bounded evidence product
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('docs/data/mercado_publico_context.json')
+          d=json.loads(p.read_text(encoding='utf-8'))
+          assert d['schema']=='RIGP-MERCADO-PUBLICO-CONTEXT-v1'
+          assert d['status'] in {'AWAITING_TICKET','READY','READY_WITH_GAPS','PARTIAL_API_FAILURE'}
+          assert d['selection']['max_total_orders'] <= 800
+          assert d['coverage']['api_requests_attempted'] <= 800
+          assert p.stat().st_size < 1_500_000
+          print('status:',d['status'])
+          print('selection:',d['selection'])
+          print('coverage:',d['coverage'])
+          PY
+      - name: Publish Mercado Público context
+        run: |
+          git config user.name "radar-presupuesto-bot"
+          git config user.email "radar-presupuesto-bot@users.noreply.github.com"
+          git add docs/data/mercado_publico_context.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "data: actualiza evidencia dirigida de Mercado Público"
+          git pull --rebase origin main
+          git push origin main

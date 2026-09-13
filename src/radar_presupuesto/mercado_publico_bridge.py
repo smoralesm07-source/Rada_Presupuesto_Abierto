@@ -1,0 +1,382 @@
+from __future__ import annotations
+
+import json
+import os
+import time
+import urllib.parse
+import urllib.request
+from datetime import datetime, timezone
+from pathlib import Path
+
+from .sii_targets import canon_rut, rut_from_provider_id
+
+
+SCHEMA = "RIGP-MERCADO-PUBLICO-CONTEXT-v1"
+API_BASE = "https://api.mercadopublico.cl/servicios/v1/publico/OrdenCompra.json"
+GUARDRAIL = (
+    "La información de Mercado Público complementa el expediente con antecedentes del proceso de compra. "
+    "Diferencias de identidad, monto, estado o fechas son candidatos de revisión y no acreditan por sí solas "
+    "irregularidad, fraude, corrupción, delito funcionario ni responsabilidad de una entidad o persona."
+)
+
+
+def _read(path: str) -> dict:
+    p = Path(path)
+    if not p.exists():
+        return {}
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+def _as_list(value: object) -> list:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    return [value]
+
+
+def _clean_code(value: object) -> str:
+    return str(value or "").strip().upper()
+
+
+def _number(value: object) -> float | None:
+    try:
+        if value in (None, ""):
+            return None
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _nested(obj: dict, key: str) -> dict:
+    value = obj.get(key)
+    return value if isinstance(value, dict) else {}
+
+
+def _items(obj: dict) -> list[dict]:
+    block = _nested(obj, "Items")
+    values = block.get("Listado")
+    if isinstance(values, dict) and "Item" in values:
+        values = values.get("Item")
+    return [x for x in _as_list(values) if isinstance(x, dict)]
+
+
+def _order_rows(payload: dict) -> list[dict]:
+    listed = payload.get("Listado")
+    if isinstance(listed, dict):
+        for key in ("OrdenCompra", "Listado", "Ordenes"):
+            if key in listed:
+                listed = listed[key]
+                break
+    return [x for x in _as_list(listed) if isinstance(x, dict)]
+
+
+def parse_order_payload(payload: dict, requested_code: str | None = None) -> dict | None:
+    """Normalize one Mercado Público purchase-order API response.
+
+    The adapter accepts the current public API shape and a few historical nesting
+    variants because ChileCompra has changed wrappers over time. It does not infer
+    missing fields.
+    """
+    rows = _order_rows(payload)
+    if requested_code:
+        requested = _clean_code(requested_code)
+        exact = [x for x in rows if _clean_code(x.get("Codigo")) == requested]
+        if exact:
+            rows = exact
+    if not rows:
+        return None
+
+    row = rows[0]
+    buyer = _nested(row, "Comprador")
+    supplier = _nested(row, "Proveedor")
+    dates = _nested(row, "Fechas")
+    items = _items(row)
+    categories: list[str] = []
+    products: list[str] = []
+    for item in items:
+        category = str(item.get("Categoria") or "").strip()
+        product = str(item.get("Producto") or item.get("NombreProducto") or item.get("CodigoProducto") or "").strip()
+        if category and category not in categories:
+            categories.append(category)
+        if product and product not in products:
+            products.append(product)
+
+    return {
+        "purchase_order_code": _clean_code(row.get("Codigo") or requested_code),
+        "name": row.get("Nombre"),
+        "description": row.get("Descripcion"),
+        "state_code": row.get("CodigoEstado"),
+        "supplier_state_code": row.get("CodigoEstadoProveedor"),
+        "supplier_state": row.get("EstadoProveedor"),
+        "purchase_type_code": row.get("CodigoTipo"),
+        "purchase_type": row.get("Tipo"),
+        "linked_tender_code": _clean_code(row.get("CodigoLicitacion")) or None,
+        "currency": row.get("TipoMoneda"),
+        "net_total": _number(row.get("TotalNeto")),
+        "taxes": _number(row.get("Impuestos")),
+        "charges": _number(row.get("Cargos")),
+        "discounts": _number(row.get("Descuentos")),
+        "total": _number(row.get("Total")),
+        "financing": row.get("Financiamiento"),
+        "payment_form": row.get("FormaPago"),
+        "created_at": dates.get("FechaCreacion"),
+        "sent_at": dates.get("FechaEnvio"),
+        "accepted_at": dates.get("FechaAceptacion"),
+        "cancelled_at": dates.get("FechaCancelacion"),
+        "last_modified_at": dates.get("FechaUltimaModificacion"),
+        "buyer": {
+            "organization_code": buyer.get("CodigoOrganismo"),
+            "organization_name": buyer.get("NombreOrganismo"),
+            "unit_rut": canon_rut(buyer.get("RutUnidad")),
+            "unit_code": buyer.get("CodigoUnidad"),
+            "unit_name": buyer.get("NombreUnidad"),
+            "commune": buyer.get("ComunaUnidad"),
+            "region": buyer.get("RegionUnidad"),
+        },
+        "supplier": {
+            "supplier_code": supplier.get("Codigo"),
+            "supplier_name": supplier.get("Nombre"),
+            "activity": supplier.get("Actividad"),
+            "branch_code": supplier.get("CodigoSucursal"),
+            "branch_name": supplier.get("NombreSucursal"),
+            "rut": canon_rut(supplier.get("RutSucursal")),
+            "commune": supplier.get("Comuna"),
+            "region": supplier.get("Region"),
+        },
+        "item_count": int(_nested(row, "Items").get("Cantidad") or len(items) or 0),
+        "categories": categories[:8],
+        "products": products[:8],
+        "source": "API_MERCADO_PUBLICO_ORDEN_COMPRA",
+    }
+
+
+def _priority_by_finding(findings: dict) -> dict[str, tuple[int, float]]:
+    out: dict[str, tuple[int, float]] = {}
+    rank = {"ATENCION_INMEDIATA": 0, "REVISION_PRIORITARIA": 1, "SEGUIMIENTO": 2}
+    for row in findings.get("relation_findings") or []:
+        fid = str(row.get("finding_id") or "")
+        out[fid] = (
+            rank.get(str(row.get("attention_level") or "SEGUIMIENTO"), 3),
+            -float(row.get("max_priority_score") or 0),
+        )
+    return out
+
+
+def build_targets(
+    procurement: dict,
+    findings: dict,
+    max_orders_per_finding: int = 2,
+    max_total_orders: int = 800,
+) -> list[dict]:
+    priority = _priority_by_finding(findings)
+    rows = list(procurement.get("findings") or [])
+    rows.sort(key=lambda x: priority.get(str(x.get("finding_id") or ""), (9, 0)))
+    selected: list[dict] = []
+    seen: set[str] = set()
+    for row in rows:
+        fid = str(row.get("finding_id") or "")
+        provider_id = str(row.get("provider_id") or "")
+        expected_rut = rut_from_provider_id(provider_id)
+        for code in (row.get("purchase_order_examples") or [])[: max(0, int(max_orders_per_finding))]:
+            code = _clean_code(code)
+            if not code or code in seen:
+                continue
+            seen.add(code)
+            selected.append(
+                {
+                    "purchase_order_code": code,
+                    "finding_id": fid,
+                    "organization_id": str(row.get("organization_id") or ""),
+                    "provider_id": provider_id,
+                    "expected_provider_rut": expected_rut or None,
+                    "periodo": row.get("periodo"),
+                }
+            )
+            if len(selected) >= max_total_orders:
+                return selected
+    return selected
+
+
+def _api_url(code: str, ticket: str) -> str:
+    query = urllib.parse.urlencode({"codigo": code, "ticket": ticket})
+    return f"{API_BASE}?{query}"
+
+
+def fetch_order(code: str, ticket: str, timeout: int = 25) -> dict | None:
+    req = urllib.request.Request(
+        _api_url(code, ticket),
+        headers={"User-Agent": "RIGP/1.0 MercadoPublico targeted evidence bridge"},
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as response:
+        payload = json.loads(response.read().decode("utf-8-sig"))
+    return parse_order_payload(payload, requested_code=code)
+
+
+def _identity_check(target: dict, order: dict | None) -> dict:
+    expected = canon_rut(target.get("expected_provider_rut"))
+    observed = canon_rut((order or {}).get("supplier", {}).get("rut"))
+    if not expected:
+        status = "NOT_COMPARABLE"
+        note = "El proveedor RIGP no tiene RUT explícitamente resuelto; no se compara por nombre."
+    elif not observed:
+        status = "API_RUT_NOT_AVAILABLE"
+        note = "La orden fue resuelta, pero la respuesta API no entregó un RUT de proveedor comparable."
+    elif expected == observed:
+        status = "MATCH"
+        note = "El RUT explícito del proveedor RIGP coincide con el RUT publicado para la orden de compra."
+    else:
+        status = "REVIEW"
+        note = (
+            "El RUT explícito del proveedor RIGP no coincide con el RUT publicado para esta orden. "
+            "Debe verificarse la relación documental antes de interpretar la diferencia."
+        )
+    return {"status": status, "expected_rut": expected or None, "observed_rut": observed or None, "note": note}
+
+
+def build_mercado_publico_context(
+    procurement_path: str = "docs/data/procurement_context.json",
+    findings_path: str = "docs/data/investigative_findings.json",
+    output_path: str = "docs/data/mercado_publico_context.json",
+    ticket: str | None = None,
+    max_orders_per_finding: int = 2,
+    max_total_orders: int = 800,
+    request_pause_seconds: float = 0.05,
+) -> dict:
+    procurement = _read(procurement_path)
+    findings = _read(findings_path)
+    targets = build_targets(
+        procurement,
+        findings,
+        max_orders_per_finding=max_orders_per_finding,
+        max_total_orders=max_total_orders,
+    )
+    ticket = (ticket if ticket is not None else os.environ.get("MERCADO_PUBLICO_TICKET", "")).strip()
+
+    result = {
+        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "schema": SCHEMA,
+        "source": {
+            "name": "API Mercado Público - Órdenes de Compra",
+            "endpoint": API_BASE,
+            "mode": "TARGETED_BY_PURCHASE_ORDER_CODE",
+            "credential_required": True,
+            "ticket_present": bool(ticket),
+            "daily_request_limit_note": "ChileCompra informa un límite de 10.000 solicitudes diarias por ticket.",
+        },
+        "guardrail": GUARDRAIL,
+        "selection": {
+            "max_orders_per_finding": int(max_orders_per_finding),
+            "max_total_orders": int(max_total_orders),
+            "target_orders": len(targets),
+            "note": (
+                "Se consultan sólo códigos de OC ya observados en hallazgos publicados. "
+                "La selección es una muestra de evidencia, no una reconstrucción exhaustiva del proceso de compra."
+            ),
+        },
+        "status": "AWAITING_TICKET" if not ticket else "RUNNING",
+        "coverage": {
+            "target_orders": len(targets),
+            "api_requests_attempted": 0,
+            "orders_resolved": 0,
+            "orders_not_resolved": 0,
+            "api_errors": 0,
+            "identity_matches": 0,
+            "identity_reviews": 0,
+            "linked_tenders": 0,
+        },
+        "orders": {},
+        "findings": [],
+    }
+
+    if not ticket:
+        result["status_note"] = (
+            "El puente está listo, pero no se efectuaron consultas porque el repositorio no expone un ticket de API. "
+            "Configurar el secreto MERCADO_PUBLICO_TICKET habilita la resolución dirigida de órdenes."
+        )
+        Path(output_path).write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+        return result
+
+    orders: dict[str, dict] = {}
+    failures: dict[str, dict] = {}
+    consecutive_errors = 0
+    for target in targets:
+        code = target["purchase_order_code"]
+        result["coverage"]["api_requests_attempted"] += 1
+        try:
+            order = fetch_order(code, ticket)
+            if not order:
+                failures[code] = {"status": "NOT_FOUND", "message": "La API no devolvió una orden para el código solicitado."}
+                result["coverage"]["orders_not_resolved"] += 1
+                consecutive_errors = 0
+            else:
+                check = _identity_check(target, order)
+                order["identity_check"] = check
+                orders[code] = order
+                result["coverage"]["orders_resolved"] += 1
+                result["coverage"]["linked_tenders"] += int(bool(order.get("linked_tender_code")))
+                result["coverage"]["identity_matches"] += int(check["status"] == "MATCH")
+                result["coverage"]["identity_reviews"] += int(check["status"] == "REVIEW")
+                consecutive_errors = 0
+        except Exception as exc:  # network/API failures are coverage events, not analytical findings
+            failures[code] = {"status": "API_ERROR", "message": str(exc)[:300]}
+            result["coverage"]["api_errors"] += 1
+            consecutive_errors += 1
+            if consecutive_errors >= 20:
+                result["status"] = "PARTIAL_API_FAILURE"
+                result["status_note"] = "Se detuvo la corrida tras 20 errores API consecutivos para evitar solicitudes inútiles."
+                break
+        if request_pause_seconds > 0:
+            time.sleep(request_pause_seconds)
+
+    result["orders"] = orders
+    by_finding: dict[str, list[dict]] = {}
+    target_by_code = {x["purchase_order_code"]: x for x in targets}
+    for code, target in target_by_code.items():
+        fid = target["finding_id"]
+        item = {"purchase_order_code": code}
+        if code in orders:
+            order = orders[code]
+            item.update(
+                {
+                    "status": "RESOLVED",
+                    "supplier_rut": order.get("supplier", {}).get("rut"),
+                    "supplier_name": order.get("supplier", {}).get("supplier_name"),
+                    "identity_check": order.get("identity_check"),
+                    "purchase_type": order.get("purchase_type"),
+                    "supplier_state": order.get("supplier_state"),
+                    "linked_tender_code": order.get("linked_tender_code"),
+                    "currency": order.get("currency"),
+                    "total": order.get("total"),
+                    "sent_at": order.get("sent_at"),
+                    "accepted_at": order.get("accepted_at"),
+                    "categories": order.get("categories") or [],
+                }
+            )
+        else:
+            item.update(failures.get(code, {"status": "NOT_ATTEMPTED"}))
+        by_finding.setdefault(fid, []).append(item)
+
+    result["findings"] = [
+        {"finding_id": fid, "orders": values}
+        for fid, values in by_finding.items()
+    ]
+    if result["status"] == "RUNNING":
+        result["status"] = "READY" if not failures else "READY_WITH_GAPS"
+    result["failures"] = failures
+    result["method_note"] = (
+        "Este producto valida y contextualiza una muestra dirigida de órdenes asociadas a hallazgos RIGP. "
+        "No incorpora sus diferencias al score de prioridad de forma automática."
+    )
+    Path(output_path).write_text(json.dumps(result, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+    return result
+
+
+def main() -> None:
+    result = build_mercado_publico_context()
+    print("[RIGP Mercado Público]", result["status"])
+    print("[RIGP Mercado Público coverage]", result["coverage"])
+
+
+if __name__ == "__main__":
+    main()
