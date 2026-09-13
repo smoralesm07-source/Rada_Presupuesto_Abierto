@@ -6,6 +6,10 @@ on:
       - 'src/radar_presupuesto/spend_view.py'
       - 'src/radar_presupuesto/pipeline.py'
       - 'src/radar_presupuesto/investigative_findings.py'
+      - 'src/radar_presupuesto/prioritization.py'
+      - 'src/radar_presupuesto/advanced_signals.py'
+      - 'src/radar_presupuesto/cgr_correlation.py'
+      - 'config/anomaly_thresholds.yaml'
       - '.github/workflows/radar-monthly.yml'
   workflow_dispatch:
     inputs:
