@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RIGP · Inicio</title>
+<title>RIGP · Investigación de gasto público</title>
 <meta name="description" content="Piloto RIGP: navegación por hallazgos priorizados, trabajo de investigación y exploración del gasto público.">
 <link rel="stylesheet" href="assets/spend_v2.css?v=16">
 <link rel="stylesheet" href="assets/spend_v3.css?v=16">
@@ -16,7 +16,8 @@
 <link rel="stylesheet" href="assets/spend_v10_learning.css?v=16">
 <link rel="stylesheet" href="assets/spend_v11_evidence.css?v=17">
 <link rel="stylesheet" href="assets/spend_v12_workqueue.css?v=18">
-<link rel="stylesheet" href="assets/spend_v13_shell.css?v=20">
+<link rel="stylesheet" href="assets/spend_v13_shell.css?v=22">
+<link rel="stylesheet" href="assets/spend_v14_focus.css?v=22">
 </head>
 <body>
 <main class="app">
@@ -98,26 +99,15 @@ function htmlEscape(s){return String(s==null?'':s).replace(/[&<>]/g,function(c){
 function showRuntimeError(message){var box=document.getElementById('errorBox'),notice=document.getElementById('notice');if(notice)notice.innerHTML='<span class="dot"></span><span><b>Error al cargar/renderizar datos.</b> Revisa el detalle inferior.</span>';if(box)box.innerHTML='<div class="loadError"><b>Detalle técnico:</b><br><code>'+htmlEscape(message||'desconocido')+'</code></div>'}
 window.addEventListener('error',function(e){showRuntimeError((e.error&&e.error.stack)||e.message)});
 window.addEventListener('unhandledrejection',function(e){showRuntimeError((e.reason&&e.reason.stack)||e.reason)});
-window.__paNativeFetch=window.fetch.bind(window);
-window.fetch=async function(input,init){
-  var r=await window.__paNativeFetch(input,init);
-  if(String(input).indexOf('data/spend_view_v2.json')>=0){
-    r.clone().json().then(function(d){window.__PA_SPEND_DATA__=d}).catch(function(){});
-  }
-  return r;
-};
 </script>
-<script src="assets/spend_v2_fast.js?v=16"></script>
-<script src="assets/spend_v4_explorer.js?v=16"></script>
-<script src="assets/spend_v5_focus.js?v=16"></script>
-<script src="assets/spend_v6_dossier.js?v=16"></script>
-<script src="assets/spend_v7_mark_filter.js?v=16"></script>
-<script src="assets/spend_v8_findings.js?v=16"></script>
-<script src="assets/spend_v9_review.js?v=16"></script>
-<script src="assets/spend_v10_learning.js?v=16"></script>
-<script src="assets/spend_v11_evidence.js?v=17"></script>
-<script src="assets/spend_v12_workqueue_bridge.js?v=18"></script>
-<script src="assets/spend_v12_workqueue.js?v=18"></script>
-<script src="assets/spend_v13_shell.js?v=20"></script>
+<script src="assets/spend_v14_boot.js?v=22"></script>
+<script src="assets/spend_v8_findings.js?v=22"></script>
+<script src="assets/spend_v9_review.js?v=22"></script>
+<script src="assets/spend_v10_learning.js?v=22"></script>
+<script src="assets/spend_v11_evidence.js?v=22"></script>
+<script src="assets/spend_v12_workqueue_bridge.js?v=22"></script>
+<script src="assets/spend_v12_workqueue.js?v=22"></script>
+<script src="assets/spend_v15_shell.js?v=22"></script>
+<script src="assets/spend_v14_focus.js?v=22"></script>
 </body>
 </html>
