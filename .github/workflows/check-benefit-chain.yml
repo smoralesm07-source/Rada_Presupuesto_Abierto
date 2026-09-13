@@ -59,57 +59,62 @@ jobs:
           done
       - name: Validate benefit, causality, actor and dossier traceability contract
         run: |
-          grep -q 'data-benefit-view>Beneficiarios' docs/index.html
-          grep -q 'data-actor-view>Actores' docs/index.html
-          grep -q 'assets/spend_safe_benefit.js?v=1' docs/index.html
-          grep -q 'assets/spend_safe_societary.js?v=1' docs/index.html
-          grep -q 'assets/spend_safe_benefit_temporal.js?v=1' docs/index.html
-          grep -q 'assets/spend_safe_benefit_convergence.js?v=1' docs/index.html
-          grep -q 'assets/spend_safe_decision.js?v=1' docs/index.html
-          grep -q 'assets/spend_safe_value_trace.js?v=1' docs/index.html
-          grep -q 'assets/spend_safe_causality.js?v=1' docs/index.html
-          grep -q 'assets/spend_safe_causality.css?v=1' docs/index.html
-          grep -q 'assets/spend_safe_actor_map.js?v=4' docs/index.html
-          grep -q 'assets/spend_safe_actor_map.css?v=3' docs/index.html
-          grep -q 'assets/spend_safe_trace_dossier.js?v=2' docs/index.html
-          grep -q 'assets/spend_safe_trace_dossier.css?v=2' docs/index.html
-          grep -q 'Receptor económico directo' docs/assets/spend_safe_benefit.js
-          grep -q 'Beneficio final' docs/assets/spend_safe_benefit.js
-          grep -q 'No es probabilidad de delito' docs/assets/spend_safe_benefit.js
-          grep -q 'Registro de Accionistas electrónico del RES no es de consulta pública' docs/assets/spend_safe_societary.js
-          grep -q 'COINCIDENTE' docs/assets/spend_safe_benefit_temporal.js
-          grep -q 'FUERA_DE_PERIODO' docs/assets/spend_safe_benefit_temporal.js
-          grep -q 'temporallyRelevant' docs/assets/spend_safe_benefit_convergence.js
-          grep -q 'Lado de la decisión pública' docs/assets/spend_safe_decision.js
-          grep -q '¿Existe un vínculo documentado entre receptor y decisión pública?' docs/assets/spend_safe_decision.js
-          grep -q '¿Quién terminó recibiendo, controlando o disponiendo del beneficio económico?' docs/assets/spend_safe_value_trace.js
-          grep -q 'su licitud no se califica aquí' docs/assets/spend_safe_value_trace.js
-          grep -q 'Antecedente externo de integridad' docs/assets/spend_safe_causality.js
-          grep -q 'Nexo con el beneficio' docs/assets/spend_safe_causality.js
-          grep -q 'La coexistencia de un antecedente oficial y un flujo económico no demuestra causalidad' docs/assets/spend_safe_causality.js
-          grep -q 'NEXO_DOCUMENTADO' docs/assets/spend_safe_causality.js
-          grep -q 'Actores y beneficio potencial' docs/assets/spend_safe_actor_map.js
-          grep -q 'Personas y sociedades que requieren mayor trazabilidad' docs/assets/spend_safe_actor_map.js
-          grep -q 'Antecedente externo' docs/assets/spend_safe_actor_map.js
-          grep -q 'Nexo hecho–beneficio documentado' docs/assets/spend_safe_actor_map.js
-          grep -q 'pairedBasisValue' docs/assets/spend_safe_actor_map.js
-          grep -q 'RIGP no mezcla antecedentes de receptores distintos' docs/assets/spend_safe_actor_map.js
-          grep -q 'no “beneficiario de un ilícito”' docs/assets/spend_safe_actor_map.js
-          grep -q 'Dossier de trazabilidad' docs/assets/spend_safe_trace_dossier.js
-          grep -q 'Nivel de trazabilidad alcanzado' docs/assets/spend_safe_trace_dossier.js
-          grep -q "code:'L1'" docs/assets/spend_safe_trace_dossier.js
-          grep -q "code:'L2'" docs/assets/spend_safe_trace_dossier.js
-          grep -q "code:'L3'" docs/assets/spend_safe_trace_dossier.js
-          grep -q "code:'L4'" docs/assets/spend_safe_trace_dossier.js
-          grep -q "code:'L5'" docs/assets/spend_safe_trace_dossier.js
-          grep -q "code:'L6'" docs/assets/spend_safe_trace_dossier.js
-          grep -q 'Antecedente y beneficio en el mismo receptor' docs/assets/spend_safe_trace_dossier.js
-          grep -q 'L5 no presume causalidad' docs/assets/spend_safe_trace_dossier.js
-          grep -q 'Nexo hecho–beneficio' docs/assets/spend_safe_trace_dossier.js
-          grep -q 'Es profundidad documental de la trazabilidad, no probabilidad de delito' docs/assets/spend_safe_trace_dossier.js
-          grep -q 'Copiar dossier' docs/assets/spend_safe_trace_dossier.js
-          grep -q 'Imprimir dossier' docs/assets/spend_safe_trace_dossier.js
-          grep -q 'Este dossier no acredita irregularidad' docs/assets/spend_safe_trace_dossier.js
+          python3 - <<'PY'
+          from pathlib import Path
+          checks = {
+              'docs/index.html': [
+                  'data-benefit-view>Beneficiarios', 'data-actor-view>Actores',
+                  'assets/spend_safe_benefit.js?v=1', 'assets/spend_safe_societary.js?v=1',
+                  'assets/spend_safe_benefit_temporal.js?v=1', 'assets/spend_safe_benefit_convergence.js?v=1',
+                  'assets/spend_safe_decision.js?v=1', 'assets/spend_safe_value_trace.js?v=1',
+                  'assets/spend_safe_causality.js?v=1', 'assets/spend_safe_causality.css?v=1',
+                  'assets/spend_safe_actor_map.js?v=4', 'assets/spend_safe_actor_map.css?v=3',
+                  'assets/spend_safe_trace_dossier.js?v=2', 'assets/spend_safe_trace_dossier.css?v=2',
+              ],
+              'docs/assets/spend_safe_benefit.js': [
+                  'Receptor económico directo', 'Beneficio final', 'No es probabilidad de delito',
+              ],
+              'docs/assets/spend_safe_societary.js': [
+                  'Registro de Accionistas electrónico del RES no es de consulta pública',
+              ],
+              'docs/assets/spend_safe_benefit_temporal.js': ['COINCIDENTE', 'FUERA_DE_PERIODO'],
+              'docs/assets/spend_safe_benefit_convergence.js': ['temporallyRelevant'],
+              'docs/assets/spend_safe_decision.js': [
+                  'Lado de la decisión pública',
+                  '¿Existe un vínculo documentado entre receptor y decisión pública?',
+              ],
+              'docs/assets/spend_safe_value_trace.js': [
+                  '¿Quién terminó recibiendo, controlando o disponiendo del beneficio económico?',
+                  'su licitud no se califica aquí',
+              ],
+              'docs/assets/spend_safe_causality.js': [
+                  'Antecedente externo de integridad', 'Nexo con el beneficio',
+                  'La coexistencia de un antecedente oficial y un flujo económico no demuestra causalidad',
+                  'NEXO_DOCUMENTADO',
+              ],
+              'docs/assets/spend_safe_actor_map.js': [
+                  'Actores y beneficio potencial', 'Personas y sociedades que requieren mayor trazabilidad',
+                  'Antecedente externo', 'Nexo hecho–beneficio documentado', 'pairedBasisValue',
+                  'RIGP no mezcla antecedentes de receptores distintos', 'no “beneficiario de un ilícito”',
+              ],
+              'docs/assets/spend_safe_trace_dossier.js': [
+                  'Dossier de trazabilidad', 'Nivel de trazabilidad alcanzado',
+                  "code:'L1'", "code:'L2'", "code:'L3'", "code:'L4'", "code:'L5'", "code:'L6'",
+                  'Antecedente y beneficio en el mismo receptor', 'L5 no presume causalidad',
+                  'Nexo hecho–beneficio', 'Es profundidad documental de la trazabilidad, no probabilidad de delito',
+                  'Copiar dossier', 'Imprimir dossier', 'Este dossier no acredita irregularidad',
+              ],
+          }
+          missing = []
+          for path, needles in checks.items():
+              text = Path(path).read_text(encoding='utf-8')
+              for needle in needles:
+                  if needle not in text:
+                      missing.append(f'{path}: {needle}')
+          if missing:
+              raise SystemExit('Missing contract assertions:\n- ' + '\n- '.join(missing))
+          print(f'[OK] {sum(map(len, checks.values()))} UI traceability contract assertions')
+          PY
       - name: Build compact benefit payload
         run: |
           python3 scripts/build_findings_for_pages.py
