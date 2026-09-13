@@ -20,6 +20,9 @@ on:
       - 'docs/assets/spend_v9_review.css'
       - 'docs/assets/spend_v10_learning.js'
       - 'docs/assets/spend_v10_learning.css'
+      - 'docs/assets/spend_v11_evidence.js'
+      - 'docs/assets/spend_v11_evidence.css'
+      - 'docs/RIGP_EVIDENCE_DOSSIER.md'
       - 'docs/data/spend_view_v2.json'
       - 'docs/data/spend_years_v1.json'
       - 'docs/data/entity_enrichment_v1.json'
@@ -45,6 +48,7 @@ jobs:
           node --check docs/assets/spend_v8_findings.js
           node --check docs/assets/spend_v9_review.js
           node --check docs/assets/spend_v10_learning.js
+          node --check docs/assets/spend_v11_evidence.js
       - name: Check current HTML references and information hierarchy
         run: |
           grep -q 'assets/json_compat.js' docs/index.html
@@ -56,9 +60,11 @@ jobs:
           grep -q 'assets/spend_v8_findings.js' docs/index.html
           grep -q 'assets/spend_v9_review.js' docs/index.html
           grep -q 'assets/spend_v10_learning.js' docs/index.html
+          grep -q 'assets/spend_v11_evidence.js' docs/index.html
           grep -q 'assets/spend_v8_findings.css' docs/index.html
           grep -q 'assets/spend_v9_review.css' docs/index.html
           grep -q 'assets/spend_v10_learning.css' docs/index.html
+          grep -q 'assets/spend_v11_evidence.css' docs/index.html
           grep -q 'Hallazgos prioritarios' docs/index.html
           grep -q 'Dónde mirar primero' docs/index.html
           grep -q 'Explorar y comprobar el contexto' docs/index.html
@@ -69,6 +75,15 @@ jobs:
           grep -q 'Actividades vigentes' docs/assets/spend_v6_dossier.js
           grep -q '0,01–200,00 UF/año' docs/assets/spend_v6_dossier.js
           ! grep -q 'assets/spend_v3_enhance.js' docs/index.html
+      - name: Validate evidence dossier UX contract
+        run: |
+          grep -q 'Abrir expediente' docs/assets/spend_v11_evidence.js
+          grep -q 'Lectura en 20 segundos' docs/assets/spend_v11_evidence.js
+          grep -q 'Cadena de evidencia' docs/assets/spend_v11_evidence.js
+          grep -q 'Preguntas que deben quedar resueltas' docs/assets/spend_v11_evidence.js
+          grep -q 'Ruta sugerida' docs/assets/spend_v11_evidence.js
+          grep -q 'Ir a validación humana' docs/assets/spend_v11_evidence.js
+          grep -q 'HALLAZGO -> EVIDENCIA' docs/RIGP_EVIDENCE_DOSSIER.md
       - name: Parse current spend data with browser JSON parser
         run: |
           node - <<'JS'
@@ -120,6 +135,8 @@ jobs:
             if(!Array.isArray(q.queue)) throw new Error('investigation queue missing');
             const js=fs.readFileSync('docs/assets/spend_v8_findings.js','utf8');
             if(!js.includes('fallback(q.queue')) throw new Error('findings fallback not wired');
+            const ed=fs.readFileSync('docs/assets/spend_v11_evidence.js','utf8');
+            if(!ed.includes('fallback(q.queue')) throw new Error('evidence dossier fallback not wired');
             console.log('[OK] browser fallback from queue',q.queue.length);
           }
           JS
