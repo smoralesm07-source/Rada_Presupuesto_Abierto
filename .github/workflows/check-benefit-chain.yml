@@ -8,11 +8,14 @@ on:
       - 'docs/assets/spend_safe_benefit.css'
       - 'docs/assets/spend_safe_societary.js'
       - 'docs/assets/spend_safe_societary.css'
+      - 'docs/assets/spend_safe_benefit_convergence.js'
+      - 'docs/assets/spend_safe_benefit_convergence.css'
       - 'docs/RIGP_BENEFIT_CHAIN_METHOD.md'
       - 'scripts/build_benefit_context_for_pages.py'
       - 'scripts/build_findings_for_pages.py'
       - 'scripts/build_explore_context_for_pages.py'
       - 'docs/data/entity_enrichment_v1.json'
+      - 'schemas/007_benefit_chain.sql'
       - '.github/workflows/check-benefit-chain.yml'
   workflow_dispatch:
 permissions:
@@ -26,13 +29,17 @@ jobs:
         run: |
           node --check docs/assets/spend_safe_benefit.js
           node --check docs/assets/spend_safe_societary.js
+          node --check docs/assets/spend_safe_benefit_convergence.js
           python3 -m py_compile scripts/build_benefit_context_for_pages.py
           ! grep -q 'MutationObserver' docs/assets/spend_safe_benefit.js
           ! grep -q 'MutationObserver' docs/assets/spend_safe_societary.js
+          ! grep -q 'MutationObserver' docs/assets/spend_safe_benefit_convergence.js
           ! grep -q 'setInterval' docs/assets/spend_safe_benefit.js
           ! grep -q 'setInterval' docs/assets/spend_safe_societary.js
+          ! grep -q 'setInterval' docs/assets/spend_safe_benefit_convergence.js
           ! grep -q 'spend_years_v1.json' docs/assets/spend_safe_benefit.js
           ! grep -q 'spend_years_v1.json' docs/assets/spend_safe_societary.js
+          ! grep -q 'spend_years_v1.json' docs/assets/spend_safe_benefit_convergence.js
       - name: Validate navigation and societary verification contract
         run: |
           grep -q 'data-benefit-view>Beneficiarios' docs/index.html
@@ -40,6 +47,8 @@ jobs:
           grep -q 'assets/spend_safe_benefit.css?v=1' docs/index.html
           grep -q 'assets/spend_safe_societary.js?v=1' docs/index.html
           grep -q 'assets/spend_safe_societary.css?v=1' docs/index.html
+          grep -q 'assets/spend_safe_benefit_convergence.js?v=1' docs/index.html
+          grep -q 'assets/spend_safe_benefit_convergence.css?v=1' docs/index.html
           grep -q 'Receptor económico directo' docs/assets/spend_safe_benefit.js
           grep -q 'Beneficio final' docs/assets/spend_safe_benefit.js
           grep -q 'No es probabilidad de delito' docs/assets/spend_safe_benefit.js
@@ -48,6 +57,8 @@ jobs:
           grep -q 'Diario Oficial · Sociedades' docs/assets/spend_safe_societary.js
           grep -q 'Registro de Accionistas electrónico del RES no es de consulta pública' docs/assets/spend_safe_societary.js
           grep -q 'Fuente o documento que respalda el vínculo' docs/assets/spend_safe_benefit.js
+          grep -q 'Convergencia societaria' docs/assets/spend_safe_benefit_convergence.js
+          grep -q 'no infiere colusión, corrupción ni beneficio ilícito' docs/assets/spend_safe_benefit_convergence.js
       - name: Build compact benefit payload
         run: |
           python3 scripts/build_findings_for_pages.py
@@ -75,3 +86,5 @@ jobs:
           PY
           grep -q 'Proveedor/receptor directo ≠ beneficiario final' docs/RIGP_BENEFIT_CHAIN_METHOD.md
           grep -q 'Hallazgo → Persona beneficiaria de delito' docs/RIGP_BENEFIT_CHAIN_METHOD.md
+          grep -q 'benefit_confirmed_convergence' schemas/007_benefit_chain.sql
+          grep -q 'VINCULO_CONFIRMADO' schemas/007_benefit_chain.sql
