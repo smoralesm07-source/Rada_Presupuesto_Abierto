@@ -1,6 +1,6 @@
 pandas>=2.2,<3.0
 pyarrow>=17,<22
-duckdb>=1.1,<1.5
+duckdb>=1.1,<2.0
 requests>=2.32,<3
 beautifulsoup4>=4.12,<5
 PyYAML>=6,<7
