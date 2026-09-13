@@ -20,7 +20,9 @@ permissions:
   id-token: write
 concurrency:
   group: pages
-  cancel-in-progress: true
+  # No cancelar un deploy válido si llega, mientras publica, otro workflow_run
+  # que finalmente será omitido por la condición del job.
+  cancel-in-progress: false
 jobs:
   deploy:
     if: >-
