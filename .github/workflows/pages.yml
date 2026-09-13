@@ -9,6 +9,7 @@ on:
       - 'docs/data/investigative_findings.json'
       - 'docs/data/entity_enrichment_v1.json'
       - 'docs/data/procurement_context.json'
+      - 'docs/data/mercado_publico_context.json'
       - 'scripts/build_findings_for_pages.py'
       - 'scripts/build_case_entity_context.py'
       - '.github/workflows/pages.yml'
@@ -18,6 +19,7 @@ on:
       - 'Radar monthly analysis'
       - 'Corrected Spend Data v3'
       - 'Enrich Spend Suppliers with SII'
+      - 'Enrich procurement with Mercado Público'
     types: [completed]
   workflow_dispatch:
 permissions:
@@ -90,6 +92,11 @@ jobs:
               p=json.loads(procurement.read_text(encoding='utf-8'))
               assert p.get('schema') == 'RIGP-PROCUREMENT-CONTEXT-v1'
               assert procurement.stat().st_size < 800_000, 'procurement context unexpectedly large'
+          mercado=Path('docs/data/mercado_publico_context.json')
+          if mercado.exists():
+              m=json.loads(mercado.read_text(encoding='utf-8'))
+              assert m.get('schema') == 'RIGP-MERCADO-PUBLICO-CONTEXT-v1'
+              assert mercado.stat().st_size < 1_500_000, 'Mercado Público context unexpectedly large'
           print('findings methodology:', f.get('methodology_version'))
           print('relations:', len(relations))
           print('findings KiB:', round(findings.stat().st_size/1024,1))
@@ -115,6 +122,9 @@ jobs:
           cp docs/data/case_entity_context.json public/data/case_entity_context.json
           if [ -f docs/data/procurement_context.json ]; then
             cp docs/data/procurement_context.json public/data/procurement_context.json
+          fi
+          if [ -f docs/data/mercado_publico_context.json ]; then
+            cp docs/data/mercado_publico_context.json public/data/mercado_publico_context.json
           fi
           touch public/.nojekyll
           echo '[RIGP Pages] artefacto mínimo:'
