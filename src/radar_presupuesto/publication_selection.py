@@ -7,6 +7,7 @@ from pathlib import Path
 import duckdb
 
 from .investigative_findings import GUARDRAIL, LEGAL_REVIEW
+from .pattern_compatibility import best_pattern
 
 SIGNAL_ORDER = [
     "POTENTIAL_FRAGMENTATION",
@@ -34,6 +35,8 @@ def _decorate(row: dict) -> dict:
     family = str(out.get("finding_family") or "PATRON_ATIPICO")
     out["review_steps"] = LEGAL_REVIEW.get(family, LEGAL_REVIEW["PATRON_ATIPICO"])
     out["guardrail"] = GUARDRAIL
+    pattern = best_pattern(out["signal_types"])
+    out["pattern_compatibility"] = pattern
     return out
 
 
@@ -62,6 +65,10 @@ def rebalance_findings_publication(
     before filling the remaining capacity by investigation priority, preventing a
     dominant family (for example amount outliers) from making rarer phenomena
     disappear from the analyst's triage view.
+
+    ``pattern_compatibility`` is descriptive and independent from review priority.
+    It never changes the publication ranking and must not be interpreted as a
+    probability of wrongdoing or criminal conduct.
     """
     parquet = Path(findings_parquet)
     payload_path = Path(payload_json)
@@ -123,9 +130,13 @@ def rebalance_findings_publication(
     published = Counter()
     attention = Counter()
     families = Counter()
+    patterns = Counter()
     for row in selected:
         attention[str(row.get("attention_level") or "SEGUIMIENTO")] += 1
         families[str(row.get("finding_family") or "PATRON_ATIPICO")] += 1
+        pattern = row.get("pattern_compatibility") or {}
+        if pattern.get("pattern_code"):
+            patterns[str(pattern["pattern_code"])] += 1
         for signal in set(row.get("signal_types") or []):
             published[signal] += 1
 
@@ -138,6 +149,7 @@ def rebalance_findings_publication(
         "SEGUIMIENTO": attention.get("SEGUIMIENTO", 0),
     }
     counts["finding_families"] = dict(families)
+    counts["pattern_compatibility"] = dict(patterns)
     payload["counts"] = counts
     payload["publication_selection"] = {
         "method": "priority_with_signal_diversity_reserve",
@@ -150,6 +162,11 @@ def rebalance_findings_publication(
             "No eleva artificialmente su score ni cambia la evidencia; sólo protege diversidad en el lote publicado."
         ),
     }
+    payload["score_separation"] = {
+        "review_priority": "max_priority_score ordena qué revisar primero.",
+        "pattern_compatibility": "pattern_compatibility describe semejanza con una hipótesis analítica de revisión y no altera la prioridad.",
+        "guardrail": "Ninguno de ambos scores estima culpabilidad, corrupción, fraude o probabilidad de delito.",
+    }
     payload_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
 
     return {
@@ -157,4 +174,5 @@ def rebalance_findings_publication(
         "relations_published": len(selected),
         "available_by_signal": dict(available),
         "published_by_signal": dict(published),
+        "published_by_pattern": dict(patterns),
     }
