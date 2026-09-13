@@ -36,7 +36,31 @@ jobs:
       - uses: actions/checkout@v6
         with:
           ref: main
-      - name: Build compact findings payload for Pages
+      - name: Detect canonical findings payload
+        id: canonical_findings
+        run: |
+          if python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('docs/data/investigative_findings.json')
+          if not p.exists():
+              raise SystemExit(1)
+          try:
+              d=json.loads(p.read_text(encoding='utf-8'))
+          except Exception:
+              raise SystemExit(1)
+          ok=(d.get('methodology_version') == 'RIGP-FINDINGS-v1' and bool(d.get('relation_findings')))
+          raise SystemExit(0 if ok else 1)
+          PY
+          then
+            echo "canonical=true" >> "$GITHUB_OUTPUT"
+            echo "[RIGP Pages] usando investigative_findings.json del pipeline canónico"
+          else
+            echo "canonical=false" >> "$GITHUB_OUTPUT"
+            echo "[RIGP Pages] hallazgos canónicos ausentes; se usará fallback compacto"
+          fi
+      - name: Build compact findings fallback for Pages
+        if: steps.canonical_findings.outputs.canonical != 'true'
         run: python3 scripts/build_findings_for_pages.py
       - name: Build compact explore context for Pages
         run: python3 scripts/build_explore_context_for_pages.py
@@ -61,6 +85,7 @@ jobs:
           e=json.loads(explore.read_text())
           b=json.loads(benefit.read_text())
           o=json.loads(ownership.read_text())
+          assert f.get('methodology_version') in {'RIGP-FINDINGS-v1','RIGP-FINDINGS-PAGES-v1'}, 'unexpected findings methodology'
           assert f.get('relation_findings'), 'empty compact findings payload'
           assert e.get('schema') == 'RIGP-EXPLORE-CONTEXT-v1'
           assert e.get('services'), 'empty service explore context'
@@ -70,9 +95,12 @@ jobs:
           assert o.get('schema') == 'RIGP-OWNERSHIP-RESOLUTION-v1'
           assert o.get('queue'), 'empty ownership resolution queue'
           assert o.get('published_candidates',0) <= 300, 'ownership queue cap exceeded'
+          assert findings.stat().st_size < 1_500_000, 'findings payload too large for safe startup'
           assert explore.stat().st_size < 600_000, 'explore payload unexpectedly large'
           assert benefit.stat().st_size < 500_000, 'benefit payload unexpectedly large'
           assert ownership.stat().st_size < 350_000, 'ownership payload unexpectedly large'
+          print('findings methodology:', f.get('methodology_version'))
+          print('findings relations:', len(f.get('relation_findings',[])))
           print('findings KiB:', round(findings.stat().st_size/1024,1))
           print('explore KiB:', round(explore.stat().st_size/1024,1))
           print('benefit KiB:', round(benefit.stat().st_size/1024,1))
