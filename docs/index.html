@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RIGP · Hallazgos prioritarios del gasto público</title>
-<meta name="description" content="Piloto RIGP: navegación por hallazgos priorizados, servicios públicos, proveedores y relaciones con sustento trazable.">
+<title>RIGP · Inicio</title>
+<meta name="description" content="Piloto RIGP: navegación por hallazgos priorizados, trabajo de investigación y exploración del gasto público.">
 <link rel="stylesheet" href="assets/spend_v2.css?v=16">
 <link rel="stylesheet" href="assets/spend_v3.css?v=16">
 <link rel="stylesheet" href="assets/spend_v4.css?v=16">
@@ -16,10 +16,18 @@
 <link rel="stylesheet" href="assets/spend_v10_learning.css?v=16">
 <link rel="stylesheet" href="assets/spend_v11_evidence.css?v=17">
 <link rel="stylesheet" href="assets/spend_v12_workqueue.css?v=18">
+<link rel="stylesheet" href="assets/spend_v13_shell.css?v=20">
 </head>
 <body>
 <main class="app">
-<header class="top"><div><div class="eyebrow">RIGP · piloto analítico</div><h1>Dónde mirar primero en el gasto público</h1><p class="sub">RIGP organiza patrones de gasto en hallazgos revisables. La portada prioriza relaciones, servicios y proveedores que justifican una revisión documental u OSINT; las señales técnicas quedan como sustento y nunca equivalen por sí solas a irregularidad o delito.</p></div><div class="badges" id="badges"></div></header>
+<header class="top">
+  <div>
+    <div class="eyebrow">RIGP · piloto analítico</div>
+    <h1>Dónde mirar primero en el gasto público</h1>
+    <p class="sub">RIGP organiza patrones de gasto en hallazgos revisables. La aplicación separa descubrimiento, trabajo y comprobación para que las señales técnicas funcionen como sustento y no como una conclusión de irregularidad o delito.</p>
+  </div>
+  <div class="badges" id="badges"></div>
+</header>
 <div class="notice" id="notice"><span class="dot"></span><span><b>Cargando datos reales del radar…</b></span></div>
 <section class="toolbar v4" id="toolbar" hidden>
   <div class="entityFinder"><label>Buscar entidad</label><input id="entitySearch" type="search" autocomplete="off" placeholder="Nombre, RUT, servicio o proveedor…"><span class="finderIcon">⌕</span><div class="entityResults" id="entityResults" hidden></div></div>
@@ -33,43 +41,46 @@
 <div class="scopebar" id="scopebar"></div>
 <section class="kpis" id="kpis"></section>
 <div id="content" hidden>
-<section class="card findingHub" id="findingHub" hidden>
-  <div class="fhHead">
-    <div><div class="eyebrow">Dónde mirar primero</div><h2>Hallazgos prioritarios</h2><p>La prioridad aumenta cuando convergen patrones independientes, materialidad y/o evidencia externa candidata. Selecciona un hallazgo para reconstruir la relación y luego baja al detalle de flujos y entidades.</p></div>
-    <div class="fhSource" id="findingSource"></div>
+  <section class="card findingHub" id="findingHub" hidden>
+    <div class="fhHead">
+      <div><div class="eyebrow">Dónde mirar primero</div><h2>Hallazgos prioritarios</h2><p>La prioridad aumenta cuando convergen patrones independientes, materialidad y/o evidencia externa candidata. Selecciona un hallazgo para reconstruir la relación y luego baja al detalle de flujos y entidades.</p></div>
+      <div class="fhSource" id="findingSource"></div>
+    </div>
+    <div class="fhSummary" id="findingSummary"></div>
+    <div class="fhToolbar">
+      <div class="fhViews"><button class="on" data-fh-view="relations">Relaciones y redes</button><button data-fh-view="services">Servicios</button><button data-fh-view="providers">Proveedores</button></div>
+      <div class="fhLevels"><button class="on" data-fh-level="ACTIVE">Prioritarios</button><button data-fh-level="ATENCION_INMEDIATA">Sólo atención inmediata</button><button data-fh-level="ALL">Todos</button></div>
+    </div>
+    <div class="fhGrid" id="findingGrid"></div>
+  </section>
+  <section class="card iqHub" id="investigationQueue" hidden>
+    <div class="iqHead">
+      <div><div class="eyebrow">Trabajo diario</div><h2>Bandeja de investigación</h2><p>Ordena el trabajo humano sobre los hallazgos. Primero muestra revisiones ya iniciadas o que requieren profundización; después propone el siguiente hallazgo prioritario pendiente. Esta versión del piloto guarda el estado sólo en este navegador.</p></div>
+      <span class="iqPilot">piloto local</span>
+    </div>
+    <div class="iqSummary" id="iqSummary"></div>
+    <div class="iqFeature" id="iqFeature"></div>
+    <div class="iqToolbar">
+      <div class="iqViews"><button class="on" data-iq-view="NOW">Ahora</button><button data-iq-view="PENDING">Pendientes</button><button data-iq-view="ACTIVE">En curso</button><button data-iq-view="CLOSED">Resultados</button></div>
+      <div class="iqSearchWrap"><input id="iqSearch" type="search" placeholder="Buscar servicio, proveedor o tipo de hallazgo…"><span id="iqCount" class="iqCount"></span></div>
+    </div>
+    <div class="iqList" id="iqList"></div>
+  </section>
+  <div class="exploreLabel"><span>Explorar y comprobar el contexto</span></div>
+  <section class="card" style="margin-bottom:10px">
+    <div class="ch"><div><h2>Flujo de fondos · Servicio público → Proveedor privado</h2><div class="hint" style="text-align:left;margin-top:2px">El flujo responde al hallazgo o entidad seleccionada. Úsalo para entender magnitud, contraparte y contexto antes de abrir la ficha detallada.</div></div><span class="hint">grosor = monto</span></div>
+    <div class="flowWrap" id="flow"></div>
+  </section>
+  <div class="grid g11">
+    <section class="card"><div class="ch"><div><h2>Magnitud de servicios públicos · años seleccionados</h2><div class="hint" style="text-align:left;margin-top:2px">Ranking por devengado del universo completo; al activar una marca muestra el gasto dirigido a proveedores que cumplen ese criterio.</div></div><span class="hint" id="rankHint"></span></div><div class="serviceRank" id="serviceRank"></div></section>
+    <section class="card"><div class="ch"><div><h2>Señales asociadas a proveedores</h2><div class="hint" style="text-align:left;margin-top:2px">Capa técnica de apoyo. Las señales explican por qué una relación fue priorizada, pero no son hallazgos de irregularidad por sí solas.</div></div><span class="hint" id="monthHint"></span></div><svg class="monthChart" id="monthChart" viewBox="0 0 620 295"></svg></section>
   </div>
-  <div class="fhSummary" id="findingSummary"></div>
-  <div class="fhToolbar">
-    <div class="fhViews"><button class="on" data-fh-view="relations">Relaciones y redes</button><button data-fh-view="services">Servicios</button><button data-fh-view="providers">Proveedores</button></div>
-    <div class="fhLevels"><button class="on" data-fh-level="ACTIVE">Prioritarios</button><button data-fh-level="ATENCION_INMEDIATA">Sólo atención inmediata</button><button data-fh-level="ALL">Todos</button></div>
+  <div class="grid g11">
+    <section class="card"><div class="ch"><div><h2>Proveedores con cambio de escala</h2><div class="hint" style="text-align:left;margin-top:2px">Crecimiento frente al año previo disponible, ponderado por materialidad. Responde al filtro de marca activo.</div></div><span class="hint" id="paretoHint"></span></div><div class="paretoWrap"><svg class="chart" id="pareto" viewBox="0 0 620 276"></svg></div></section>
+    <section class="card"><div class="ch"><div><h2>Dependencia ↔ influencia</h2><div class="hint" style="text-align:left;margin-top:2px">X = dependencia en principal comprador público; Y = influencia dentro de ese comprador. Se utiliza como contexto económico del proveedor.</div></div><span class="hint">tamaño = monto</span></div><div class="scatterWrap"><svg class="chart" id="scatter" viewBox="0 0 620 276"></svg></div><p class="scatterHelp">Las señales analíticas priorizan revisión y no constituyen irregularidad por sí mismas. La relación UAF se muestra sólo cuando el usuario activa esa referencia.</p></section>
   </div>
-  <div class="fhGrid" id="findingGrid"></div>
-</section>
-<section class="card iqHub" id="investigationQueue" hidden>
-  <div class="iqHead">
-    <div><div class="eyebrow">Trabajo diario</div><h2>Bandeja de investigación</h2><p>Ordena el trabajo humano sobre los hallazgos. Primero muestra revisiones ya iniciadas o que requieren profundización; después propone el siguiente hallazgo prioritario pendiente. Esta versión del piloto guarda el estado sólo en este navegador.</p></div>
-    <span class="iqPilot">piloto local</span>
-  </div>
-  <div class="iqSummary" id="iqSummary"></div>
-  <div class="iqFeature" id="iqFeature"></div>
-  <div class="iqToolbar">
-    <div class="iqViews"><button class="on" data-iq-view="NOW">Ahora</button><button data-iq-view="PENDING">Pendientes</button><button data-iq-view="ACTIVE">En curso</button><button data-iq-view="CLOSED">Resultados</button></div>
-    <div class="iqSearchWrap"><input id="iqSearch" type="search" placeholder="Buscar servicio, proveedor o tipo de hallazgo…"><span id="iqCount" class="iqCount"></span></div>
-  </div>
-  <div class="iqList" id="iqList"></div>
-</section>
-<div class="exploreLabel"><span>Explorar y comprobar el contexto</span></div>
-<section class="card" style="margin-bottom:10px"><div class="ch"><div><h2>Flujo de fondos · Servicio público → Proveedor privado</h2><div class="hint" style="text-align:left;margin-top:2px">El flujo responde al hallazgo o entidad seleccionada. Úsalo para entender magnitud, contraparte y contexto antes de abrir la ficha detallada.</div></div><span class="hint">grosor = monto</span></div><div class="flowWrap" id="flow"></div></section>
-<div class="grid g11">
-  <section class="card"><div class="ch"><div><h2>Magnitud de servicios públicos · años seleccionados</h2><div class="hint" style="text-align:left;margin-top:2px">Ranking por devengado del universo completo; al activar una marca muestra el gasto dirigido a proveedores que cumplen ese criterio.</div></div><span class="hint" id="rankHint"></span></div><div class="serviceRank" id="serviceRank"></div></section>
-  <section class="card"><div class="ch"><div><h2>Señales asociadas a proveedores</h2><div class="hint" style="text-align:left;margin-top:2px">Capa técnica de apoyo. Las señales explican por qué una relación fue priorizada, pero no son hallazgos de irregularidad por sí solas.</div></div><span class="hint" id="monthHint"></span></div><svg class="monthChart" id="monthChart" viewBox="0 0 620 295"></svg></section>
-</div>
-<div class="grid g11">
-  <section class="card"><div class="ch"><div><h2>Proveedores con cambio de escala</h2><div class="hint" style="text-align:left;margin-top:2px">Crecimiento frente al año previo disponible, ponderado por materialidad. Responde al filtro de marca activo.</div></div><span class="hint" id="paretoHint"></span></div><div class="paretoWrap"><svg class="chart" id="pareto" viewBox="0 0 620 276"></svg></div></section>
-  <section class="card"><div class="ch"><div><h2>Dependencia ↔ influencia</h2><div class="hint" style="text-align:left;margin-top:2px">X = dependencia en principal comprador público; Y = influencia dentro de ese comprador. Se utiliza como contexto económico del proveedor.</div></div><span class="hint">tamaño = monto</span></div><div class="scatterWrap"><svg class="chart" id="scatter" viewBox="0 0 620 276"></svg></div><p class="scatterHelp">Las señales analíticas priorizan revisión y no constituyen irregularidad por sí mismas. La relación UAF se muestra sólo cuando el usuario activa esa referencia.</p></section>
-</div>
-<section class="card"><div class="tabs"><button class="tab on" data-tab="providers">Proveedores</button><button class="tab" data-tab="services">Servicios públicos</button><button class="tab" data-tab="flows">Relaciones</button></div><div class="tableTools"><input type="search" id="search" placeholder="Buscar dentro de la tabla…"><button class="chip" id="exportBtn">Exportar CSV</button></div><div class="tw"><table class="tbl"><thead id="thead"></thead><tbody id="tbody"></tbody></table></div></section>
-<details class="method"><summary>Método, trazabilidad y lectura prudente</summary><ul id="guardrails"></ul></details>
+  <section class="card"><div class="tabs"><button class="tab on" data-tab="providers">Proveedores</button><button class="tab" data-tab="services">Servicios públicos</button><button class="tab" data-tab="flows">Relaciones</button></div><div class="tableTools"><input type="search" id="search" placeholder="Buscar dentro de la tabla…"><button class="chip" id="exportBtn">Exportar CSV</button></div><div class="tw"><table class="tbl"><thead id="thead"></thead><tbody id="tbody"></tbody></table></div></section>
+  <details class="method"><summary>Método, trazabilidad y lectura prudente</summary><ul id="guardrails"></ul></details>
 </div>
 <div id="errorBox"></div>
 </main>
@@ -107,4 +118,6 @@ window.fetch=async function(input,init){
 <script src="assets/spend_v11_evidence.js?v=17"></script>
 <script src="assets/spend_v12_workqueue_bridge.js?v=18"></script>
 <script src="assets/spend_v12_workqueue.js?v=18"></script>
-</body></html>
+<script src="assets/spend_v13_shell.js?v=20"></script>
+</body>
+</html>
