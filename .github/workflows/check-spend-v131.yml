@@ -43,7 +43,7 @@ jobs:
           grep -q 'data-network-view' docs/index.html
           grep -q 'assets/spend_safe_v3.js?v=3' docs/index.html
           grep -q 'assets/spend_safe_network.js?v=1' docs/index.html
-          grep -q 'assets/spend_safe_guided_flow.js?v=1' docs/index.html
+          grep -q 'assets/spend_safe_guided_flow.js?v=2' docs/index.html
           grep -q 'assets/spend_safe_focus_summary.js?v=1' docs/index.html
       - name: Build and validate compact payloads
         run: |
