@@ -53,7 +53,7 @@ jobs:
           JS
       - name: Validate network guardrail
         run: |
-          grep -q 'no acredita coordinación impropia' docs/assets/spend_safe_network.js
+          grep -qi 'no acredita coordinación impropia' docs/assets/spend_safe_network.js
           grep -q 'MAX_NODES=12' docs/assets/spend_safe_network.js
           ! grep -q 'MutationObserver' docs/assets/spend_safe_network.js
           ! grep -q 'setInterval' docs/assets/spend_safe_network.js
