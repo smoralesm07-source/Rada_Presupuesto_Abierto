@@ -21,13 +21,20 @@ jobs:
           node --check docs/assets/spend_v8_findings.js
           node --check docs/assets/spend_v9_review.js
           node --check docs/assets/spend_v10_learning.js
-      - name: Human review and learning contract
+          node --check docs/assets/spend_v11_evidence.js
+      - name: Human review, learning and evidence contract
         run: |
           grep -q 'useful_signals' docs/assets/spend_v9_review.js
           grep -q 'low_value_signals' docs/assets/spend_v9_review.js
           grep -q 'rigp-review-updated' docs/assets/spend_v9_review.js
           grep -q '30 hallazgos' docs/RIGP_LEARNING_METHOD.md
           grep -q 'no modifican automáticamente' docs/assets/spend_v10_learning.js
+          grep -q 'Expediente de evidencia' docs/assets/spend_v11_evidence.js
+          grep -q 'Preguntas que deben quedar resueltas' docs/assets/spend_v11_evidence.js
+          grep -q 'Abrir expediente' docs/assets/spend_v11_evidence.js
+          grep -q 'no determina delito' docs/assets/spend_v11_evidence.js
+          grep -q 'assets/spend_v11_evidence.js?v=17' docs/index.html
+          grep -q 'assets/spend_v11_evidence.css?v=17' docs/index.html
       - name: Unit + operational engine tests
         run: PYTHONPATH=src pytest -q
       - name: End-to-end sample pipeline
