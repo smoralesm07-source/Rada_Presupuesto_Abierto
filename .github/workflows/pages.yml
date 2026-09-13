@@ -7,7 +7,10 @@ on:
       - 'docs/assets/rigp_case_app.js'
       - 'docs/assets/rigp_case_app.css'
       - 'docs/data/investigative_findings.json'
+      - 'docs/data/entity_enrichment_v1.json'
+      - 'docs/data/procurement_context.json'
       - 'scripts/build_findings_for_pages.py'
+      - 'scripts/build_case_entity_context.py'
       - '.github/workflows/pages.yml'
   workflow_run:
     workflows:
@@ -60,6 +63,8 @@ jobs:
       - name: Build compact findings fallback for Pages
         if: steps.canonical_findings.outputs.canonical != 'true'
         run: python3 scripts/build_findings_for_pages.py
+      - name: Build compact SII context for published providers
+        run: python3 scripts/build_case_entity_context.py
       - name: Validate case-first web contract
         run: |
           node --check docs/assets/rigp_case_app.js
@@ -67,15 +72,27 @@ jobs:
           import json
           from pathlib import Path
           findings=Path('docs/data/investigative_findings.json')
+          entities=Path('docs/data/case_entity_context.json')
           f=json.loads(findings.read_text(encoding='utf-8'))
+          e=json.loads(entities.read_text(encoding='utf-8'))
           assert f.get('methodology_version') in {'RIGP-FINDINGS-v1','RIGP-FINDINGS-PAGES-v1'}
           relations=f.get('relation_findings') or []
           assert relations, 'empty findings payload'
           assert len(relations) <= 800, 'published findings must remain bounded'
           assert findings.stat().st_size < 2_000_000, 'findings payload too large for safe startup'
+          assert e.get('schema') == 'RIGP-CASE-ENTITY-CONTEXT-v1'
+          assert entities.stat().st_size < 700_000, 'case entity context unexpectedly large'
+          assert 'coverage' in e and 'entities' in e and 'guardrail' in e
+          procurement=Path('docs/data/procurement_context.json')
+          if procurement.exists():
+              p=json.loads(procurement.read_text(encoding='utf-8'))
+              assert p.get('schema') == 'RIGP-PROCUREMENT-CONTEXT-v1'
+              assert procurement.stat().st_size < 800_000, 'procurement context unexpectedly large'
           print('findings methodology:', f.get('methodology_version'))
           print('relations:', len(relations))
           print('findings KiB:', round(findings.stat().st_size/1024,1))
+          print('entity context coverage:', e.get('coverage'))
+          print('entity context KiB:', round(entities.stat().st_size/1024,1))
           PY
           test "$(grep -o 'assets/rigp_case_app.js' docs/index.html | wc -l)" -eq 1
           test "$(grep -o 'assets/rigp_case_app.css' docs/index.html | wc -l)" -eq 1
@@ -93,6 +110,10 @@ jobs:
           cp docs/assets/rigp_case_app.js public/assets/rigp_case_app.js
           cp docs/assets/rigp_case_app.css public/assets/rigp_case_app.css
           cp docs/data/investigative_findings.json public/data/investigative_findings.json
+          cp docs/data/case_entity_context.json public/data/case_entity_context.json
+          if [ -f docs/data/procurement_context.json ]; then
+            cp docs/data/procurement_context.json public/data/procurement_context.json
+          fi
           touch public/.nojekyll
           echo '[RIGP Pages] artefacto mínimo:'
           find public -type f -printf '%p %s bytes\n' | sort
