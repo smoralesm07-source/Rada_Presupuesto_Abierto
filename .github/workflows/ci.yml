@@ -16,21 +16,29 @@ jobs:
           python-version: '3.12'
           cache: pip
       - run: python -m pip install -r requirements.txt
+      - name: UI JavaScript syntax
+        run: node --check docs/assets/spend_v8_findings.js
       - name: Unit + operational engine tests
         run: PYTHONPATH=src pytest -q
       - name: End-to-end sample pipeline
         run: PYTHONPATH=src python -m radar_presupuesto.pipeline --sample tests/fixtures/sample_transactions.csv --cgr-dir /tmp/no-cgr
-      - name: Validate sample integrity and queue
+      - name: Validate sample integrity, queue and findings
         run: |
           python - <<'PY'
           import json
           q=json.load(open('docs/data/quality.json'))
           d=json.load(open('docs/data/dashboard.json'))
           iq=json.load(open('docs/data/investigation_queue.json'))
+          fh=json.load(open('docs/data/investigative_findings.json'))
           assert q['transaction_id_collision_ratio'] == 0
           assert q['distinct_transaction_ids'] == q['rows']
           assert iq['total_signals'] == d['metrics']['signals']
+          assert fh['methodology_version'].startswith('RIGP-FINDINGS')
+          assert 'relation_findings' in fh and 'service_hotspots' in fh and 'provider_hotspots' in fh
+          assert 'guardrail' in fh
           print('Priority tiers:', iq['priority_tiers'])
+          print('Finding relations:', len(fh['relation_findings']))
+          print('Finding networks:', len(fh['network_candidates']))
           PY
       - name: Official source smoke test
         run: |
