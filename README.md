@@ -2,7 +2,9 @@
 
 Radar autónomo para explotar datos públicos de **Presupuesto Abierto (DIPRES)** con enfoque de inteligencia financiera, integridad del gasto y detección de patrones anómalos.
 
-**Estado actual: v0.3 operacional.** El sistema procesa bulk oficiales, controla identidad y calidad, detecta señales, las prioriza para investigación y contrasta entidades con evidencia del repositorio Radar CGR.
+**Estado actual: v2 operacional.** El sistema procesa bulk oficiales, controla identidad y calidad, detecta señales en cinco capas, las puntúa en **dos ejes independientes**, las traduce a tipologías LA/FT y las entrega como expedientes con ciclo de vida y cadena de custodia.
+
+Método vigente: [`docs/RIGP_METHOD_v2.md`](docs/RIGP_METHOD_v2.md).
 
 ## Objetivo
 
@@ -26,31 +28,40 @@ La v0.3 distingue `transaction_id` (fila física única), `transaction_fingerpri
 
 Esto permite que una repetición documental sea analizada por `EXACT_DUPLICATE_CANDIDATE` sin generar una colisión en la clave primaria del radar.
 
-## Señales operativas
+## Capas de análisis
 
-- `AMOUNT_OUTLIER`
-- `POTENTIAL_FRAGMENTATION`
-- `YEAR_END_SPIKE`
-- `EXACT_DUPLICATE_CANDIDATE`
-- `PROVIDER_CONCENTRATION`
-- `PAYMENT_DELAY_OUTLIER`
-- `NEW_TO_SERIES_HIGH_SPEND`
+| Capa | Señales | Estado |
+|---|---|---|
+| 1 · Transacción | `AMOUNT_OUTLIER`, `POTENTIAL_FRAGMENTATION`, `EXACT_DUPLICATE_CANDIDATE`, `PROVIDER_CONCENTRATION`, `NEW_TO_SERIES_HIGH_SPEND`, `PAYMENT_DELAY_OUTLIER`, `YEAR_END_SPIKE` | Operativa |
+| 2 · Proceso de compra | `SINGLE_BIDDER`, `DIRECT_AWARD_DEPENDENCE`, `DIRECT_AWARD_RECURRENCE`, `AWARD_TO_PAYMENT_INFLATION`, `THRESHOLD_HUGGING`, `SPLIT_PROCUREMENT`, `BID_ROTATION`, `SPEED_ANOMALY` | Adaptador listo, fuente pendiente |
+| 3 · Entidad | `NEWBORN_SUPPLIER`, `CAPACITY_MISMATCH`, `ACTIVITY_MISMATCH`, `TERMINATION_AFTER_PAYMENT`, `DORMANT_REACTIVATION` | Operativa |
+| 4 · Tipologías LA/FT | 7 tipologías con criterios de sostén, de descarte y documentos a requerir | Operativa |
+| 5 · Cuantificación | Dos ejes independientes | Operativa |
 
-Las señales no constituyen hallazgos de ilegalidad.
+Ninguna señal constituye un hallazgo de ilegalidad.
 
-## Prioridad investigativa
+## Los dos ejes
 
-`data/signals/prioritized_signals.parquet` y `docs/data/investigation_queue.json` ordenan las señales mediante un score 0–100 explicable que combina severidad, tipo de patrón, coocurrencia, evidencia candidata CGR, accionabilidad documental y materialidad.
+Mezclar «cuánto conviene mirar esto» con «qué tan compatible es con una tipología de lavado» producía una cola encabezada por una factura de combustible. Ahora se calculan por separado:
 
-- `P1`: 70–100
-- `P2`: 50–69
-- `P3`: < 50
+- **`review_priority_score`** (0–100) — rareza empírica del patrón en su **grupo de pares**, convergencia de familias, materialidad **relativa** a los pares, evidencia externa ponderada por calidad del match y contexto registral de la contraparte. Tramos `P1` ≥70, `P2` ≥50, `P3` <50.
+- **`laft_compatibility_score`** (0–100) — cuántos patrones de una tipología están presentes. Nunca es probabilidad de delito, y no puede superar el **techo de evidencia** de las capas todavía no integradas.
 
-El score es **prioridad de revisión**, no probabilidad de delito ni de LA/FT.
+El corte de publicación reserva una **cuota mínima por familia**: sin ella, las familias individualmente más débiles —fraccionamiento, estacionalidad— desaparecían enteras del ranking.
+
+## El expediente
+
+La unidad de trabajo es el expediente, no la señal. Mismo contrato en `src/radar_presupuesto/case_model.py`, `docs/app/cases.mjs` y `schemas/011_case_management.sql`; un expediente exportado en el navegador se verifica en Python con el mismo SHA-256.
+
+- Cerrar exige motivo escrito; escalar exige hipótesis formulada.
+- Todo vínculo entre actores nace `CANDIDATE` y confirmarlo exige indicar fuente.
+- La bitácora sólo crece: es la cadena de custodia y viaja con el expediente.
 
 ## Integración con Radar CGR
 
-Las corridas operativas descargan `smoralesm07-source/Radar-CGR` y contrastan organizaciones y proveedores con sus capas silver. Todos los enlaces quedan con estado `CANDIDATE`: una coincidencia de entidad no atribuye automáticamente un hallazgo CGR a una transacción de Presupuesto Abierto.
+Las corridas operativas descargan `smoralesm07-source/Radar-CGR` y contrastan organizaciones y proveedores con sus capas silver. El cruce intenta primero **RUT validado con dígito verificador**; sólo si la fuente externa no publica RUT cae a nombre normalizado, y en ese caso la confianza queda limitada por debajo del umbral que otorga peso alto en la prioridad. El grado del match (`RUT_EXACT`, `NAME_EXACT`, `NAME_FUZZY`) viaja con cada enlace.
+
+Todos los enlaces quedan con estado `CANDIDATE`: una coincidencia de entidad no atribuye automáticamente un hallazgo CGR a una transacción de Presupuesto Abierto.
 
 Salidas:
 
@@ -60,30 +71,34 @@ Salidas:
 ## Arquitectura
 
 ```text
-Presupuesto Abierto
-       |
-       v
-Source Discovery + Snapshot SHA-256
-       |
-       v
+Presupuesto Abierto                  Mercado Público (adaptador listo)
+       |                                        |
+       v                                        | union por orden_compra
+Source Discovery + Snapshot SHA-256             |
+       |                                        v
+       v                               Capa 2 · Proceso de compra
 Canonical Normalization / Identity Resolution
        |
        +---- Parquet + DuckDB structured search
        +---- SQLite FTS5 text index
        |
        v
-Data Quality Audit
+Data Quality Audit + indice de opacidad de identidad
        |
        v
-Risk Signal Engine
+Capa 1 · Senales de transaccion
        |
-       +---- Radar CGR candidate evidence
-       |
-       v
-Explainable Investigation Priority
+       +---- Capa 3 · Senales de entidad (enriquecimiento SII)
+       +---- Radar CGR candidate evidence (RUT primero)
        |
        v
-Dashboard + Evidence/Lineage
+Capa 5 · Prioridad de revision (rareza x grupo de pares)
+       |
+       v
+Capa 4 · Tipologias LA/FT (eje independiente)
+       |
+       v
+Expediente: hipotesis, actores, evidencia, bitacora, informe sellado
 ```
 
 ## Búsqueda histórica
@@ -101,4 +116,8 @@ python -m radar_presupuesto.query_job --years 2016-2026 --text "constructora" --
 
 Los `.gz`, Parquet e índices SQLite no se versionan en Git. Los productos pesados se conservan como artifacts temporales; Pages publica las salidas compactas.
 
-Documentación: `docs/SCHEMA_DESIGN.md`, `docs/ANOMALY_CATALOG.md`, `docs/SEARCH_ENGINE.md` y `docs/OPERATIONAL_V03.md`.
+## Aplicación
+
+Cinco destinos, un punto de entrada (`docs/app/main.mjs`), un store: **Mi bandeja**, **Triage**, **Caso**, **Entidad 360** e **Informe**. La ruta guiada de cuatro pasos se conserva como columna narrativa del caso.
+
+Documentación: `docs/RIGP_METHOD_v2.md` (método vigente), `docs/SCHEMA_DESIGN.md`, `docs/ANOMALY_CATALOG.md`, `docs/SEARCH_ENGINE.md` y `docs/OPERATIONAL_V03.md`.

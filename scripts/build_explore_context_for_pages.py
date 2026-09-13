@@ -2,9 +2,12 @@
 """Build a compact, on-demand contextual exploration payload for RIGP Pages.
 
 The browser must never parse spend_years_v1.json (~14 MiB). This builder reduces
-that historical dataset to only the services/providers/relations referenced by
-the published compact findings. The result is intentionally small and is loaded
-only when the analyst opens the Explore view.
+that historical dataset to only the services and providers the published queue
+actually references.
+
+It reads the investigation queue directly rather than a derived findings file:
+the triage payload needs the amounts this produces, so depending on triage here
+would make the two builders circular.
 """
 from __future__ import annotations
 
@@ -13,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-FINDINGS = ROOT / "docs" / "data" / "investigative_findings.json"
+QUEUE = ROOT / "docs" / "data" / "investigation_queue.json"
 YEARS = ROOT / "docs" / "data" / "spend_years_v1.json"
 OUT = ROOT / "docs" / "data" / "explore_context.json"
 TOP_COUNTERPARTS = 8
@@ -24,13 +27,22 @@ def flow_total(row: dict[str, Any]) -> float:
 
 
 def main() -> None:
-    if not FINDINGS.exists() or not YEARS.exists():
+    if not QUEUE.exists() or not YEARS.exists():
         print("[RIGP Explore] source absent; compact context not generated")
         return
 
-    findings = json.loads(FINDINGS.read_text(encoding="utf-8"))
+    queue = json.loads(QUEUE.read_text(encoding="utf-8"))
     hist = json.loads(YEARS.read_text(encoding="utf-8"))
-    rows = findings.get("relation_findings") or []
+    rows = [
+        {
+            "organization_id": row.get("organization_id"),
+            "organization_name": row.get("organization_name"),
+            "provider_id": row.get("provider_id") or row.get("recipient_id"),
+            "provider_name": row.get("provider_or_recipient_name") or row.get("provider_name"),
+        }
+        for row in (queue.get("queue") or [])
+        if row.get("organization_id") and (row.get("provider_id") or row.get("recipient_id"))
+    ]
 
     service_profiles = {str(x.get("organization_id")): x for x in hist.get("services") or []}
     provider_profiles = {str(x.get("provider_id")): x for x in hist.get("providers") or []}

@@ -1,5 +1,10 @@
 # RIGP · Metodología de hallazgos investigables v1
 
+> **Vigencia.** Este documento describe la arquitectura anterior a la v2. El método
+> operativo vigente está en [`RIGP_METHOD_v2.md`](RIGP_METHOD_v2.md); se conserva aquí
+> el razonamiento original porque buena parte sigue siendo válida como método, aunque
+> los módulos que menciona ya no existen con ese nombre.
+
 ## Propósito
 
 La capa de hallazgos RIGP se ubica entre el motor técnico de señales y la experiencia del analista. Su objetivo es responder una pregunta simple: **¿dónde conviene mirar primero y por qué?**

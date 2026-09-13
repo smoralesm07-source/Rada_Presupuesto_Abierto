@@ -10,12 +10,21 @@ import yaml
 
 from .advanced_signals import extend_signals
 from .analytics import build_signals
+from .case_model import GUARDRAIL as CASE_GUARDRAIL  # noqa: F401  (contrato compartido)
 from .cgr_correlation import correlate_with_cgr
 from .coverage import write_coverage
 from .dashboard import build_dashboard_json
+from .entity_signals import build_entity_signals, summarize as summarize_entity_signals
 from .extract import download
 from .features import build_profiles
 from .investigative_findings import build_investigative_findings
+from .procurement import (
+    ProcurementThresholds,
+    build_procurement_signals,
+    write_status as write_procurement_status,
+)
+from .relation_context import build_opacity_index
+from .typologies import build_typologies
 from .normalize import normalize_frame, normalize_to_parquet
 from .prioritization import prioritize_signals
 from .quality import audit_quality
@@ -31,6 +40,22 @@ DEFAULT_CGR_DIR = "external/radar-cgr/data/silver"
 def load_config(path: str = "config/anomaly_thresholds.yaml") -> dict:
     p = Path(path)
     return yaml.safe_load(p.read_text(encoding="utf-8")) if p.exists() else {}
+
+
+def load_procurement_config(path: str = "config/procurement_thresholds.yaml") -> dict:
+    p = Path(path)
+    return yaml.safe_load(p.read_text(encoding="utf-8")) if p.exists() else {}
+
+
+def _procurement_thresholds(cfg: dict) -> ProcurementThresholds:
+    bunching = cfg.get("bunching", {}) or {}
+    return ProcurementThresholds(
+        utm_clp_by_year={int(k): float(v) for k, v in (cfg.get("utm_clp_by_year") or {}).items()},
+        boundaries_utm=tuple(float(x) for x in (cfg.get("boundaries_utm") or (30.0, 100.0, 1000.0))),
+        bunching_window=float(bunching.get("window", 0.10)),
+        bunching_min_ratio=float(bunching.get("min_ratio", 2.0)),
+        bunching_min_count=int(bunching.get("min_count", 5)),
+    )
 
 
 def _write_snapshot_manifest(rows: list[dict]) -> None:
@@ -87,6 +112,41 @@ def _extend_from_config(parquet_glob: str, cfg: dict) -> dict:
     )
 
 
+def _print_layer_summary(result: dict) -> None:
+    """Say what each layer produced, including what it could not produce."""
+    print(f"[OK] capa entidad: {summarize_entity_signals(result['entity'])}")
+    silent = result["extended"].get("silent_detectors") or []
+    if silent:
+        print(f"[AVISO] detectores sin señales en esta corrida: {', '.join(silent)}")
+    procurement = result["procurement"]
+    if procurement["snapshot_available"]:
+        print(
+            f"[OK] capa compras: {procurement['orders_joined']:,} órdenes unidas | "
+            f"{procurement['signals']:,} señales | {procurement['by_type']}"
+        )
+    else:
+        print(
+            "[AVISO] capa compras: adaptador listo, falta el snapshot de Mercado Público. "
+            "Las tipologías que dependen del proceso de compra quedan con techo de evidencia."
+        )
+    typology = result["typology"]
+    print(
+        f"[OK] capa tipologías: {typology['relations_with_typology']:,} de "
+        f"{typology['relations_evaluated']:,} relaciones configuran alguna | {typology['by_typology']}"
+    )
+    if typology["blocked_until_integration"]:
+        print(
+            "[AVISO] tipologías aún no alcanzables: "
+            + ", ".join(typology["blocked_until_integration"])
+        )
+    overall = result["opacity"].get("overall") or {}
+    if overall:
+        print(
+            f"[OK] opacidad de identidad: {overall.get('opaque_share', 0):.1%} del monto "
+            "llega con contraparte pseudonimizada por la fuente"
+        )
+
+
 def _run_cgr_correlation(parquet_glob: str, cgr_dir: str) -> dict:
     return correlate_with_cgr(parquet_glob, cgr_silver_dir=cgr_dir)
 
@@ -95,8 +155,30 @@ def _run_analytics(parquet_glob: str, cfg: dict, cgr_dir: str) -> dict:
     build_profiles(parquet_glob)
     base = _build_base_signals(parquet_glob, cfg)
     extended = _extend_from_config(parquet_glob, cfg)
+
+    # Capa 3: contraparte. Usa el enriquecimiento SII ya publicado.
+    entity = build_entity_signals(parquet_glob, config=cfg.get("entity_signals", {}))
+
+    # Capa 2: proceso de compra. Sin snapshot de Mercado Público no produce
+    # señales, pero publica su estado de integración en vez de desaparecer.
+    procurement_cfg = load_procurement_config()
+    procurement = build_procurement_signals(
+        parquet_glob, thresholds=_procurement_thresholds(procurement_cfg), config=procurement_cfg
+    )
+    write_procurement_status(parquet_glob)
+
     cgr = _run_cgr_correlation(parquet_glob, cgr_dir)
-    queue = prioritize_signals(parquet_glob)
+
+    publication = cfg.get("publication", {}) or {}
+    queue = prioritize_signals(
+        parquet_glob,
+        top_n=int(publication.get("top_n", 5000)),
+        family_min_share=float(publication.get("family_min_share", 0.08)),
+    )
+
+    # Capa 4: el eje LA/FT, separado de la prioridad de revisión.
+    typology = build_typologies(parquet_glob)
+    opacity = build_opacity_index(parquet_glob, "docs/data/opacity_index.json")
     findings = build_investigative_findings()
     dashboard = build_dashboard_json(
         parquet_glob,
@@ -113,6 +195,10 @@ def _run_analytics(parquet_glob: str, cfg: dict, cgr_dir: str) -> dict:
     return {
         "base": base,
         "extended": extended,
+        "entity": entity,
+        "procurement": procurement,
+        "typology": typology,
+        "opacity": opacity,
         "cgr": cgr,
         "queue": queue,
         "findings": findings,
@@ -138,6 +224,7 @@ def run_sample(sample: str, cgr_dir: str = DEFAULT_CGR_DIR) -> None:
         f"prioridad={result['queue']['priority_tiers']} | hallazgos={result['findings']['relations']:,} | "
         f"candidatos SII={result['sii_document_candidates']['rows']:,}"
     )
+    _print_layer_summary(result)
 
 
 def run_years(years: list[int], build_search_index: bool = True, cgr_dir: str = DEFAULT_CGR_DIR) -> None:
@@ -171,8 +258,13 @@ def run_years(years: list[int], build_search_index: bool = True, cgr_dir: str = 
 
     result = _run_analytics(glob, load_config(), cgr_dir)
     print(f"[OK] señales operativas: {result['extended']['signals']:,} | {result['extended']['by_type']}")
+    _print_layer_summary(result)
     print(f"[OK] CGR: {result['cgr']['status']} | enlaces candidatos={result['cgr']['links']:,} | con hallazgos={result['cgr']['links_with_findings']:,}")
-    print(f"[OK] cola investigativa: {result['queue']['priority_tiers']}")
+    print(
+        f"[OK] cola investigativa: {result['queue']['priority_tiers']} | "
+        f"publicadas={result['queue']['published_signals']:,} de {result['queue']['signals']:,} "
+        f"| familias={result['queue']['published_families']} | grupos de pares={result['queue']['peer_groups']:,}"
+    )
     print(
         f"[OK] hallazgos RIGP: {result['findings']['relations']:,} relaciones | "
         f"servicios={result['findings']['service_hotspots']:,} | proveedores={result['findings']['provider_hotspots']:,} | "

@@ -60,14 +60,34 @@ def extend_signals(
           AND amount>={float(concentration_min_amount)}
     """)
 
+    # `dias_de_pago` no viaja en todos los bulk oficiales. Cuando falta, el plazo se
+    # reconstruye desde las fechas que sí vienen, para que la señal no dependa de un
+    # único campo opcional y deje de producir cero en silencio.
+    con.execute("""
+        CREATE OR REPLACE TEMP VIEW payment_delay_base AS
+        SELECT *,
+               coalesce(
+                 try_cast(dias_de_pago AS DOUBLE),
+                 date_diff('day', try_cast(fecha_recepcion_conforme AS DATE), try_cast(fecha_pago AS DATE)),
+                 date_diff('day', try_cast(fecha_documento AS DATE), try_cast(fecha_pago AS DATE))
+               ) AS pay_days,
+               CASE
+                 WHEN try_cast(dias_de_pago AS DOUBLE) IS NOT NULL THEN 'CAMPO_FUENTE'
+                 WHEN try_cast(fecha_recepcion_conforme AS DATE) IS NOT NULL
+                      AND try_cast(fecha_pago AS DATE) IS NOT NULL THEN 'RECEPCION_A_PAGO'
+                 WHEN try_cast(fecha_documento AS DATE) IS NOT NULL
+                      AND try_cast(fecha_pago AS DATE) IS NOT NULL THEN 'DOCUMENTO_A_PAGO'
+                 ELSE 'NO_DETERMINABLE'
+               END AS pay_days_basis
+        FROM facts
+        WHERE is_provider=TRUE AND coalesce(provider_id,'')<>''
+          AND coalesce(is_aggregated,FALSE)=FALSE
+    """)
     con.execute(f"""
         INSERT INTO merged
         WITH b AS (
-          SELECT *,try_cast(dias_de_pago AS DOUBLE) pay_days FROM facts
-          WHERE is_provider=TRUE AND coalesce(provider_id,'')<>''
-            AND coalesce(is_aggregated,FALSE)=FALSE
-            AND try_cast(dias_de_pago AS DOUBLE) IS NOT NULL
-            AND try_cast(dias_de_pago AS DOUBLE)>=0
+          SELECT * FROM payment_delay_base
+          WHERE pay_days IS NOT NULL AND pay_days>=0
         ), st AS (
           SELECT organization_id,count(*) n,median(pay_days) med,
                  quantile_cont(pay_days,{float(payment_delay_quantile)}) q
@@ -79,7 +99,7 @@ def extend_signals(
                CASE WHEN st.med>0 THEN b.pay_days/st.med ELSE b.pay_days END,
                CASE WHEN b.pay_days>=120 THEN 'HIGH' ELSE 'MEDIUM' END,
                'MEDIUM','DERIVED_SIGNAL',
-               'El plazo de pago está en la cola extrema del organismo y supera un umbral material de días.',
+               'El plazo de pago está en la cola extrema del organismo y supera un umbral material de días (base: '||b.pay_days_basis||').',
                'El retraso puede obedecer a controversias, recepción conforme tardía o condiciones contractuales; revisar secuencia documental antes de interpretar.',
                '["Revisar fecha de recepción conforme","Revisar controversias/notas de crédito","Comparar con otros pagos del mismo contrato","Verificar patrón recurrente con el proveedor"]'
         FROM b JOIN st USING(organization_id)
@@ -120,6 +140,14 @@ def extend_signals(
           AND cur.amount>=greatest({float(new_series_min_amount)},coalesce(threshold.q,0))
     """)
 
+    coverage = con.execute(
+        """
+        SELECT pay_days_basis, count(*) AS rows
+        FROM payment_delay_base GROUP BY 1
+        """
+    ).df().set_index("pay_days_basis")["rows"].to_dict()
+    coverage = {str(k): int(v) for k, v in coverage.items()}
+
     tmp = path.with_suffix(".v03.tmp.parquet")
     con.execute(f"""
         COPY (
@@ -139,4 +167,15 @@ def extend_signals(
     row = con.execute(f"SELECT count(*),count(DISTINCT signal_id) FROM read_parquet('{path.as_posix()}')").fetchone()
     by_type = dict(con.execute(f"SELECT signal_type,count(*) FROM read_parquet('{path.as_posix()}') GROUP BY 1").fetchall())
     con.close()
-    return {"path": str(path), "signals": int(row[0]), "distinct_signal_ids": int(row[1]), "by_type": by_type}
+    result = {
+        "path": str(path),
+        "signals": int(row[0]),
+        "distinct_signal_ids": int(row[1]),
+        "by_type": by_type,
+        "input_coverage": coverage,
+    }
+    result["silent_detectors"] = [
+        name for name in ("PROVIDER_CONCENTRATION", "PAYMENT_DELAY_OUTLIER", "NEW_TO_SERIES_HIGH_SPEND")
+        if by_type.get(name, 0) == 0
+    ]
+    return result

@@ -1,5 +1,10 @@
 # RIGP · Dossier de trazabilidad por receptor
 
+> **Vigencia.** Este documento describe la arquitectura anterior a la v2. El método
+> operativo vigente está en [`RIGP_METHOD_v2.md`](RIGP_METHOD_v2.md); se conserva aquí
+> el razonamiento original porque buena parte sigue siendo válida como método, aunque
+> los módulos que menciona ya no existen con ese nombre.
+
 ## Propósito
 
 El dossier concentra en una sola lectura la cadena investigativa disponible para un receptor priorizado. Su objetivo es mostrar **qué está documentado, qué falta por comprobar y hasta qué nivel de trazabilidad puede sostenerse la investigación**, sin convertir profundidad documental en probabilidad de delito.

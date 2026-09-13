@@ -15,78 +15,75 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - run: python -m pip install -r requirements.txt
-      - name: UI JavaScript syntax
+
+      - name: Application JavaScript syntax
         run: |
-          node --check docs/assets/spend_safe_v3.js
-          node --check docs/assets/spend_safe_network.js
-          node --check docs/assets/spend_v14_boot.js
-          node --check docs/assets/spend_v14_explore.js
-          node --check docs/assets/spend_v14_focus.js
-          node --check docs/assets/spend_v15_shell.js
-          node --check docs/assets/spend_v8_findings.js
-          node --check docs/assets/spend_v9_review.js
-          node --check docs/assets/spend_v10_learning.js
-          node --check docs/assets/spend_v11_evidence.js
-          node --check docs/assets/spend_v12_workqueue_bridge.js
-          node --check docs/assets/spend_v12_workqueue.js
-      - name: UX and performance contract
-        run: |
-          grep -q 'data-network-view' docs/index.html
-          grep -q 'MAX_NODES=12' docs/assets/spend_safe_network.js
-          grep -q 'Red investigativa ligera' docs/assets/spend_safe_network.js
-          grep -q 'carga contextual bajo demanda' docs/assets/spend_safe_v3.js
-          grep -q 'explore_context.json' docs/assets/spend_safe_v3.js
-          ! grep -q 'MutationObserver' docs/assets/spend_safe_v3.js
-          ! grep -q 'setInterval' docs/assets/spend_safe_v3.js
-          ! grep -q 'MutationObserver' docs/assets/spend_safe_network.js
-          ! grep -q 'setInterval' docs/assets/spend_safe_network.js
-          ! grep -q 'spend_years_v1.json' docs/assets/spend_safe_v3.js
-          ! grep -q 'spend_years_v1.json' docs/assets/spend_safe_network.js
-          ! grep -q 'assets/spend_v2_fast.js' docs/index.html
-          ! grep -q 'assets/spend_v4_explorer.js' docs/index.html
-          ! grep -q 'assets/spend_v5_focus.js' docs/index.html
-          ! grep -q 'assets/spend_v6_dossier.js' docs/index.html
-          ! grep -q 'assets/spend_v7_mark_filter.js' docs/index.html
-      - name: Human review, learning, evidence and work queue contract
-        run: |
-          grep -q 'useful_signals' docs/assets/spend_v9_review.js
-          grep -q 'low_value_signals' docs/assets/spend_v9_review.js
-          grep -q 'rigp-review-updated' docs/assets/spend_v9_review.js
-          grep -q '30 hallazgos' docs/RIGP_LEARNING_METHOD.md
-          grep -q 'no modifican automáticamente' docs/assets/spend_v10_learning.js
-          grep -q 'Expediente de evidencia' docs/assets/spend_v11_evidence.js
-          grep -q 'Preguntas que deben quedar resueltas' docs/assets/spend_v11_evidence.js
-          grep -q 'no determina delito' docs/assets/spend_v11_evidence.js
-          grep -q 'Siguiente recomendado' docs/assets/spend_v12_workqueue.js
-          grep -q 'Tomar revisión' docs/assets/spend_v12_workqueue.js
+          for f in docs/app/*.mjs docs/app/views/*.mjs; do node --check "$f"; done
+
       - name: Unit + operational engine tests
         run: PYTHONPATH=src pytest -q
+
       - name: End-to-end sample pipeline
         run: PYTHONPATH=src python -m radar_presupuesto.pipeline --sample tests/fixtures/sample_transactions.csv --cgr-dir /tmp/no-cgr
-      - name: Build compact contextual payload
-        run: python scripts/build_explore_context_for_pages.py
-      - name: Validate sample integrity, queue, findings and contextual payload
+
+      - name: Build published payloads
+        run: |
+          python scripts/build_explore_context_for_pages.py
+          python scripts/publish_static_payloads.py
+          python scripts/build_triage_for_pages.py
+
+      - name: Validate integrity, both axes and declared coverage
         run: |
           python - <<'PY'
           import json
-          q=json.load(open('docs/data/quality.json'))
-          d=json.load(open('docs/data/dashboard.json'))
-          iq=json.load(open('docs/data/investigation_queue.json'))
-          fh=json.load(open('docs/data/investigative_findings.json'))
-          ex=json.load(open('docs/data/explore_context.json'))
-          assert q['transaction_id_collision_ratio'] == 0
-          assert q['distinct_transaction_ids'] == q['rows']
-          assert iq['total_signals'] == d['metrics']['signals']
-          assert fh['methodology_version'].startswith('RIGP-FINDINGS')
-          assert 'relation_findings' in fh and 'service_hotspots' in fh and 'provider_hotspots' in fh
-          assert 'guardrail' in fh
-          assert ex['schema'] == 'RIGP-EXPLORE-CONTEXT-v1'
-          assert 'services' in ex and 'providers' in ex and 'relations' in ex
-          print('Priority tiers:', iq['priority_tiers'])
-          print('Finding relations:', len(fh['relation_findings']))
-          print('Explore coverage:', ex['coverage'])
+          from pathlib import Path
+
+          quality = json.loads(Path('docs/data/quality.json').read_text())
+          queue = json.loads(Path('docs/data/investigation_queue.json').read_text())
+          findings = json.loads(Path('docs/data/investigative_findings.json').read_text())
+          triage = json.loads(Path('docs/data/triage.json').read_text())
+          typology = json.loads(Path('docs/data/typology_context.json').read_text())
+          procurement = json.loads(Path('docs/data/procurement_status.json').read_text())
+
+          # Identidad: una repetición documental nunca puede colisionar en la clave física.
+          assert quality['transaction_id_collision_ratio'] == 0
+          assert quality['distinct_transaction_ids'] == quality['rows']
+
+          # La cola v2 publica su política, no un corte silencioso.
+          assert queue['schema'] == 'RIGP-INVESTIGATION-QUEUE-v2'
+          assert queue['publication_policy']['top_n'] >= 5000, 'el corte de publicación no puede volver a 250'
+          assert queue['publication_policy']['family_min_share'] > 0, 'sin cuota, una familia entera desaparece del corte'
+          assert queue['peer_groups'] >= 1, 'el score exige un grupo de pares explícito'
+          for row in queue['queue']:
+              assert 'review_priority_score' in row
+              assert 'rarity_component' in row
+              assert 'relative_materiality_component' in row
+
+          # Hallazgos y triage llevan los dos ejes por separado.
+          assert findings['methodology_version'].startswith('RIGP-FINDINGS')
+          assert 'laft_compatibility_score' in findings['axes']
+          assert triage['schema'] == 'RIGP-TRIAGE-v1'
+          assert set(triage['axes']) == {'review_priority_score', 'laft_compatibility_score'}
+
+          # Cada tipología dice qué la descartaría y qué documento pedir.
+          for entry in typology['catalog']:
+              assert entry['sustains'] and entry['discards'] and entry['documents'], entry['code']
+
+          # Las capas no integradas se declaran en vez de desaparecer.
+          assert procurement['integration_state'] in {'SNAPSHOT_PRESENT', 'ADAPTER_READY_SOURCE_PENDING'}
+          assert procurement['join_key'] == 'orden_compra'
+          assert isinstance(triage['coverage']['pending_layers'], list)
+
+          print('cola:', queue['priority_tiers'], '| publicadas:', queue['published_signals'])
+          print('familias publicadas:', queue['published_families'])
+          print('triage:', triage['coverage']['relations_published'], 'relaciones')
+          print('capas pendientes:', triage['coverage']['pending_layers'])
           PY
+
       - name: Official source smoke test
         run: |
           PYTHONPATH=src python -m radar_presupuesto.cli probe --catalog /tmp/source_catalog.json --coverage /tmp/coverage.json

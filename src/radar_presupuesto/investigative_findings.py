@@ -81,7 +81,8 @@ def build_investigative_findings(
     prioritized_path: str = "data/signals/prioritized_signals.parquet",
     output_parquet: str = "data/signals/investigative_findings.parquet",
     output_json: str = "docs/data/investigative_findings.json",
-    top_n: int = 250,
+    typology_path: str = "data/signals/typology_matches.parquet",
+    top_n: int = 2500,
 ) -> dict:
     """Convert technical signals into analyst-facing findings and entity hot-spots.
 
@@ -94,6 +95,34 @@ def build_investigative_findings(
 
     con = duckdb.connect()
     con.execute(f"CREATE OR REPLACE VIEW prioritized AS SELECT * FROM read_parquet('{source.as_posix()}')")
+    # Un parquet priorizado de una corrida anterior puede no traer las columnas
+    # del scoring nuevo; se resuelven aquí en vez de romper la construcción.
+    available = {row[1] for row in con.execute("PRAGMA table_info('prioritized')").fetchall()}
+
+    def optional(column: str, fallback: str) -> str:
+        return column if column in available else fallback
+
+    peer_group_expr = optional("peer_group", "''")
+    prevalence_expr = optional("pattern_prevalence", "1.0")
+    match_grade_expr = optional("cgr_match_grade", "'NONE'")
+    # El eje LA/FT se calcula aparte y se une aquí: una relación puede merecer
+    # revisión por razones que nada tienen que ver con lavado, y al revés.
+    if Path(typology_path).exists():
+        con.execute(
+            f"CREATE OR REPLACE VIEW typology AS SELECT * FROM read_parquet('{Path(typology_path).as_posix()}')"
+        )
+    else:
+        con.execute(
+            """
+            CREATE OR REPLACE VIEW typology AS
+            SELECT NULL::VARCHAR organization_id, NULL::VARCHAR provider_id, NULL::BIGINT periodo,
+                   0.0::DOUBLE laft_compatibility_score, 'NULO'::VARCHAR laft_alignment,
+                   ''::VARCHAR top_typology, ''::VARCHAR top_typology_name, 0::BIGINT typology_count,
+                   '[]'::VARCHAR typologies, 'TRAZABLE'::VARCHAR opacity_level,
+                   0.0::DOUBLE opaque_amount_share, ''::VARCHAR observed_patterns
+            WHERE FALSE
+            """
+        )
     con.execute(
         """
         CREATE OR REPLACE TEMP VIEW enriched AS
@@ -134,10 +163,29 @@ def build_investigative_findings(
               sum(CASE WHEN priority_tier='P2' THEN 1 ELSE 0 END) p2_signals,
               max(coalesce(cgr_match_count,0)) cgr_match_count,
               max(coalesce(cgr_max_confidence,0)) cgr_max_confidence,
-              max(coalesce(transaction_amount,0)) max_transaction_amount
+              max(coalesce(transaction_amount,0)) max_transaction_amount,
+              any_value(coalesce({peer_group_expr},'')) peer_group,
+              min(coalesce({prevalence_expr},1.0)) min_pattern_prevalence,
+              any_value(coalesce({match_grade_expr},'NONE')) cgr_match_grade
             FROM enriched
             WHERE coalesce(organization_id,'')<>'' AND coalesce(provider_id,'')<>''
             GROUP BY 1,2,3
+          ), with_typology AS (
+            SELECT r.*,
+                   coalesce(t.laft_compatibility_score, 0.0) laft_compatibility_score,
+                   coalesce(t.laft_alignment, 'NULO') laft_alignment,
+                   coalesce(t.top_typology,'') top_typology,
+                   coalesce(t.top_typology_name,'') top_typology_name,
+                   coalesce(t.typology_count, 0) typology_count,
+                   coalesce(t.typologies,'[]') typologies,
+                   coalesce(t.opacity_level,'TRAZABLE') opacity_level,
+                   coalesce(t.opaque_amount_share, 0.0) opaque_amount_share,
+                   coalesce(t.observed_patterns,'') observed_patterns
+            FROM relation r
+            LEFT JOIN typology t
+              ON t.organization_id = r.organization_id
+             AND t.provider_id = r.provider_id
+             AND t.periodo = r.periodo
           ), classified AS (
             SELECT *,
               CASE
@@ -159,7 +207,7 @@ def build_investigative_findings(
                      OR (cgr_match_count>0 AND max_priority_score>=50) THEN 'REVISION_PRIORITARIA'
                 ELSE 'SEGUIMIENTO'
               END attention_level
-            FROM relation
+            FROM with_typology
           )
           SELECT
             'HAL-RIGP-' || upper(substr(md5(
@@ -297,7 +345,11 @@ def build_investigative_findings(
 
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "methodology_version": "RIGP-FINDINGS-v1",
+        "methodology_version": "RIGP-FINDINGS-v2",
+        "axes": {
+            "max_priority_score": "Prioridad de revisión: cuánto conviene mirar esto primero.",
+            "laft_compatibility_score": "Compatibilidad con una tipología LA/FT, calculada aparte.",
+        },
         "methodology": (
             "Capa intermedia entre señales técnicas y trabajo analítico. Agrupa señales por relación servicio–proveedor–año, "
             "eleva atención sólo por convergencia, prioridad previa y/o evidencia externa candidata, y produce vistas por servicio, proveedor y red estrella."

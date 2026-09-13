@@ -1,0 +1,111 @@
+name: Check RIGP App Contract
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/index.html'
+      - 'docs/app/**'
+      - 'scripts/build_triage_for_pages.py'
+      - 'scripts/publish_static_payloads.py'
+      - 'src/radar_presupuesto/typologies.py'
+      - 'src/radar_presupuesto/case_model.py'
+      - '.github/workflows/check-app.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: JavaScript syntax
+        run: |
+          for f in docs/app/*.mjs docs/app/views/*.mjs; do node --check "$f"; done
+
+      - name: Information architecture stays at five destinations
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          main = Path('docs/app/main.mjs').read_text(encoding='utf-8')
+          router = Path('docs/app/router.mjs').read_text(encoding='utf-8')
+
+          routes = re.search(r"ROUTES = \[(.*?)\]", router, re.S).group(1)
+          names = re.findall(r"'([a-z]+)'", routes)
+          assert names == ['bandeja', 'triage', 'caso', 'entidad', 'informe'], names
+
+          nav = re.search(r"const NAV = \[(.*?)\];", main, re.S).group(1)
+          entries = re.findall(r"\['([a-z]+)'", nav)
+          assert len(entries) == 5, f'la navegación principal debe quedar en 5 destinos, hay {len(entries)}'
+          print('[OK] cinco destinos')
+          PY
+
+      - name: No polling, no DOM observers, no click simulation between modules
+        run: |
+          # La versión anterior coordinaba quince módulos aislados simulando
+          # clicks y observando el DOM. Es lo que hacía la interfaz impredecible.
+          ! grep -rn 'MutationObserver' docs/app/
+          ! grep -rn 'setInterval' docs/app/
+          ! grep -rnE '\.click\(\)' docs/app/
+          ! grep -rn 'spend_years_v1.json' docs/app/
+          echo "[OK] arquitectura sin observadores ni temporizadores"
+
+      - name: Both axes stay separate in the interface
+        run: |
+          grep -q 'review_priority_score' docs/app/views/triage.mjs
+          grep -q 'laft_compatibility_score' docs/app/views/triage.mjs
+          grep -q 'compatibilidad LA/FT' docs/app/views/triage.mjs
+          grep -q 'no es probabilidad de delito\|No es probabilidad de delito' scripts/build_triage_for_pages.py
+          echo "[OK] los dos ejes viajan separados"
+
+      - name: Case lifecycle guarantees survive
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          cases = Path('docs/app/cases.mjs').read_text(encoding='utf-8')
+
+          # Cerrar sin motivo era imposible de auditar; escalar sin hipótesis,
+          # imposible de sostener.
+          assert 'Cerrar un expediente exige escribir el motivo' in cases
+          assert 'Escalar exige una hipótesis formulada' in cases
+          # Todo vínculo nace candidato.
+          assert "link_status: 'CANDIDATE'" in cases
+          # El RUT sólo se guarda si el dígito verificador valida.
+          assert 'canonicalRut' in cases
+          # Las cuatro etapas siguen declarando lo que no se sabe.
+          for status in ('POR_INTEGRAR', 'POR_VERIFICAR', 'NO_DETERMINADO'):
+              assert status in cases, status
+          # El trabajo de la versión anterior se recupera, no se descarta.
+          assert 'migrateLegacy' in cases and 'rigp_findings_review_v1' in cases
+          print('[OK] garantías del expediente')
+          PY
+
+      - name: Guardrails are present in every published payload path
+        run: |
+          grep -q 'No acredita irregularidad' docs/app/cases.mjs
+          grep -q 'guardrail' docs/app/views/triage.mjs
+          grep -q 'no acredita' scripts/build_triage_for_pages.py
+          echo "[OK] guardrails"
+
+      - name: Page shell loads exactly one entry point
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          html = Path('docs/index.html').read_text(encoding='utf-8')
+          scripts = re.findall(r'<script[^>]*src="([^"]+)"', html)
+          styles = re.findall(r'<link[^>]*rel="stylesheet"[^>]*href="([^"]+)"', html)
+          assert len(scripts) == 1, f'un solo punto de entrada; hay {len(scripts)}: {scripts}'
+          assert len(styles) == 1, f'una sola hoja de estilos; hay {len(styles)}: {styles}'
+          assert scripts[0].startswith('app/main.mjs')
+          assert 'type="module"' in html
+          assert '<noscript>' in html, 'la página debe decir qué hacer sin JavaScript'
+          print('[OK] un punto de entrada:', scripts[0])
+          PY

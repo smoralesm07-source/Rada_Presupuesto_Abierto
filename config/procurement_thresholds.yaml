@@ -1,0 +1,38 @@
+# Umbrales de modalidad de compra pública, en UTM.
+#
+# IMPORTANTE: estos valores son configuración, no doctrina. Los límites fijados
+# por la Ley 19.886 y su reglamento se han modificado —la Ley 21.634 los cambió—
+# de modo que deben fijarse contra el texto vigente para el periodo analizado.
+# Si un umbral queda mal configurado, el detector de agrupamiento simplemente no
+# encuentra nada: nunca inventa un hallazgo.
+boundaries_utm:
+  - 30.0    # límite superior de compra ágil
+  - 100.0   # frontera entre licitación menor y licitación pública de mayor cuantía
+  - 1000.0  # frontera que obliga a licitación pública de alta cuantía
+
+# Valor de la UTM en pesos, por año. Verificar contra la publicación oficial.
+utm_clp_by_year:
+  2024: 65000
+  2025: 68000
+  2026: 70000
+
+bunching:
+  window: 0.10            # ventana relativa a cada lado del umbral
+  min_ratio: 2.0          # densidad bajo/sobre el umbral que activa la señal
+  min_count: 5            # adjudicaciones mínimas bajo el umbral
+
+single_bidder:
+  min_amount: 20000000
+direct_award_dependence:
+  min_share: 0.5
+  min_amount: 50000000
+  min_orders: 5
+direct_award_recurrence:
+  min_orders: 3
+  min_amount: 20000000
+award_to_payment_inflation:
+  min_ratio: 1.25
+  min_amount: 20000000
+split_procurement:
+  window_days: 30
+  min_orders: 3

@@ -11,15 +11,54 @@ from pathlib import Path
 import duckdb
 import pandas as pd
 
-from .ids import normalize_text
+from .ids import normalize_rut, normalize_text
 
 LINK_COLUMNS = [
     "evidence_link_id","local_entity_type","local_entity_id","local_name",
     "external_system","external_entity_id","external_name","external_document_id",
     "match_method","name_similarity","region_agreement","confidence","status",
     "cgr_finding_count","cgr_max_aml_score","cgr_max_severity","cgr_risk_families",
-    "cgr_source_urls","match_basis",
+    "cgr_source_urls","match_basis","match_grade",
 ]
+
+# Un RUT validado identifica a la misma entidad. Un nombre normalizado es una
+# hipótesis sobre dos cadenas de texto. Antes ambos pesaban igual en el score de
+# prioridad; ahora el grado del match viaja con el enlace y el nombre no puede
+# alcanzar por sí solo el umbral de confianza alta.
+MATCH_GRADE_RUT = "RUT_EXACT"
+MATCH_GRADE_NAME_EXACT = "NAME_EXACT"
+MATCH_GRADE_NAME_FUZZY = "NAME_FUZZY"
+
+NAME_CONFIDENCE_CEILING = 0.80
+RUT_CONFIDENCE_CEILING = 0.97
+
+EXTERNAL_RUT_FIELDS = (
+    "rut", "rut_normalizado", "rut_normalized", "entity_rut", "provider_rut",
+    "rut_proveedor", "rut_entidad", "taxpayer_id", "tax_id",
+)
+
+
+def external_rut(record: dict) -> str:
+    """Read a validated RUT from a CGR silver record, whatever it calls the field."""
+    for field in EXTERNAL_RUT_FIELDS:
+        rut = normalize_rut(record.get(field))
+        if rut:
+            return rut
+    entity_id = str(record.get("entity_id") or "")
+    if "RUT-" in entity_id:
+        return normalize_rut(entity_id.split("RUT-", 1)[1])
+    return ""
+
+
+def build_rut_index(candidates: list[dict], external_id_field: str) -> dict[str, dict]:
+    index: dict[str, dict] = {}
+    for record in candidates:
+        if not record.get(external_id_field):
+            continue
+        rut = external_rut(record)
+        if rut:
+            index.setdefault(rut, record)
+    return index
 
 
 def _read_jsonl(path: Path) -> list[dict]:
@@ -116,16 +155,22 @@ def _best_external_match(local_names: list[str], local_region: object, candidate
     return None, "", sim, region_ok
 
 
-def _make_link(local_type: str, local_id: str, local_name: str, ext: dict, ext_id_field: str, method: str, similarity: float, region_ok: bool | None, findings_by_doc: dict[str, dict]) -> dict:
+def _make_link(local_type: str, local_id: str, local_name: str, ext: dict, ext_id_field: str, method: str, similarity: float, region_ok: bool | None, findings_by_doc: dict[str, dict], match_grade: str = MATCH_GRADE_NAME_FUZZY) -> dict:
     ext_id = str(ext.get(ext_id_field) or "")
     doc = str(ext.get("source_document_id") or "")
     cgr_conf = float(ext.get("confidence") or 0.75)
-    base = 0.92 if method == "EXACT_NORMALIZED_NAME" else 0.82
-    if region_ok is True:
-        base += 0.03
-    elif region_ok is False:
-        base -= 0.07
-    confidence = max(0.0, min(0.93, base * (0.75 + 0.25 * cgr_conf)))
+    if match_grade == MATCH_GRADE_RUT:
+        base, ceiling = 0.97, RUT_CONFIDENCE_CEILING
+    elif match_grade == MATCH_GRADE_NAME_EXACT:
+        base, ceiling = 0.86, NAME_CONFIDENCE_CEILING
+    else:
+        base, ceiling = 0.78, NAME_CONFIDENCE_CEILING
+    if match_grade != MATCH_GRADE_RUT:
+        if region_ok is True:
+            base += 0.03
+        elif region_ok is False:
+            base -= 0.07
+    confidence = max(0.0, min(ceiling, base * (0.75 + 0.25 * cgr_conf)))
     finding = findings_by_doc.get(doc, {})
     payload = f"{local_type}|{local_id}|{ext_id}|{doc}|{method}"
     link_id = "EVL-PA-CGR-" + hashlib.sha256(payload.encode()).hexdigest()[:24].upper()
@@ -148,7 +193,8 @@ def _make_link(local_type: str, local_id: str, local_name: str, ext: dict, ext_i
         "cgr_max_severity": finding.get("max_severity") or "",
         "cgr_risk_families": json.dumps(finding.get("risk_families") or [], ensure_ascii=False),
         "cgr_source_urls": json.dumps(finding.get("source_urls") or [], ensure_ascii=False),
-        "match_basis": json.dumps({"name": method,"similarity": round(float(similarity), 6),"region_agreement": region_ok,"note": "Coincidencia de entidad candidata; no prueba que una transacción específica corresponda al hallazgo CGR."}, ensure_ascii=False),
+        "match_basis": json.dumps({"method": method,"grade": match_grade,"similarity": round(float(similarity), 6),"region_agreement": region_ok,"note": "Coincidencia de entidad candidata; no prueba que una transacción específica corresponda al hallazgo CGR. Un match por nombre no acredita identidad."}, ensure_ascii=False),
+        "match_grade": match_grade,
     }
 
 
@@ -173,18 +219,29 @@ def correlate_with_cgr(parquet_glob: str, cgr_silver_dir: str = "external/radar-
     """).df()
     con.close()
 
+    provider_rut_index = build_rut_index(cgr_providers, "provider_id")
     links: list[dict] = []
+    rut_matched = 0
     for row in pa_providers.to_dict("records"):
-        ext, method, sim, region_ok = _best_external_match([str(row.get("nombre") or "")], row.get("region"), cgr_providers, "provider_id")
+        name = str(row.get("nombre") or "")
+        local_rut = normalize_rut(row.get("rut"))
+        ext = provider_rut_index.get(local_rut) if local_rut else None
+        if ext is not None:
+            rut_matched += 1
+            links.append(_make_link("PROVIDER", str(row["provider_id"]), name, ext, "provider_id", "RUT_VALIDATED", 1.0, None, finding_map, MATCH_GRADE_RUT))
+            continue
+        ext, method, sim, region_ok = _best_external_match([name], row.get("region"), cgr_providers, "provider_id")
         if ext:
-            links.append(_make_link("PROVIDER", str(row["provider_id"]), str(row.get("nombre") or ""), ext, "provider_id", method, sim, region_ok, finding_map))
+            grade = MATCH_GRADE_NAME_EXACT if method == "EXACT_NORMALIZED_NAME" else MATCH_GRADE_NAME_FUZZY
+            links.append(_make_link("PROVIDER", str(row["provider_id"]), name, ext, "provider_id", method, sim, region_ok, finding_map, grade))
 
     for row in pa_orgs.to_dict("records"):
         names = [str(row.get("area") or ""),str(row.get("servicio") or ""),str(row.get("institucion") or "")]
         ext, method, sim, region_ok = _best_external_match(names, row.get("region"), cgr_orgs, "organization_id")
         if ext:
             local_name = next((n for n in names if n), str(row["organization_id"]))
-            links.append(_make_link("ORGANIZATION", str(row["organization_id"]), local_name, ext, "organization_id", method, sim, region_ok, finding_map))
+            grade = MATCH_GRADE_NAME_EXACT if method == "EXACT_NORMALIZED_NAME" else MATCH_GRADE_NAME_FUZZY
+            links.append(_make_link("ORGANIZATION", str(row["organization_id"]), local_name, ext, "organization_id", method, sim, region_ok, finding_map, grade))
 
     out_parquet = Path(output_parquet)
     out_parquet.parent.mkdir(parents=True, exist_ok=True)
@@ -202,7 +259,21 @@ def correlate_with_cgr(parquet_glob: str, cgr_silver_dir: str = "external/radar-
         "organization_links": sum(x["local_entity_type"] == "ORGANIZATION" for x in links),
         "links_with_findings": sum(x["cgr_finding_count"] > 0 for x in links),
         "high_confidence_links": sum(float(x["confidence"]) >= 0.88 for x in links),
-        "methodology": "Cruce conservador por nombre normalizado y, cuando está disponible, región. Cada enlace permanece CANDIDATE; no atribuye un hallazgo CGR a una transacción específica.",
+        "rut_links": sum(x["match_grade"] == MATCH_GRADE_RUT for x in links),
+        "name_links": sum(x["match_grade"] != MATCH_GRADE_RUT for x in links),
+        "providers_matched_by_rut": rut_matched,
+        "external_ruts_available": len(provider_rut_index),
+        "by_match_grade": {
+            grade: sum(x["match_grade"] == grade for x in links)
+            for grade in (MATCH_GRADE_RUT, MATCH_GRADE_NAME_EXACT, MATCH_GRADE_NAME_FUZZY)
+        },
+        "methodology": (
+            "El cruce intenta primero RUT validado con dígito verificador; sólo si la fuente externa "
+            "no publica RUT cae a nombre normalizado y región. El grado del match viaja con cada "
+            f"enlace y la confianza por nombre se limita a {NAME_CONFIDENCE_CEILING:.2f}, por debajo del "
+            "umbral que otorga peso alto en la prioridad. Cada enlace permanece CANDIDATE y no "
+            "atribuye un hallazgo CGR a una transacción específica."
+        ),
         "top_links": sorted(links, key=lambda x: (float(x.get("confidence") or 0),int(x.get("cgr_max_aml_score") or 0),int(x.get("cgr_finding_count") or 0)), reverse=True)[:50],
     }
     out_json = Path(output_json)

@@ -1,5 +1,10 @@
 # RIGP · Expediente de evidencia
 
+> **Vigencia.** Este documento describe la arquitectura anterior a la v2. El método
+> operativo vigente está en [`RIGP_METHOD_v2.md`](RIGP_METHOD_v2.md); se conserva aquí
+> el razonamiento original porque buena parte sigue siendo válida como método, aunque
+> los módulos que menciona ya no existen con ese nombre.
+
 ## Objetivo
 
 El expediente de evidencia transforma un hallazgo priorizado en una pauta de revisión comprensible y accionable. No reemplaza la fuente, los documentos primarios ni la evaluación jurídica.

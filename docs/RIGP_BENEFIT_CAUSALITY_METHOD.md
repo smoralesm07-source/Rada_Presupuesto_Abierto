@@ -1,5 +1,10 @@
 # RIGP · Método de trazabilidad causal del beneficio
 
+> **Vigencia.** Este documento describe la arquitectura anterior a la v2. El método
+> operativo vigente está en [`RIGP_METHOD_v2.md`](RIGP_METHOD_v2.md); se conserva aquí
+> el razonamiento original porque buena parte sigue siendo válida como método, aunque
+> los módulos que menciona ya no existen con ese nombre.
+
 ## Objetivo
 
 Extender la cadena de beneficiarios para responder una pregunta más exigente: **qué persona o sociedad podría haber capturado un beneficio económico relacionado con un hecho de integridad relevante**, sin convertir una señal analítica en una imputación.

@@ -22,3 +22,32 @@ payment_delay_outlier:
 new_to_series_high_spend:
   min_amount: 50000000
   quantile_floor: 0.99
+
+# --- Capa 3: señales de contraparte derivadas del enriquecimiento SII ---
+entity_signals:
+  # Valor UF de referencia para convertir el techo del tramo de ventas SII a CLP.
+  # Es un supuesto declarado: cada señal lo informa en su campo `assumption`.
+  # Verificar contra el valor UF del periodo antes de operar en producción.
+  uf_clp_reference: 39000
+  newborn_supplier:
+    max_months_since_start: 12
+    min_amount: 20000000
+  capacity_mismatch:
+    min_ratio: 3.0
+    min_amount: 20000000
+  activity_mismatch:
+    min_amount: 50000000
+    peer_division_share_floor: 0.02
+  termination_after_payment:
+    max_months_after_last_payment: 12
+    min_amount: 20000000
+  dormant_reactivation:
+    min_gap_years: 2
+    min_amount: 50000000
+
+# --- Publicación de la cola investigativa ---
+publication:
+  # El corte anterior era 250 sobre ~80.000 señales y borraba familias completas.
+  top_n: 5000
+  # Cuota mínima por familia para que ninguna desaparezca por score.
+  family_min_share: 0.08

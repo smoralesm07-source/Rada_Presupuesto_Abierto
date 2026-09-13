@@ -1,5 +1,10 @@
 # RIGP · Bandeja de investigación
 
+> **Vigencia.** Este documento describe la arquitectura anterior a la v2. El método
+> operativo vigente está en [`RIGP_METHOD_v2.md`](RIGP_METHOD_v2.md); se conserva aquí
+> el razonamiento original porque buena parte sigue siendo válida como método, aunque
+> los módulos que menciona ya no existen con ese nombre.
+
 La bandeja convierte los hallazgos analíticos en una cola de trabajo humano simple y trazable. Su objetivo no es aumentar la cantidad de indicadores, sino reducir la fricción entre detectar un patrón y revisarlo.
 
 ## Principio de experiencia usuaria

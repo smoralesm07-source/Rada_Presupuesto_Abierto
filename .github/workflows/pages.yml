@@ -4,10 +4,11 @@ on:
     branches: [main]
     paths:
       - 'docs/**'
-      - 'scripts/build_findings_for_pages.py'
       - 'scripts/build_explore_context_for_pages.py'
-      - 'scripts/build_benefit_context_for_pages.py'
-      - 'scripts/build_ownership_resolution_queue.py'
+      - 'scripts/build_triage_for_pages.py'
+      - 'scripts/publish_static_payloads.py'
+      - 'src/radar_presupuesto/typologies.py'
+      - 'src/radar_presupuesto/procurement.py'
       - '.github/workflows/pages.yml'
   workflow_run:
     workflows:
@@ -36,51 +37,80 @@ jobs:
       - uses: actions/checkout@v6
         with:
           ref: main
-      - name: Build compact findings payload for Pages
-        run: python3 scripts/build_findings_for_pages.py
-      - name: Build compact explore context for Pages
-        run: python3 scripts/build_explore_context_for_pages.py
-      - name: Build compact benefit context for Pages
-        run: python3 scripts/build_benefit_context_for_pages.py
-      - name: Build ownership resolution queue for Pages
-        run: python3 scripts/build_ownership_resolution_queue.py
-      - name: Validate compact web payloads
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+
+      # El orden importa: explore lee la cola directamente (no el triage), para
+      # que ambos builders no queden circulares.
+      - name: Build compact explore context
+        run: python scripts/build_explore_context_for_pages.py
+      - name: Publish declarative payloads (typologies, procurement adapter)
+        run: python scripts/publish_static_payloads.py
+      - name: Build triage payload
+        run: python scripts/build_triage_for_pages.py
+
+      - name: Validate published contract
         run: |
-          python3 - <<'PY'
+          python - <<'PY'
           import json
           from pathlib import Path
-          findings=Path('docs/data/investigative_findings.json')
-          explore=Path('docs/data/explore_context.json')
-          benefit=Path('docs/data/benefit_context.json')
-          ownership=Path('docs/data/ownership_resolution_queue.json')
-          assert findings.exists(), 'missing compact findings payload'
-          assert explore.exists(), 'missing compact explore payload'
-          assert benefit.exists(), 'missing compact benefit payload'
-          assert ownership.exists(), 'missing ownership resolution payload'
-          f=json.loads(findings.read_text())
-          e=json.loads(explore.read_text())
-          b=json.loads(benefit.read_text())
-          o=json.loads(ownership.read_text())
-          assert f.get('relation_findings'), 'empty compact findings payload'
-          assert e.get('schema') == 'RIGP-EXPLORE-CONTEXT-v1'
-          assert e.get('services'), 'empty service explore context'
-          assert b.get('schema') == 'RIGP-BENEFIT-CONTEXT-v1'
-          assert b.get('candidates'), 'empty benefit candidate context'
-          assert b.get('guardrail'), 'benefit guardrail missing'
-          assert o.get('schema') == 'RIGP-OWNERSHIP-RESOLUTION-v1'
-          assert o.get('queue'), 'empty ownership resolution queue'
-          assert o.get('published_candidates',0) <= 300, 'ownership queue cap exceeded'
-          assert explore.stat().st_size < 600_000, 'explore payload unexpectedly large'
-          assert benefit.stat().st_size < 500_000, 'benefit payload unexpectedly large'
-          assert ownership.stat().st_size < 350_000, 'ownership payload unexpectedly large'
-          print('findings KiB:', round(findings.stat().st_size/1024,1))
-          print('explore KiB:', round(explore.stat().st_size/1024,1))
-          print('benefit KiB:', round(benefit.stat().st_size/1024,1))
-          print('ownership KiB:', round(ownership.stat().st_size/1024,1))
-          print('explore coverage:', e.get('coverage'))
-          print('benefit coverage:', b.get('coverage'))
-          print('ownership published:', o.get('published_candidates'))
+
+          triage = json.loads(Path('docs/data/triage.json').read_text(encoding='utf-8'))
+          explore = json.loads(Path('docs/data/explore_context.json').read_text(encoding='utf-8'))
+          typology = json.loads(Path('docs/data/typology_context.json').read_text(encoding='utf-8'))
+          procurement = json.loads(Path('docs/data/procurement_status.json').read_text(encoding='utf-8'))
+
+          assert triage['schema'] == 'RIGP-TRIAGE-v1'
+          assert triage['relations'], 'triage sin relaciones publicadas'
+          assert explore['schema'] == 'RIGP-EXPLORE-CONTEXT-v1'
+          assert typology['schema'] == 'RIGP-TYPOLOGY-CONTEXT-v1'
+
+          # Los dos ejes viajan separados: mezclarlos es lo que produjo una cola
+          # encabezada por una factura de combustible.
+          assert 'review_priority_score' in triage['axes']
+          assert 'laft_compatibility_score' in triage['axes']
+          for relation in triage['relations']:
+              assert 'review_priority_score' in relation
+              assert 'laft_compatibility_score' in relation
+              assert relation['guardrail']
+
+          # Ninguna tipología puede quedar sin criterio de descarte ni sin
+          # documento que pedir: eso es lo que la separa de una imputación.
+          for entry in typology['catalog']:
+              assert entry['sustains'] and entry['discards'] and entry['documents'], entry['code']
+              assert entry['question'].endswith('?')
+
+          # Las capas no integradas tienen que declararse, no desaparecer.
+          assert procurement['integration_state'] in {'SNAPSHOT_PRESENT', 'ADAPTER_READY_SOURCE_PENDING'}
+          assert triage['coverage']['pending_layers'] is not None
+
+          for path, cap in (
+              ('docs/data/triage.json', 4_000_000),
+              ('docs/data/explore_context.json', 900_000),
+              ('docs/data/typology_context.json', 200_000),
+          ):
+              size = Path(path).stat().st_size
+              assert size < cap, f'{path} pesa {size} y excede {cap}'
+              print(f'{path}: {size / 1024:.1f} KiB')
+
+          print('relaciones publicadas:', triage['coverage']['relations_published'])
+          print('señales analizadas:', triage['source']['signals_total'])
+          print('capas pendientes:', triage['coverage']['pending_layers'])
           PY
+
+      # `spend_years_v1.json` (14 MiB) y `spend_view_v2.json` son insumos de
+      # construcción, no activos web: ningún consumidor del sitio los descarga.
+      # Se quedan en el repositorio y salen del artefacto publicado.
+      - name: Stage site without build-only payloads
+        run: |
+          rm -rf _site
+          cp -r docs _site
+          rm -f _site/data/spend_years_v1.json _site/data/spend_view_v2.json
+          echo "Publicado: $(du -sh _site | cut -f1) (docs completo: $(du -sh docs | cut -f1))"
+
       - name: Check whether GitHub Pages is enabled
         id: pages
         env:
@@ -99,15 +129,15 @@ jobs:
           fi
       - name: Pages not enabled yet
         if: steps.pages.outputs.enabled != 'true'
-        run: echo "::notice::Dashboard listo. Falta habilitar GitHub Pages una sola vez en Settings > Pages > Source = GitHub Actions."
+        run: echo "::notice::Sitio listo. Falta habilitar GitHub Pages una sola vez en Settings > Pages > Source = GitHub Actions."
       - name: Configure GitHub Pages
         if: steps.pages.outputs.enabled == 'true'
         uses: actions/configure-pages@v5
-      - name: Upload static dashboard
+      - name: Upload static site
         if: steps.pages.outputs.enabled == 'true'
         uses: actions/upload-pages-artifact@v4
         with:
-          path: docs
+          path: _site
       - name: Deploy
         if: steps.pages.outputs.enabled == 'true'
         id: deployment
