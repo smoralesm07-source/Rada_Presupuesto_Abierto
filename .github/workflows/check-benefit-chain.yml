@@ -18,19 +18,24 @@ on:
       - 'docs/assets/spend_safe_value_trace.css'
       - 'docs/assets/spend_safe_causality.js'
       - 'docs/assets/spend_safe_causality.css'
-      - 'docs/assets/spend_safe_actor_map.js'
+      - 'docs/assets/spend_safe_actor_map_identity.js'
       - 'docs/assets/spend_safe_actor_map.css'
       - 'docs/assets/spend_safe_trace_dossier.js'
       - 'docs/assets/spend_safe_trace_dossier.css'
+      - 'docs/assets/spend_safe_ownership_resolution.js'
+      - 'docs/assets/spend_safe_ownership_resolution.css'
       - 'docs/RIGP_BENEFIT_CHAIN_METHOD.md'
       - 'docs/RIGP_BENEFIT_CAUSALITY_METHOD.md'
+      - 'docs/RIGP_OWNERSHIP_IDENTITY_METHOD.md'
       - 'scripts/build_benefit_context_for_pages.py'
       - 'scripts/build_findings_for_pages.py'
       - 'scripts/build_explore_context_for_pages.py'
+      - 'scripts/build_ownership_resolution_queue.py'
       - 'docs/data/entity_enrichment_v1.json'
       - 'schemas/007_benefit_chain.sql'
       - 'schemas/008_public_decision_links.sql'
       - 'schemas/009_benefit_causality.sql'
+      - 'schemas/010_ownership_resolution.sql'
       - '.github/workflows/check-benefit-chain.yml'
   workflow_dispatch:
 permissions:
@@ -49,27 +54,30 @@ jobs:
           node --check docs/assets/spend_safe_decision.js
           node --check docs/assets/spend_safe_value_trace.js
           node --check docs/assets/spend_safe_causality.js
-          node --check docs/assets/spend_safe_actor_map.js
+          node --check docs/assets/spend_safe_actor_map_identity.js
           node --check docs/assets/spend_safe_trace_dossier.js
+          node --check docs/assets/spend_safe_ownership_resolution.js
           python3 -m py_compile scripts/build_benefit_context_for_pages.py
-          for f in docs/assets/spend_safe_benefit.js docs/assets/spend_safe_societary.js docs/assets/spend_safe_benefit_temporal.js docs/assets/spend_safe_benefit_convergence.js docs/assets/spend_safe_decision.js docs/assets/spend_safe_value_trace.js docs/assets/spend_safe_causality.js docs/assets/spend_safe_actor_map.js docs/assets/spend_safe_trace_dossier.js; do
+          python3 -m py_compile scripts/build_ownership_resolution_queue.py
+          for f in docs/assets/spend_safe_benefit.js docs/assets/spend_safe_societary.js docs/assets/spend_safe_benefit_temporal.js docs/assets/spend_safe_benefit_convergence.js docs/assets/spend_safe_decision.js docs/assets/spend_safe_value_trace.js docs/assets/spend_safe_causality.js docs/assets/spend_safe_actor_map_identity.js docs/assets/spend_safe_trace_dossier.js docs/assets/spend_safe_ownership_resolution.js; do
             ! grep -q 'MutationObserver' "$f"
             ! grep -q 'setInterval' "$f"
             ! grep -q 'spend_years_v1.json' "$f"
           done
-      - name: Validate benefit, causality, actor and dossier traceability contract
+      - name: Validate UI traceability and identity contract
         run: |
           python3 - <<'PY'
           from pathlib import Path
           checks = {
               'docs/index.html': [
-                  'data-benefit-view>Beneficiarios', 'data-actor-view>Actores',
+                  'data-benefit-view>Beneficiarios', 'data-actor-view>Actores', 'data-ownership-view>Resolver',
                   'assets/spend_safe_benefit.js?v=1', 'assets/spend_safe_societary.js?v=1',
-                  'assets/spend_safe_benefit_temporal.js?v=1', 'assets/spend_safe_benefit_convergence.js?v=1',
+                  'assets/spend_safe_benefit_temporal.js?v=2', 'assets/spend_safe_benefit_convergence.js?v=1',
                   'assets/spend_safe_decision.js?v=1', 'assets/spend_safe_value_trace.js?v=1',
                   'assets/spend_safe_causality.js?v=1', 'assets/spend_safe_causality.css?v=1',
-                  'assets/spend_safe_actor_map.js?v=4', 'assets/spend_safe_actor_map.css?v=3',
+                  'assets/spend_safe_actor_map_identity.js?v=1', 'assets/spend_safe_actor_map.css?v=3',
                   'assets/spend_safe_trace_dossier.js?v=2', 'assets/spend_safe_trace_dossier.css?v=2',
+                  'assets/spend_safe_ownership_resolution.js?v=1', 'assets/spend_safe_ownership_resolution.css?v=1',
               ],
               'docs/assets/spend_safe_benefit.js': [
                   'Receptor económico directo', 'Beneficio final', 'No es probabilidad de delito',
@@ -77,8 +85,13 @@ jobs:
               'docs/assets/spend_safe_societary.js': [
                   'Registro de Accionistas electrónico del RES no es de consulta pública',
               ],
-              'docs/assets/spend_safe_benefit_temporal.js': ['COINCIDENTE', 'FUERA_DE_PERIODO'],
-              'docs/assets/spend_safe_benefit_convergence.js': ['temporallyRelevant'],
+              'docs/assets/spend_safe_benefit_temporal.js': [
+                  'COINCIDENTE', 'FUERA_DE_PERIODO', 'c?.periods||c?.years||[]',
+              ],
+              'docs/assets/spend_safe_benefit_convergence.js': [
+                  'strongIdentity', 'RUT_CONFIRMADO', 'Convergencia RUT entre receptores',
+                  'Sin RUT confirmado RIGP no lo fusiona con homónimos de otros casos',
+              ],
               'docs/assets/spend_safe_decision.js': [
                   'Lado de la decisión pública',
                   '¿Existe un vínculo documentado entre receptor y decisión pública?',
@@ -92,10 +105,14 @@ jobs:
                   'La coexistencia de un antecedente oficial y un flujo económico no demuestra causalidad',
                   'NEXO_DOCUMENTADO',
               ],
-              'docs/assets/spend_safe_actor_map.js': [
-                  'Actores y beneficio potencial', 'Personas y sociedades que requieren mayor trazabilidad',
-                  'Antecedente externo', 'Nexo hecho–beneficio documentado', 'pairedBasisValue',
-                  'RIGP no mezcla antecedentes de receptores distintos', 'no “beneficiario de un ilícito”',
+              'docs/assets/spend_safe_actor_map_identity.js': [
+                  'identityKey', 'RUT_CONFIRMADO', 'LOCAL:', 'Mismo RUT detrás de varios receptores',
+                  'Un nombre coincidente no confirma identidad', 'RIGP sólo genera convergencia automática', 'paired',
+              ],
+              'docs/assets/spend_safe_ownership_resolution.js': [
+                  'CANDIDATO_POR_NOMBRE', 'RUT_CONFIRMADO', 'IDENTIDAD_DOCUMENTADA_SIN_RUT',
+                  'No se puede confirmar identidad sólo por coincidencia de nombre',
+                  'RIGP sólo unifica automáticamente', 'rigp-ownership-updated',
               ],
               'docs/assets/spend_safe_trace_dossier.js': [
                   'Dossier de trazabilidad', 'Nivel de trazabilidad alcanzado',
@@ -105,46 +122,61 @@ jobs:
                   'Copiar dossier', 'Imprimir dossier', 'Este dossier no acredita irregularidad',
               ],
           }
-          missing = []
+          missing=[]
           for path, needles in checks.items():
-              text = Path(path).read_text(encoding='utf-8')
+              text=Path(path).read_text(encoding='utf-8')
               for needle in needles:
                   if needle not in text:
                       missing.append(f'{path}: {needle}')
           if missing:
-              raise SystemExit('Missing contract assertions:\n- ' + '\n- '.join(missing))
-          print(f'[OK] {sum(map(len, checks.values()))} UI traceability contract assertions')
+              raise SystemExit('Missing contract assertions:\n- '+'\n- '.join(missing))
+          print(f'[OK] {sum(map(len, checks.values()))} UI/identity contract assertions')
           PY
-      - name: Build compact benefit payload
+      - name: Build compact traceability payloads
         run: |
           python3 scripts/build_findings_for_pages.py
           python3 scripts/build_explore_context_for_pages.py
           python3 scripts/build_benefit_context_for_pages.py
+          python3 scripts/build_ownership_resolution_queue.py
       - name: Validate payload, methodology and persistence model
         run: |
           python3 - <<'PY'
           import json
           from pathlib import Path
-          p=Path('docs/data/benefit_context.json')
-          assert p.exists(), 'benefit_context.json missing'
-          d=json.loads(p.read_text())
-          assert d.get('schema')=='RIGP-BENEFIT-CONTEXT-v1'
-          assert d.get('methodology')=='RIGP-BENEFIT-CHAIN-v1'
-          assert d.get('candidates'), 'benefit candidates empty'
-          assert d.get('verification_chain') and len(d['verification_chain'])==4
-          assert d.get('coverage',{}).get('ownership_control_sources_integrated')==0
-          assert 'No es probabilidad de delito' in d.get('guardrail','')
-          assert p.stat().st_size < 500_000, f'benefit payload too large: {p.stat().st_size}'
-          for c in d['candidates'].values():
+          benefit=Path('docs/data/benefit_context.json')
+          ownership=Path('docs/data/ownership_resolution_queue.json')
+          assert benefit.exists(), 'benefit_context.json missing'
+          assert ownership.exists(), 'ownership_resolution_queue.json missing'
+          b=json.loads(benefit.read_text())
+          o=json.loads(ownership.read_text())
+          assert b.get('schema')=='RIGP-BENEFIT-CONTEXT-v1'
+          assert b.get('methodology')=='RIGP-BENEFIT-CHAIN-v1'
+          assert b.get('candidates'), 'benefit candidates empty'
+          assert b.get('verification_chain') and len(b['verification_chain'])==4
+          assert b.get('coverage',{}).get('ownership_control_sources_integrated')==0
+          assert 'No es probabilidad de delito' in b.get('guardrail','')
+          assert benefit.stat().st_size < 500_000, f'benefit payload too large: {benefit.stat().st_size}'
+          for c in b['candidates'].values():
               assert c.get('stage')=='RECEPTOR_DIRECTO'
               assert c.get('ownership_control',{}).get('status')=='NO_INTEGRADO'
-          print('[OK] benefit context', d.get('coverage'), round(p.stat().st_size/1024,1), 'KiB')
+          assert o.get('schema')=='RIGP-OWNERSHIP-RESOLUTION-v1'
+          assert o.get('methodology')=='RIGP-OWNERSHIP-IDENTITY-v1'
+          assert o.get('queue'), 'ownership queue empty'
+          assert o.get('published_candidates',0) <= 300
+          assert set(o.get('identity_states') or []) == {'RUT_CONFIRMADO','IDENTIDAD_DOCUMENTADA_SIN_RUT','CANDIDATO_POR_NOMBRE','DESCARTADO'}
+          assert 'Un nombre coincidente no confirma identidad' in o.get('guardrail','')
+          assert ownership.stat().st_size < 350_000, f'ownership payload too large: {ownership.stat().st_size}'
+          print('[OK] benefit', round(benefit.stat().st_size/1024,1), 'KiB')
+          print('[OK] ownership', round(ownership.stat().st_size/1024,1), 'KiB', o.get('published_candidates'), 'rows')
           PY
           grep -q 'Proveedor/receptor directo ≠ beneficiario final' docs/RIGP_BENEFIT_CHAIN_METHOD.md
           grep -q 'Hallazgo → Persona beneficiaria de delito' docs/RIGP_BENEFIT_CHAIN_METHOD.md
           grep -q 'Hallazgo analítico → receptor directo → vínculo privado documentado' docs/RIGP_BENEFIT_CAUSALITY_METHOD.md
           grep -q 'La coexistencia de un antecedente externo y una disposición de valor' docs/RIGP_BENEFIT_CAUSALITY_METHOD.md
           grep -q 'NEXO_DOCUMENTADO' docs/RIGP_BENEFIT_CAUSALITY_METHOD.md
+          grep -q 'Mismo nombre no significa misma persona o sociedad' docs/RIGP_OWNERSHIP_IDENTITY_METHOD.md
+          grep -q 'RUT_CONFIRMADO' docs/RIGP_OWNERSHIP_IDENTITY_METHOD.md
+          grep -q 'CANDIDATO_POR_NOMBRE' docs/RIGP_OWNERSHIP_IDENTITY_METHOD.md
           grep -q 'benefit_confirmed_convergence' schemas/007_benefit_chain.sql
           grep -q 'temporal_relevance' schemas/007_benefit_chain.sql
           grep -q 'public_process_actors' schemas/008_public_decision_links.sql
@@ -154,3 +186,6 @@ jobs:
           grep -q 'integrity_basis_evidence' schemas/009_benefit_causality.sql
           grep -q 'benefit_causal_links' schemas/009_benefit_causality.sql
           grep -q 'NEXO_DOCUMENTADO' schemas/009_benefit_causality.sql
+          grep -q 'ownership_identity_links' schemas/010_ownership_resolution.sql
+          grep -q 'ownership_confirmed_convergence' schemas/010_ownership_resolution.sql
+          grep -q "identity_status = 'RUT_CONFIRMADO'" schemas/010_ownership_resolution.sql
