@@ -4,18 +4,12 @@ on:
     branches: [main]
     paths:
       - 'docs/index.html'
-      - 'docs/assets/spend_v7_mark_filter.js'
-      - 'docs/assets/spend_v7.css'
-      - 'docs/assets/spend_v8_findings.js'
-      - 'docs/assets/spend_v8_findings.css'
-      - 'docs/assets/spend_v9_review.js'
-      - 'docs/assets/spend_v9_review.css'
-      - 'docs/assets/spend_v10_learning.js'
-      - 'docs/assets/spend_v10_learning.css'
-      - 'docs/data/investigation_queue.json'
+      - 'docs/assets/spend_safe_v3.js'
+      - 'docs/assets/spend_safe_network.js'
       - 'docs/data/investigative_findings.json'
-      - 'docs/data/spend_years_v1.json'
-      - 'docs/data/entity_enrichment_v1.json'
+      - 'docs/data/investigation_queue.json'
+      - 'scripts/build_findings_for_pages.py'
+      - 'scripts/build_explore_context_for_pages.py'
       - '.github/workflows/check-spend-v131.yml'
   workflow_dispatch:
 permissions:
@@ -25,62 +19,41 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Validate RIGP JavaScript
+      - name: Validate current findings JavaScript
         run: |
-          node --check docs/assets/spend_v7_mark_filter.js
-          node --check docs/assets/spend_v8_findings.js
-          node --check docs/assets/spend_v9_review.js
-          node --check docs/assets/spend_v10_learning.js
-          grep -q 'investigative_findings.json' docs/assets/spend_v8_findings.js
-          grep -q 'investigation_queue.json' docs/assets/spend_v8_findings.js
-          grep -q 'ATENCION_INMEDIATA' docs/assets/spend_v8_findings.js
-          grep -q 'PROFUNDIZAR' docs/assets/spend_v9_review.js
-          grep -q 'ESCALADO' docs/assets/spend_v9_review.js
-          grep -q 'useful_signals' docs/assets/spend_v9_review.js
-          grep -q 'low_value_signals' docs/assets/spend_v9_review.js
-          grep -q 'no modifican automáticamente' docs/assets/spend_v10_learning.js
-      - name: Validate findings-first HTML
+          node --check docs/assets/spend_safe_v3.js
+          node --check docs/assets/spend_safe_network.js
+          grep -q 'investigative_findings.json' docs/assets/spend_safe_v3.js
+          grep -q 'ATENCION_INMEDIATA' docs/assets/spend_safe_v3.js
+          grep -q 'PROFUNDIZAR' docs/assets/spend_safe_v3.js
+          grep -q 'ESCALADO' docs/assets/spend_safe_v3.js
+          grep -q 'Red investigativa ligera' docs/assets/spend_safe_network.js
+      - name: Validate current HTML
         run: |
           grep -q 'RIGP · piloto analítico' docs/index.html
           grep -q 'Dónde mirar primero en el gasto público' docs/index.html
-          grep -q 'Hallazgos prioritarios' docs/index.html
-          grep -q 'Relaciones y redes' docs/index.html
-          grep -q 'Señales asociadas a proveedores' docs/index.html
-          grep -q 'assets/spend_v8_findings.js' docs/index.html
-          grep -q 'assets/spend_v8_findings.css' docs/index.html
-          grep -q 'assets/spend_v9_review.js' docs/index.html
-          grep -q 'assets/spend_v9_review.css' docs/index.html
-          grep -q 'assets/spend_v10_learning.js' docs/index.html
-          grep -q 'assets/spend_v10_learning.css' docs/index.html
-          grep -q 'uafRefToggle' docs/assets/spend_v5_focus.js
-          grep -q 'uaf-reference-on' docs/assets/spend_v5_focus.js
-      - name: Validate findings payload or fallback
+          grep -q 'data-view="hallazgos"' docs/index.html
+          grep -q 'data-view="explorar"' docs/index.html
+          grep -q 'data-network-view' docs/index.html
+          grep -q 'assets/spend_safe_v3.js?v=3' docs/index.html
+          grep -q 'assets/spend_safe_network.js?v=1' docs/index.html
+      - name: Build and validate compact payloads
         run: |
+          python3 scripts/build_findings_for_pages.py
+          python3 scripts/build_explore_context_for_pages.py
           node - <<'JS'
           const fs=require('fs');
-          if(fs.existsSync('docs/data/investigative_findings.json')){
-            const d=JSON.parse(fs.readFileSync('docs/data/investigative_findings.json','utf8'));
-            if(!String(d.methodology_version||'').startsWith('RIGP-FINDINGS')) throw new Error('unexpected findings methodology');
-            if(!Array.isArray(d.relation_findings)) throw new Error('relation_findings missing');
-            if(!Array.isArray(d.service_hotspots)||!Array.isArray(d.provider_hotspots)||!Array.isArray(d.network_candidates)) throw new Error('findings aggregate views missing');
-            if(!d.guardrail) throw new Error('findings guardrail missing');
-            console.log('[OK] findings payload', {relations:d.relation_findings.length,networks:d.network_candidates.length});
-          }else{
-            const q=JSON.parse(fs.readFileSync('docs/data/investigation_queue.json','utf8'));
-            if(!Array.isArray(q.queue)) throw new Error('fallback investigation queue missing');
-            const js=fs.readFileSync('docs/assets/spend_v8_findings.js','utf8');
-            if(!js.includes('fallback(q.queue')) throw new Error('browser findings fallback missing');
-            console.log('[OK] findings fallback from investigation queue', q.queue.length);
-          }
+          const f=JSON.parse(fs.readFileSync('docs/data/investigative_findings.json','utf8'));
+          const e=JSON.parse(fs.readFileSync('docs/data/explore_context.json','utf8'));
+          if(!String(f.methodology_version||'').startsWith('RIGP-FINDINGS')) throw new Error('unexpected findings methodology');
+          if(!Array.isArray(f.relation_findings)||!f.guardrail) throw new Error('findings payload incomplete');
+          if(e.schema!=='RIGP-EXPLORE-CONTEXT-v1') throw new Error('unexpected explore schema');
+          if(!e.services||!e.providers||!e.relations) throw new Error('explore context incomplete');
+          console.log('[OK] findings',f.relation_findings.length,'explore pairs',Object.keys(e.relations).length);
           JS
-      - name: Validate marks remain available as support layer
+      - name: Validate network guardrail
         run: |
-          node - <<'JS'
-          const fs=require('fs');
-          const h=JSON.parse(fs.readFileSync('docs/data/spend_years_v1.json','utf8'));
-          const e=JSON.parse(fs.readFileSync('docs/data/entity_enrichment_v1.json','utf8'));
-          const pa=(h.marks||[]).filter(x=>x.scope==='provider');
-          const sii=Object.values(e.entities||{}).flatMap(x=>x.marks||[]);
-          if(!pa.length && !sii.length) throw new Error('No provider marks available');
-          console.log('[OK] supporting provider signals', {presupuesto:pa.length,sii:sii.length});
-          JS
+          grep -q 'no acredita coordinación impropia' docs/assets/spend_safe_network.js
+          grep -q 'MAX_NODES=12' docs/assets/spend_safe_network.js
+          ! grep -q 'MutationObserver' docs/assets/spend_safe_network.js
+          ! grep -q 'setInterval' docs/assets/spend_safe_network.js
