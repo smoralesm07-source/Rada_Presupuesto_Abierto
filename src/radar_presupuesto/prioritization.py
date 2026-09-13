@@ -13,7 +13,7 @@ def prioritize_signals(
     cgr_links_path: str = "data/evidence/cgr_evidence_links.parquet",
     output_parquet: str = "data/signals/prioritized_signals.parquet",
     output_json: str = "docs/data/investigation_queue.json",
-    top_n: int = 250,
+    top_n: int = 5000,
 ) -> dict:
     """Build an explainable investigation queue; score is priority, not AML risk."""
     con = duckdb.connect()
@@ -99,8 +99,10 @@ def prioritize_signals(
                 ELSE 6 END signal_component,
               CASE WHEN provider_signal_types>=3 THEN 20 WHEN provider_signal_types=2 THEN 12 ELSE 0 END
                 + CASE WHEN organization_signal_types>=4 THEN 10 WHEN organization_signal_types>=2 THEN 5 ELSE 0 END cooccurrence_component,
-              CASE WHEN cgr_max_confidence>=0.88 THEN 15 WHEN cgr_max_confidence>=0.80 THEN 10 ELSE 0 END
-                + CASE WHEN cgr_max_aml_score>=70 THEN 5 ELSE 0 END external_evidence_component,
+              -- CGR hoy se correlaciona principalmente por nombre. Hasta disponer de un cruce RUT-first,
+              -- se trata como contexto externo candidato de bajo peso: nunca debe dominar el ranking.
+              CASE WHEN cgr_max_confidence>=0.90 THEN 5 WHEN cgr_max_confidence>=0.82 THEN 3 ELSE 0 END
+                + CASE WHEN cgr_max_aml_score>=70 THEN 2 ELSE 0 END external_evidence_component,
               CASE WHEN has_purchase_order OR has_bip THEN 5 ELSE 0 END actionability_component,
               CASE WHEN coalesce(transaction_amount,0)>=1000000000 THEN 10
                    WHEN coalesce(transaction_amount,0)>=100000000 THEN 7
@@ -118,7 +120,7 @@ def prioritize_signals(
                'severidad='||cast(severity_component AS VARCHAR),
                'señal='||cast(signal_component AS VARCHAR),
                'coocurrencia='||cast(cooccurrence_component AS VARCHAR),
-               'evidencia_CGR='||cast(external_evidence_component AS VARCHAR),
+               'contexto_CGR_candidato='||cast(external_evidence_component AS VARCHAR),
                'accionabilidad='||cast(actionability_component AS VARCHAR),
                'materialidad='||cast(materiality_component AS VARCHAR)) priority_explanation
           FROM scored
@@ -139,7 +141,15 @@ def prioritize_signals(
     records = df.where(df.notna(), None).to_dict("records")
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "methodology": "Score 0-100 de prioridad investigativa explicable; combina severidad, tipo de patrón, coocurrencia de señales, evidencia externa CGR, accionabilidad documental y materialidad. No es un score de culpabilidad ni de lavado de activos.",
+        "methodology": (
+            "Score 0-100 de prioridad investigativa explicable; combina severidad, tipo de patrón, coocurrencia de señales, "
+            "contexto externo CGR candidato de peso limitado, accionabilidad documental y materialidad. "
+            "No es un score de culpabilidad ni de lavado de activos."
+        ),
+        "external_evidence_policy": (
+            "Las coincidencias CGR actuales son candidatas y se basan principalmente en identidad nominal; "
+            "su aporte está acotado hasta disponer de correlación RUT-first."
+        ),
         "total_signals": int(total),
         "priority_tiers": tiers,
         "queue": records,
