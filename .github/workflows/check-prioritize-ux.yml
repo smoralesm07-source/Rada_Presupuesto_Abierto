@@ -1,0 +1,36 @@
+name: Check RIGP Prioritize UX
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/index.html'
+      - 'docs/assets/spend_safe_prioritize.js'
+      - 'docs/assets/spend_safe_prioritize.css'
+      - '.github/workflows/check-prioritize-ux.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validate prioritize runtime
+        run: |
+          node --check docs/assets/spend_safe_prioritize.js
+          ! grep -q 'MutationObserver' docs/assets/spend_safe_prioritize.js
+          ! grep -q 'setInterval' docs/assets/spend_safe_prioritize.js
+          ! grep -q 'investigation_queue.json' docs/assets/spend_safe_prioritize.js
+          ! grep -q 'spend_years_v1.json' docs/assets/spend_safe_prioritize.js
+      - name: Validate decision-oriented queue
+        run: |
+          grep -q 'assets/spend_safe_prioritize.js?v=1' docs/index.html
+          grep -q 'assets/spend_safe_prioritize.css?v=1' docs/index.html
+          grep -q 'Decide qué revisar ahora' docs/assets/spend_safe_prioritize.js
+          grep -q 'Profundizar → En revisión → Pendiente' docs/assets/spend_safe_prioritize.js
+          grep -q '>Ahora<' docs/assets/spend_safe_prioritize.js
+          grep -q '>En trabajo<' docs/assets/spend_safe_prioritize.js
+          grep -q '>Resultados<' docs/assets/spend_safe_prioritize.js
+          grep -q 'Otros por revisar' docs/assets/spend_safe_prioritize.js
+          grep -q 'data-pd-investigate' docs/assets/spend_safe_prioritize.js
+          grep -q 'body\[data-rigp-stage="prioritize"\] #kpis{display:none}' docs/assets/spend_safe_prioritize.css
