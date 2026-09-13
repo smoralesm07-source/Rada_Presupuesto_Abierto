@@ -67,6 +67,28 @@ Requiere evidencia adicional que permita sostener al menos una de estas hipótes
 
 RIGP no debe etiquetar automáticamente a una persona como beneficiario final.
 
+## Ruta societaria oficial del piloto
+
+La reconstrucción de personas detrás de un receptor debe privilegiar fuentes oficiales y conservar la fecha del antecedente.
+
+### Registro de Empresas y Sociedades · actuaciones
+
+La búsqueda pública del RES permite consultar, sin iniciar sesión, actuaciones de sociedades constituidas o migradas al régimen simplificado. Las constituciones y modificaciones pueden aportar antecedentes sobre constituyentes, socios cuando consten, administración y cambios societarios.
+
+### Registro de Poderes del RES
+
+Es un registro público aplicable a sociedades del RES. Sirve para verificar gerentes, administradores, representantes, delegaciones y vigencia de poderes. Un poder acredita facultades de representación; no acredita por sí solo propiedad económica ni beneficio final.
+
+### Diario Oficial · sociedades
+
+Para sociedades del régimen general, los extractos de constitución, modificación y disolución permiten recuperar información societaria histórica que puede incluir socios, administración, uso de razón social y capital.
+
+### Restricción del Registro de Accionistas
+
+El Registro de Accionistas electrónico del RES no es una fuente pública general: su consulta está restringida a sujetos habilitados por la sociedad. RIGP no debe presentar composición accionaria actual como dato abierto si esa evidencia no se encuentra disponible por otra fuente legítima y trazable.
+
+En esta etapa las fuentes societarias se abren de forma asistida y el analista registra el antecedente documental encontrado. No se hace scraping automatizado ni se crean personas mediante coincidencias de nombre.
+
 ## Hipótesis guiada
 
 Para cada receptor priorizado, la aplicación plantea una hipótesis condicional:
@@ -101,13 +123,14 @@ La versión actual dispone de:
 - montos y recurrencia publicados;
 - contexto histórico compacto;
 - caracterización tributaria SII cuando existe;
+- acceso asistido a RES, Registro de Poderes y Diario Oficial;
 - registro local de vínculos documentados por el analista.
 
 Todavía no existe una fuente automática integrada de:
 
 - socios/accionistas y controladores;
-- representantes legales históricos;
-- directores/administradores;
+- representantes legales históricos consolidados;
+- directores/administradores consolidados;
 - beneficiarios finales;
 - personas que intervinieron en la decisión pública;
 - transferencias financieras posteriores.
