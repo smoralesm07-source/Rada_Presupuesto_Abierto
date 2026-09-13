@@ -69,7 +69,7 @@ jobs:
           grep -q 'assets/spend_safe_value_trace.js?v=1' docs/index.html
           grep -q 'assets/spend_safe_causality.js?v=1' docs/index.html
           grep -q 'assets/spend_safe_causality.css?v=1' docs/index.html
-          grep -q 'assets/spend_safe_actor_map.js?v=3' docs/index.html
+          grep -q 'assets/spend_safe_actor_map.js?v=4' docs/index.html
           grep -q 'assets/spend_safe_actor_map.css?v=3' docs/index.html
           grep -q 'assets/spend_safe_trace_dossier.js?v=1' docs/index.html
           grep -q 'assets/spend_safe_trace_dossier.css?v=1' docs/index.html
@@ -92,6 +92,8 @@ jobs:
           grep -q 'Personas y sociedades que requieren mayor trazabilidad' docs/assets/spend_safe_actor_map.js
           grep -q 'Antecedente externo' docs/assets/spend_safe_actor_map.js
           grep -q 'Nexo hecho–beneficio documentado' docs/assets/spend_safe_actor_map.js
+          grep -q 'pairedBasisValue' docs/assets/spend_safe_actor_map.js
+          grep -q 'RIGP no mezcla antecedentes de receptores distintos' docs/assets/spend_safe_actor_map.js
           grep -q 'no “beneficiario de un ilícito”' docs/assets/spend_safe_actor_map.js
           grep -q 'Dossier de trazabilidad' docs/assets/spend_safe_trace_dossier.js
           grep -q 'Nivel de trazabilidad alcanzado' docs/assets/spend_safe_trace_dossier.js
