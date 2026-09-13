@@ -17,7 +17,8 @@ on:
       - 'docs/assets/spend_v12_workqueue.js'
       - 'docs/assets/spend_v12_workqueue_bridge.js'
       - 'docs/data/spend_view_v2.json'
-      - 'docs/data/investigative_findings.json'
+      - 'docs/data/investigation_queue.json'
+      - 'scripts/build_findings_for_pages.py'
       - '.github/workflows/check-spend-ui.yml'
   workflow_dispatch:
 permissions:
@@ -84,6 +85,8 @@ jobs:
           if((d.flows||[]).length>5000) throw new Error('web flow payload unexpectedly large');
           console.log('[OK] services', (d.services||[]).length, 'flows', (d.flows||[]).length);
           JS
+      - name: Build compact findings payload as Pages does
+        run: python3 scripts/build_findings_for_pages.py
       - name: Validate findings payload
         run: |
           node - <<'JS'
@@ -92,6 +95,7 @@ jobs:
           if(!String(d.methodology_version||'').startsWith('RIGP-FINDINGS')) throw new Error('unexpected findings methodology');
           if(!Array.isArray(d.relation_findings)) throw new Error('relation_findings missing');
           if(!d.guardrail) throw new Error('findings guardrail missing');
+          if(d.relation_findings.length>1000) throw new Error('findings payload unexpectedly large');
           console.log('[OK] findings',d.relation_findings.length);
           JS
       - name: Test legacy NaN browser fallback
