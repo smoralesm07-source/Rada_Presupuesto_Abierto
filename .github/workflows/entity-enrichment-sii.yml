@@ -1,14 +1,8 @@
 name: Enrich Spend Suppliers with SII
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'scripts/build_entity_enrichment_sii.py'
-      - 'docs/data/spend_years_v1.json'
-      - '.github/workflows/entity-enrichment-sii.yml'
   workflow_run:
     workflows:
-      - 'Corrected Spend Data v3'
+      - 'Radar monthly analysis'
     types: [completed]
   workflow_dispatch:
   schedule:
@@ -41,13 +35,30 @@ jobs:
           cache: pip
       - name: Install Radar SII runtime
         run: python -m pip install -r external/radar-sii/requirements.txt
-      - name: Build selective SII extract
+      - name: Validate RIGP target universe
+        run: |
+          PYTHONPATH=src python - <<'PY'
+          import json
+          from radar_presupuesto.sii_targets import target_ruts_from_file
+          p='docs/data/investigative_findings.json'
+          d=json.load(open(p,encoding='utf-8'))
+          relations=d.get('relation_findings') or []
+          ruts=target_ruts_from_file(p)
+          assert relations, 'No hay hallazgos RIGP publicados para enriquecer'
+          assert len(relations) <= 600, 'El universo publicado excede el límite operacional'
+          print('[RIGP SII] relaciones publicadas:',len(relations))
+          print('[RIGP SII] RUT explícitos:',len(ruts))
+          PY
+      - name: Build selective SII extract for RIGP findings
         id: build
         continue-on-error: true
         shell: bash
         run: |
           set +e
-          PYTHONPATH=external/radar-sii/src python scripts/build_entity_enrichment_sii.py 2>&1 | tee /tmp/sii-enrichment.log
+          PYTHONPATH=src:external/radar-sii/src \
+            python scripts/build_entity_enrichment_sii.py \
+              --targets docs/data/investigative_findings.json \
+              2>&1 | tee /tmp/sii-enrichment.log
           CODE=${PIPESTATUS[0]}
           echo "exit_code=$CODE" >> "$GITHUB_OUTPUT"
           exit $CODE
@@ -61,11 +72,16 @@ jobs:
           p='docs/data/entity_enrichment_v1.json'
           d=json.load(open(p,encoding='utf-8'))
           assert d.get('schema')=='PRESUPUESTO_ENTITY_ENRICHMENT_V1'
+          assert d.get('target_universe',{}).get('semantic')=='RIGP_PUBLISHED_FINDINGS_RESOLVED_RUT_ONLY'
           src=d.get('sources',{}).get('RADAR_SII',{})
           assert src.get('status')=='SELECTIVE_RUT_EXTRACT_READY'
           assert src.get('matched_entities',0)>0
-          print('[OK]',src)
+          assert src.get('matched_entities',0) <= src.get('target_ruts',0)
+          print('[OK]',d.get('target_universe'),src)
           PY
+      - name: Rebuild compact case entity context
+        if: steps.validate.outcome == 'success'
+        run: python3 scripts/build_case_entity_context.py
       - name: Write enrichment status
         if: always()
         env:
@@ -80,6 +96,13 @@ jobs:
           from pathlib import Path
           log=Path('/tmp/sii-enrichment.log')
           lines=log.read_text(encoding='utf-8',errors='replace').splitlines() if log.exists() else []
+          target='docs/data/investigative_findings.json'
+          relation_count=0
+          if Path(target).exists():
+              try:
+                  relation_count=len(json.load(open(target,encoding='utf-8')).get('relation_findings') or [])
+              except Exception:
+                  pass
           payload={
             'generated_at':datetime.now(timezone.utc).isoformat(timespec='seconds'),
             'workflow':'Enrich Spend Suppliers with SII',
@@ -88,21 +111,26 @@ jobs:
             'exit_code':int(os.environ.get('BUILD_CODE') or -1),
             'validation':os.environ.get('VALIDATE_OUTCOME') or 'skipped',
             'data_ready':Path('docs/data/entity_enrichment_v1.json').exists(),
-            'supplier_universe':'docs/data/spend_years_v1.json',
-            'upstream':'Corrected Spend Data v3',
+            'target_universe':target,
+            'published_relation_count':relation_count,
+            'upstream':'Radar monthly analysis',
+            'semantic':'RIGP_PUBLISHED_FINDINGS_RESOLVED_RUT_ONLY',
             'log_tail':lines[-80:]
           }
-          Path('docs/data/entity_enrichment_sii_status.json').write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding='utf-8')
+          Path('docs/data/entity_enrichment_sii_status.json').write_text(
+              json.dumps(payload,ensure_ascii=False,indent=2),encoding='utf-8'
+          )
           PY
-      - name: Publish enrichment and status
+      - name: Publish enrichment, case context and status
         if: always()
         run: |
           git config user.name "radar-presupuesto-bot"
           git config user.email "radar-presupuesto-bot@users.noreply.github.com"
           git add docs/data/entity_enrichment_sii_status.json
           if [ -f docs/data/entity_enrichment_v1.json ]; then git add docs/data/entity_enrichment_v1.json; fi
+          if [ -f docs/data/case_entity_context.json ]; then git add docs/data/case_entity_context.json; fi
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "data: publica enriquecimiento SII de proveedores"
+          git commit -m "data: enriquece proveedores publicados RIGP con SII"
           git pull --rebase origin main
           git push origin main
       - name: Fail if enrichment failed
