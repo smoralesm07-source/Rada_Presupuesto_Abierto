@@ -53,14 +53,21 @@ def build_spend_view_v2(
     name_expr = "coalesce(nullif(trim(nombre_area),''), nullif(trim(nombre_capitulo),''), nullif(trim(nombre_partida),''), organization_id)"
     provider_name_expr = "coalesce(nullif(trim(nombre_beneficiario),''), provider_id)"
 
+    # Materialize the 12 calendar months first. This avoids a correlated outer join
+    # between bounds/range and l12, which is unsupported in recent DuckDB versions.
     months = _records(con, """
-        SELECT strftime(b.start_month + i * INTERVAL '1 month','%Y-%m') AS period,
+        WITH calendar AS (
+          SELECT (b.start_month + i * INTERVAL '1 month')::DATE AS month_date, i
+          FROM bounds b CROSS JOIN range(12) t(i)
+        )
+        SELECT strftime(c.month_date,'%Y-%m') AS period,
                coalesce(sum(l.amount),0) AS amount_clp,
                coalesce(sum(l.amount) FILTER (WHERE l.is_provider=TRUE AND coalesce(l.provider_id,'')<>''),0) AS provider_amount_clp,
                count(l.transaction_id) AS transactions
-        FROM bounds b, range(12) t(i)
-        LEFT JOIN l12 l ON l.month_date = (b.start_month + i * INTERVAL '1 month')::DATE
-        GROUP BY 1, i ORDER BY i
+        FROM calendar c
+        LEFT JOIN l12 l ON l.month_date = c.month_date
+        GROUP BY c.month_date, c.i
+        ORDER BY c.i
     """)
 
     overview = con.execute("""
