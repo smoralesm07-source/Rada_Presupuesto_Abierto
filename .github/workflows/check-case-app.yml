@@ -1,0 +1,45 @@
+name: Check RIGP Case App
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/index.html'
+      - 'docs/assets/rigp_case_app.js'
+      - 'docs/assets/rigp_case_app.css'
+      - 'schemas/011_cases.sql'
+      - '.github/workflows/check-case-app.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validate JavaScript
+        run: node --check docs/assets/rigp_case_app.js
+      - name: Validate five-object navigation
+        run: |
+          grep -q 'data-view="bandeja"' docs/index.html
+          grep -q 'data-view="triage"' docs/index.html
+          grep -q 'data-view="caso"' docs/index.html
+          grep -q 'data-view="entidad"' docs/index.html
+          grep -q 'data-view="informe"' docs/index.html
+          test "$(grep -o 'assets/rigp_case_app.js' docs/index.html | wc -l)" -eq 1
+          test "$(grep -o 'assets/rigp_case_app.css' docs/index.html | wc -l)" -eq 1
+      - name: Prevent frontend accretion regressions
+        run: |
+          ! grep -q 'spend_safe_' docs/index.html
+          ! grep -q 'spend_v[0-9]' docs/index.html
+          ! grep -q 'MutationObserver' docs/assets/rigp_case_app.js
+          ! grep -q 'setInterval' docs/assets/rigp_case_app.js
+          ! grep -q 'investigation_queue.json' docs/assets/rigp_case_app.js
+          ! grep -q 'spend_years_v1.json' docs/assets/rigp_case_app.js
+          grep -q "const CASE_KEY='rigp_cases_v1'" docs/assets/rigp_case_app.js
+      - name: Validate persistent case schema contract
+        run: |
+          grep -q 'CREATE TABLE IF NOT EXISTS rigp_cases' schemas/011_cases.sql
+          grep -q 'CREATE TABLE IF NOT EXISTS rigp_case_findings' schemas/011_cases.sql
+          grep -q 'CREATE TABLE IF NOT EXISTS rigp_case_evidence' schemas/011_cases.sql
+          grep -q 'CREATE TABLE IF NOT EXISTS rigp_case_events' schemas/011_cases.sql
+          grep -q 'CANDIDATA' schemas/011_cases.sql
