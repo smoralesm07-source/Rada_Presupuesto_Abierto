@@ -3,11 +3,11 @@ on:
   push:
     branches: [main]
     paths:
-      - 'docs/**'
+      - 'docs/index.html'
+      - 'docs/assets/rigp_case_app.js'
+      - 'docs/assets/rigp_case_app.css'
+      - 'docs/data/investigative_findings.json'
       - 'scripts/build_findings_for_pages.py'
-      - 'scripts/build_explore_context_for_pages.py'
-      - 'scripts/build_benefit_context_for_pages.py'
-      - 'scripts/build_ownership_resolution_queue.py'
       - '.github/workflows/pages.yml'
   workflow_run:
     workflows:
@@ -23,8 +23,6 @@ permissions:
   id-token: write
 concurrency:
   group: pages
-  # No cancelar un deploy válido si llega, mientras publica, otro workflow_run
-  # que finalmente será omitido por la condición del job.
   cancel-in-progress: false
 jobs:
   deploy:
@@ -54,7 +52,7 @@ jobs:
           PY
           then
             echo "canonical=true" >> "$GITHUB_OUTPUT"
-            echo "[RIGP Pages] usando investigative_findings.json del pipeline canónico"
+            echo "[RIGP Pages] usando hallazgos del pipeline canónico"
           else
             echo "canonical=false" >> "$GITHUB_OUTPUT"
             echo "[RIGP Pages] hallazgos canónicos ausentes; se usará fallback compacto"
@@ -62,65 +60,42 @@ jobs:
       - name: Build compact findings fallback for Pages
         if: steps.canonical_findings.outputs.canonical != 'true'
         run: python3 scripts/build_findings_for_pages.py
-      - name: Build compact explore context for Pages
-        run: python3 scripts/build_explore_context_for_pages.py
-      - name: Build compact benefit context for Pages
-        run: python3 scripts/build_benefit_context_for_pages.py
-      - name: Build ownership resolution queue for Pages
-        run: python3 scripts/build_ownership_resolution_queue.py
-      - name: Validate compact web payloads
+      - name: Validate case-first web contract
         run: |
+          node --check docs/assets/rigp_case_app.js
           python3 - <<'PY'
           import json
           from pathlib import Path
           findings=Path('docs/data/investigative_findings.json')
-          explore=Path('docs/data/explore_context.json')
-          benefit=Path('docs/data/benefit_context.json')
-          ownership=Path('docs/data/ownership_resolution_queue.json')
-          assert findings.exists(), 'missing compact findings payload'
-          assert explore.exists(), 'missing compact explore payload'
-          assert benefit.exists(), 'missing compact benefit payload'
-          assert ownership.exists(), 'missing ownership resolution payload'
-          f=json.loads(findings.read_text())
-          e=json.loads(explore.read_text())
-          b=json.loads(benefit.read_text())
-          o=json.loads(ownership.read_text())
-          assert f.get('methodology_version') in {'RIGP-FINDINGS-v1','RIGP-FINDINGS-PAGES-v1'}, 'unexpected findings methodology'
-          assert f.get('relation_findings'), 'empty compact findings payload'
-          assert e.get('schema') == 'RIGP-EXPLORE-CONTEXT-v1'
-          assert e.get('services'), 'empty service explore context'
-          assert b.get('schema') == 'RIGP-BENEFIT-CONTEXT-v1'
-          assert b.get('candidates'), 'empty benefit candidate context'
-          assert b.get('guardrail'), 'benefit guardrail missing'
-          assert o.get('schema') == 'RIGP-OWNERSHIP-RESOLUTION-v1'
-          assert o.get('queue'), 'empty ownership resolution queue'
-          assert o.get('published_candidates',0) <= 300, 'ownership queue cap exceeded'
-          assert findings.stat().st_size < 1_500_000, 'findings payload too large for safe startup'
-          assert explore.stat().st_size < 600_000, 'explore payload unexpectedly large'
-          assert benefit.stat().st_size < 500_000, 'benefit payload unexpectedly large'
-          assert ownership.stat().st_size < 350_000, 'ownership payload unexpectedly large'
+          f=json.loads(findings.read_text(encoding='utf-8'))
+          assert f.get('methodology_version') in {'RIGP-FINDINGS-v1','RIGP-FINDINGS-PAGES-v1'}
+          relations=f.get('relation_findings') or []
+          assert relations, 'empty findings payload'
+          assert len(relations) <= 800, 'published findings must remain bounded'
+          assert findings.stat().st_size < 2_000_000, 'findings payload too large for safe startup'
           print('findings methodology:', f.get('methodology_version'))
-          print('findings relations:', len(f.get('relation_findings',[])))
+          print('relations:', len(relations))
           print('findings KiB:', round(findings.stat().st_size/1024,1))
-          print('explore KiB:', round(explore.stat().st_size/1024,1))
-          print('benefit KiB:', round(benefit.stat().st_size/1024,1))
-          print('ownership KiB:', round(ownership.stat().st_size/1024,1))
-          print('explore coverage:', e.get('coverage'))
-          print('benefit coverage:', b.get('coverage'))
-          print('ownership published:', o.get('published_candidates'))
           PY
-      - name: Prune legacy frontend assets from Pages artifact
+          test "$(grep -o 'assets/rigp_case_app.js' docs/index.html | wc -l)" -eq 1
+          test "$(grep -o 'assets/rigp_case_app.css' docs/index.html | wc -l)" -eq 1
+          ! grep -q 'spend_safe_' docs/index.html
+          ! grep -q 'spend_v[0-9]' docs/index.html
+          ! grep -q 'MutationObserver' docs/assets/rigp_case_app.js
+          ! grep -q 'setInterval' docs/assets/rigp_case_app.js
+          ! grep -q 'investigation_queue.json' docs/assets/rigp_case_app.js
+          ! grep -q 'spend_years_v1.json' docs/assets/rigp_case_app.js
+      - name: Build minimal Pages artifact
         run: |
-          # Las generaciones v2-v15 se conservan temporalmente en Git como historia,
-          # pero no forman parte de la aplicación publicada ni deben inflar el artefacto.
-          rm -f docs/assets/json_compat.js docs/assets/spend_safe.js docs/assets/spend_safe.css
-          rm -f docs/assets/spend_safe_actor_map.js
-          rm -f docs/assets/spend_v2* docs/assets/spend_v3* docs/assets/spend_v4* docs/assets/spend_v5*
-          rm -f docs/assets/spend_v6* docs/assets/spend_v7* docs/assets/spend_v8* docs/assets/spend_v9*
-          rm -f docs/assets/spend_v10* docs/assets/spend_v11* docs/assets/spend_v12* docs/assets/spend_v13*
-          rm -f docs/assets/spend_v14* docs/assets/spend_v15*
-          echo "[RIGP Pages] assets publicados:"
-          find docs/assets -maxdepth 1 -type f -printf '%f\n' | sort
+          rm -rf public
+          mkdir -p public/assets public/data
+          cp docs/index.html public/index.html
+          cp docs/assets/rigp_case_app.js public/assets/rigp_case_app.js
+          cp docs/assets/rigp_case_app.css public/assets/rigp_case_app.css
+          cp docs/data/investigative_findings.json public/data/investigative_findings.json
+          touch public/.nojekyll
+          echo '[RIGP Pages] artefacto mínimo:'
+          find public -type f -printf '%p %s bytes\n' | sort
       - name: Check whether GitHub Pages is enabled
         id: pages
         env:
@@ -135,11 +110,8 @@ jobs:
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "GitHub Pages aún no está habilitado. Activa Settings > Pages > Source: GitHub Actions."
+            echo "GitHub Pages aún no está habilitado."
           fi
-      - name: Pages not enabled yet
-        if: steps.pages.outputs.enabled != 'true'
-        run: echo "::notice::Dashboard listo. Falta habilitar GitHub Pages una sola vez en Settings > Pages > Source = GitHub Actions."
       - name: Configure GitHub Pages
         if: steps.pages.outputs.enabled == 'true'
         uses: actions/configure-pages@v5
@@ -147,8 +119,7 @@ jobs:
         if: steps.pages.outputs.enabled == 'true'
         uses: actions/upload-pages-artifact@v4
         with:
-          path: docs
+          path: public
       - name: Deploy
         if: steps.pages.outputs.enabled == 'true'
-        id: deployment
         uses: actions/deploy-pages@v4
