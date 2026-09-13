@@ -6,6 +6,7 @@ on:
       - 'docs/**'
       - 'scripts/build_findings_for_pages.py'
       - 'scripts/build_explore_context_for_pages.py'
+      - 'scripts/build_benefit_context_for_pages.py'
       - '.github/workflows/pages.yml'
   workflow_run:
     workflows:
@@ -38,6 +39,8 @@ jobs:
         run: python3 scripts/build_findings_for_pages.py
       - name: Build compact explore context for Pages
         run: python3 scripts/build_explore_context_for_pages.py
+      - name: Build compact benefit context for Pages
+        run: python3 scripts/build_benefit_context_for_pages.py
       - name: Validate compact web payloads
         run: |
           python3 - <<'PY'
@@ -45,17 +48,26 @@ jobs:
           from pathlib import Path
           findings=Path('docs/data/investigative_findings.json')
           explore=Path('docs/data/explore_context.json')
+          benefit=Path('docs/data/benefit_context.json')
           assert findings.exists(), 'missing compact findings payload'
           assert explore.exists(), 'missing compact explore payload'
+          assert benefit.exists(), 'missing compact benefit payload'
           f=json.loads(findings.read_text())
           e=json.loads(explore.read_text())
+          b=json.loads(benefit.read_text())
           assert f.get('relation_findings'), 'empty compact findings payload'
           assert e.get('schema') == 'RIGP-EXPLORE-CONTEXT-v1'
           assert e.get('services'), 'empty service explore context'
+          assert b.get('schema') == 'RIGP-BENEFIT-CONTEXT-v1'
+          assert b.get('candidates'), 'empty benefit candidate context'
+          assert b.get('guardrail'), 'benefit guardrail missing'
           assert explore.stat().st_size < 600_000, 'explore payload unexpectedly large'
+          assert benefit.stat().st_size < 500_000, 'benefit payload unexpectedly large'
           print('findings KiB:', round(findings.stat().st_size/1024,1))
           print('explore KiB:', round(explore.stat().st_size/1024,1))
+          print('benefit KiB:', round(benefit.stat().st_size/1024,1))
           print('explore coverage:', e.get('coverage'))
+          print('benefit coverage:', b.get('coverage'))
           PY
       - name: Check whether GitHub Pages is enabled
         id: pages
