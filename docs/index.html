@@ -1,8 +1,8 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RIGP · Piloto Seguro Plus</title><meta name="description" content="RIGP piloto analítico de integridad del gasto público."><link rel="stylesheet" href="assets/spend_safe.css?v=2"></head><body>
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RIGP · Piloto Seguro Plus</title><meta name="description" content="RIGP piloto analítico de integridad del gasto público."><link rel="stylesheet" href="assets/spend_safe_v3.css?v=3"></head><body>
 <main class="app">
-<header class="top"><div><div class="eyebrow">RIGP · piloto analítico</div><h1>Dónde mirar primero en el gasto público</h1><p>Aplicación de investigación sobre hallazgos priorizados. Mantiene una arquitectura segura: un payload compacto, sin procesos permanentes en segundo plano, con navegación por servicios, proveedores, hallazgos y revisión humana.</p></div><span class="safe">Modo Seguro Plus · estable</span></header>
+<header class="top"><div><div class="eyebrow">RIGP · piloto analítico</div><h1>Dónde mirar primero en el gasto público</h1><p>Aplicación de investigación sobre hallazgos priorizados. Mantiene una arquitectura segura: un payload compacto para trabajo diario y contexto histórico preprocesado que se carga sólo al explorar un foco.</p></div><span class="safe">Modo Seguro Plus · estable</span></header>
 <div class="status" id="status">Cargando hallazgos compactos…</div>
-<nav class="nav"><button class="on" data-view="inicio">Inicio</button><button data-view="bandeja">Bandeja</button><button data-view="hallazgos">Hallazgos</button><button data-view="servicios">Servicios</button><button data-view="proveedores">Proveedores</button></nav>
+<nav class="nav"><button class="on" data-view="inicio">Inicio</button><button data-view="bandeja">Bandeja</button><button data-view="hallazgos">Hallazgos</button><button data-view="servicios">Servicios</button><button data-view="proveedores">Proveedores</button><button data-view="explorar">Explorar</button></nav>
 <div class="contextbar" id="contextbar"></div>
 <section class="kpis" id="kpis"></section>
 <section class="toolbar" id="filtersWrap"><input id="search" type="search" autocomplete="off" placeholder="Buscar servicio, proveedor, hallazgo, señal o año…"><div class="filters"><button class="on" data-level="ACTIVE">Prioritarios</button><button data-level="ATENCION_INMEDIATA">Atención inmediata</button><button data-level="REVISION_PRIORITARIA">Revisión prioritaria</button><button data-level="ALL">Todos</button></div></section>
@@ -10,5 +10,5 @@
 <p class="guardline" id="guardrail"></p>
 </main>
 <div class="drawerBack" id="drawerBack"></div><aside class="drawer" id="drawer"></aside>
-<script src="assets/spend_safe.js?v=2"></script>
+<script src="assets/spend_safe_v3.js?v=3"></script>
 </body></html>
