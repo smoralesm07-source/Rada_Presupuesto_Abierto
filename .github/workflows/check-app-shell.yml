@@ -4,8 +4,11 @@ on:
     branches: [main]
     paths:
       - 'docs/index.html'
-      - 'docs/assets/spend_v13_shell.js'
-      - 'docs/assets/spend_v13_shell.css'
+      - 'docs/assets/spend_v14_boot.js'
+      - 'docs/assets/spend_v14_explore.js'
+      - 'docs/assets/spend_v14_focus.js'
+      - 'docs/assets/spend_v14_focus.css'
+      - 'docs/assets/spend_v15_shell.js'
       - '.github/workflows/check-app-shell.yml'
   workflow_dispatch:
 permissions:
@@ -15,20 +18,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Validate shell JavaScript
-        run: node --check docs/assets/spend_v13_shell.js
-      - name: Validate navigation contract
+      - name: Validate current JavaScript
         run: |
-          grep -q 'assets/spend_v13_shell.css?v=20' docs/index.html
-          grep -q 'assets/spend_v13_shell.js?v=20' docs/index.html
-          grep -q "home:'inicio'" docs/assets/spend_v13_shell.js
-          grep -q "queue:'bandeja'" docs/assets/spend_v13_shell.js
-          grep -q "findings:'hallazgos'" docs/assets/spend_v13_shell.js
-          grep -q "explore:'explorar'" docs/assets/spend_v13_shell.js
-          grep -q 'Contexto activo' docs/assets/spend_v13_shell.js
-          grep -q 'Qué requiere atención ahora' docs/assets/spend_v13_shell.js
-          grep -q 'data-rigp-go="queue"' docs/assets/spend_v13_shell.js
-      - name: Ensure lightweight findings architecture remains enabled
+          node --check docs/assets/spend_v14_boot.js
+          node --check docs/assets/spend_v14_explore.js
+          node --check docs/assets/spend_v14_focus.js
+          node --check docs/assets/spend_v15_shell.js
+      - name: Validate navigation and focus contract
+        run: |
+          grep -q 'assets/spend_v15_shell.js?v=22' docs/index.html
+          grep -q 'assets/spend_v14_focus.js?v=22' docs/index.html
+          grep -q "home:'inicio'" docs/assets/spend_v15_shell.js
+          grep -q "queue:'bandeja'" docs/assets/spend_v15_shell.js
+          grep -q "findings:'hallazgos'" docs/assets/spend_v15_shell.js
+          grep -q "explore:'explorar'" docs/assets/spend_v15_shell.js
+          grep -q 'Foco de investigación' docs/assets/spend_v14_focus.js
+          grep -q 'data-focus-evidence' docs/assets/spend_v14_focus.js
+          grep -q 'data-focus-review' docs/assets/spend_v14_focus.js
+      - name: Ensure heavy browser startup is gone
+        run: |
+          ! grep -q 'assets/spend_v2_fast.js' docs/index.html
+          ! grep -q 'assets/spend_v4_explorer.js' docs/index.html
+          ! grep -q 'assets/spend_v5_focus.js' docs/index.html
+          ! grep -q 'assets/spend_v6_dossier.js' docs/index.html
+          ! grep -q 'assets/spend_v7_mark_filter.js' docs/index.html
+          ! grep -q 'spend_years_v1.json' docs/assets/spend_v14_boot.js
+          ! grep -q 'spend_years_v1.json' docs/assets/spend_v14_explore.js
+          grep -q 'spend_v14_explore.js?v=22' docs/assets/spend_v15_shell.js
+          grep -q '__RIGP_EXPLORE_LIGHT__=true' docs/assets/spend_v14_explore.js
+      - name: Ensure compact findings protection remains enabled
         run: |
           grep -q '__RIGP_LIGHTWEIGHT_FINDINGS__=true' docs/assets/json_compat.js
           grep -q 'Build compact findings payload for Pages' .github/workflows/pages.yml
