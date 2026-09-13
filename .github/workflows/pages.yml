@@ -5,6 +5,7 @@ on:
     paths:
       - 'docs/**'
       - 'scripts/build_findings_for_pages.py'
+      - 'scripts/build_explore_context_for_pages.py'
       - '.github/workflows/pages.yml'
   workflow_run:
     workflows:
@@ -35,6 +36,27 @@ jobs:
           ref: main
       - name: Build compact findings payload for Pages
         run: python3 scripts/build_findings_for_pages.py
+      - name: Build compact explore context for Pages
+        run: python3 scripts/build_explore_context_for_pages.py
+      - name: Validate compact web payloads
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          findings=Path('docs/data/investigative_findings.json')
+          explore=Path('docs/data/explore_context.json')
+          assert findings.exists(), 'missing compact findings payload'
+          assert explore.exists(), 'missing compact explore payload'
+          f=json.loads(findings.read_text())
+          e=json.loads(explore.read_text())
+          assert f.get('relation_findings'), 'empty compact findings payload'
+          assert e.get('schema') == 'RIGP-EXPLORE-CONTEXT-v1'
+          assert e.get('services'), 'empty service explore context'
+          assert explore.stat().st_size < 600_000, 'explore payload unexpectedly large'
+          print('findings KiB:', round(findings.stat().st_size/1024,1))
+          print('explore KiB:', round(explore.stat().st_size/1024,1))
+          print('explore coverage:', e.get('coverage'))
+          PY
       - name: Check whether GitHub Pages is enabled
         id: pages
         env:
