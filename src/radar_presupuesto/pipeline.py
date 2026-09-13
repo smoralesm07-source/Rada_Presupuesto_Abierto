@@ -15,6 +15,7 @@ from .coverage import write_coverage
 from .dashboard import build_dashboard_json
 from .extract import download
 from .features import build_profiles
+from .investigative_findings import build_investigative_findings
 from .normalize import normalize_frame, normalize_to_parquet
 from .prioritization import prioritize_signals
 from .quality import audit_quality
@@ -96,6 +97,7 @@ def _run_analytics(parquet_glob: str, cfg: dict, cgr_dir: str) -> dict:
     extended = _extend_from_config(parquet_glob, cfg)
     cgr = _run_cgr_correlation(parquet_glob, cgr_dir)
     queue = prioritize_signals(parquet_glob)
+    findings = build_investigative_findings()
     dashboard = build_dashboard_json(
         parquet_glob,
         "data/signals/risk_signals.parquet",
@@ -113,6 +115,7 @@ def _run_analytics(parquet_glob: str, cfg: dict, cgr_dir: str) -> dict:
         "extended": extended,
         "cgr": cgr,
         "queue": queue,
+        "findings": findings,
         "dashboard": dashboard,
         "spend_view": spend_view,
         "sii_document_candidates": sii_document_candidates,
@@ -130,7 +133,11 @@ def run_sample(sample: str, cgr_dir: str = DEFAULT_CGR_DIR) -> None:
     if quality["transaction_id_collision_ratio"] != 0:
         raise RuntimeError("transaction_id debe ser único para cada fila fuente")
     result = _run_analytics(parquet, load_config(), cgr_dir)
-    print(f"[OK] muestra: {len(df):,} filas | señales={result['extended']['signals']:,} | prioridad={result['queue']['priority_tiers']} | candidatos SII={result['sii_document_candidates']['rows']:,}")
+    print(
+        f"[OK] muestra: {len(df):,} filas | señales={result['extended']['signals']:,} | "
+        f"prioridad={result['queue']['priority_tiers']} | hallazgos={result['findings']['relations']:,} | "
+        f"candidatos SII={result['sii_document_candidates']['rows']:,}"
+    )
 
 
 def run_years(years: list[int], build_search_index: bool = True, cgr_dir: str = DEFAULT_CGR_DIR) -> None:
@@ -166,6 +173,11 @@ def run_years(years: list[int], build_search_index: bool = True, cgr_dir: str = 
     print(f"[OK] señales operativas: {result['extended']['signals']:,} | {result['extended']['by_type']}")
     print(f"[OK] CGR: {result['cgr']['status']} | enlaces candidatos={result['cgr']['links']:,} | con hallazgos={result['cgr']['links_with_findings']:,}")
     print(f"[OK] cola investigativa: {result['queue']['priority_tiers']}")
+    print(
+        f"[OK] hallazgos RIGP: {result['findings']['relations']:,} relaciones | "
+        f"servicios={result['findings']['service_hotspots']:,} | proveedores={result['findings']['provider_hotspots']:,} | "
+        f"redes estrella={result['findings']['network_candidates']:,}"
+    )
     print(
         f"[OK] spend-view L12: {len(result['spend_view']['services']):,} servicios | "
         f"{len(result['spend_view']['providers']):,} proveedores | "
