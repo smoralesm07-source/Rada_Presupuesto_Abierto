@@ -4,21 +4,14 @@ on:
     branches: [main]
     paths:
       - 'docs/index.html'
-      - 'docs/assets/json_compat.js'
-      - 'docs/assets/spend_v14_boot.js'
-      - 'docs/assets/spend_v14_explore.js'
-      - 'docs/assets/spend_v14_focus.js'
-      - 'docs/assets/spend_v14_focus.css'
-      - 'docs/assets/spend_v15_shell.js'
-      - 'docs/assets/spend_v8_findings.js'
-      - 'docs/assets/spend_v9_review.js'
-      - 'docs/assets/spend_v10_learning.js'
-      - 'docs/assets/spend_v11_evidence.js'
-      - 'docs/assets/spend_v12_workqueue.js'
-      - 'docs/assets/spend_v12_workqueue_bridge.js'
+      - 'docs/assets/spend_safe_v3.js'
+      - 'docs/assets/spend_safe_v3.css'
+      - 'docs/assets/spend_safe_network.js'
+      - 'docs/assets/spend_safe_network.css'
       - 'docs/data/spend_view_v2.json'
       - 'docs/data/investigation_queue.json'
       - 'scripts/build_findings_for_pages.py'
+      - 'scripts/build_explore_context_for_pages.py'
       - '.github/workflows/check-spend-ui.yml'
   workflow_dispatch:
 permissions:
@@ -30,28 +23,14 @@ jobs:
       - uses: actions/checkout@v6
       - name: Check JavaScript syntax
         run: |
-          node --check docs/assets/json_compat.js
-          node --check docs/assets/spend_v14_boot.js
-          node --check docs/assets/spend_v14_explore.js
-          node --check docs/assets/spend_v14_focus.js
-          node --check docs/assets/spend_v15_shell.js
-          node --check docs/assets/spend_v8_findings.js
-          node --check docs/assets/spend_v9_review.js
-          node --check docs/assets/spend_v10_learning.js
-          node --check docs/assets/spend_v11_evidence.js
-          node --check docs/assets/spend_v12_workqueue_bridge.js
-          node --check docs/assets/spend_v12_workqueue.js
-      - name: Check lightweight HTML references
+          node --check docs/assets/spend_safe_v3.js
+          node --check docs/assets/spend_safe_network.js
+      - name: Check current HTML references
         run: |
-          grep -q 'assets/spend_v14_boot.js?v=22' docs/index.html
-          grep -q 'assets/spend_v15_shell.js?v=22' docs/index.html
-          grep -q 'assets/spend_v14_focus.js?v=22' docs/index.html
-          grep -q 'assets/spend_v14_focus.css?v=22' docs/index.html
-          grep -q 'assets/spend_v8_findings.js?v=22' docs/index.html
-          grep -q 'assets/spend_v9_review.js?v=22' docs/index.html
-          grep -q 'assets/spend_v10_learning.js?v=22' docs/index.html
-          grep -q 'assets/spend_v11_evidence.js?v=22' docs/index.html
-          grep -q 'assets/spend_v12_workqueue.js?v=22' docs/index.html
+          grep -q 'assets/spend_safe_v3.js?v=3' docs/index.html
+          grep -q 'assets/spend_safe_v3.css?v=3' docs/index.html
+          grep -q 'assets/spend_safe_network.js?v=1' docs/index.html
+          grep -q 'assets/spend_safe_network.css?v=1' docs/index.html
           ! grep -q 'assets/spend_v2_fast.js' docs/index.html
           ! grep -q 'assets/spend_v4_explorer.js' docs/index.html
           ! grep -q 'assets/spend_v5_focus.js' docs/index.html
@@ -59,23 +38,27 @@ jobs:
           ! grep -q 'assets/spend_v7_mark_filter.js' docs/index.html
       - name: Validate performance contract
         run: |
-          ! grep -q 'spend_years_v1.json' docs/assets/spend_v14_boot.js
-          ! grep -q 'spend_years_v1.json' docs/assets/spend_v14_explore.js
-          grep -q 'spend_view_v2.json' docs/assets/spend_v14_boot.js
-          grep -q '__RIGP_EXPLORE_LIGHT__=true' docs/assets/spend_v14_explore.js
-          grep -q 'spend_v14_explore.js?v=22' docs/assets/spend_v15_shell.js
+          ! grep -q 'MutationObserver' docs/assets/spend_safe_v3.js
+          ! grep -q 'setInterval' docs/assets/spend_safe_v3.js
+          ! grep -q 'MutationObserver' docs/assets/spend_safe_network.js
+          ! grep -q 'setInterval' docs/assets/spend_safe_network.js
+          ! grep -q 'spend_years_v1.json' docs/assets/spend_safe_v3.js
+          ! grep -q 'spend_years_v1.json' docs/assets/spend_safe_network.js
+          grep -q 'explore_context.json' docs/assets/spend_safe_v3.js
+          grep -q 'explore_context.json' docs/assets/spend_safe_network.js
+          grep -q 'MAX_NODES=12' docs/assets/spend_safe_network.js
       - name: Validate investigation UX contract
         run: |
-          grep -q 'Hallazgos prioritarios' docs/index.html
-          grep -q 'Bandeja de investigación' docs/index.html
-          grep -q 'Foco de investigación' docs/assets/spend_v14_focus.js
-          grep -q 'Resumen' docs/assets/spend_v14_focus.js
-          grep -q 'Expediente' docs/assets/spend_v14_focus.js
-          grep -q 'Relaciones' docs/assets/spend_v14_focus.js
-          grep -q 'Contexto' docs/assets/spend_v14_focus.js
-          grep -q 'Revisión' docs/assets/spend_v14_focus.js
-          grep -q 'Lectura en 20 segundos' docs/assets/spend_v11_evidence.js
-          grep -q 'Tomar revisión' docs/assets/spend_v12_workqueue.js
+          grep -q 'data-view="inicio"' docs/index.html
+          grep -q 'data-view="bandeja"' docs/index.html
+          grep -q 'data-view="hallazgos"' docs/index.html
+          grep -q 'data-view="servicios"' docs/index.html
+          grep -q 'data-view="proveedores"' docs/index.html
+          grep -q 'data-view="explorar"' docs/index.html
+          grep -q 'data-network-view' docs/index.html
+          grep -q 'Foco activo' docs/assets/spend_safe_v3.js
+          grep -q 'Red investigativa ligera' docs/assets/spend_safe_network.js
+          grep -q 'Abrir expediente' docs/assets/spend_safe_v3.js
       - name: Parse current spend data with browser JSON parser
         run: |
           node - <<'JS'
@@ -85,26 +68,21 @@ jobs:
           if((d.flows||[]).length>5000) throw new Error('web flow payload unexpectedly large');
           console.log('[OK] services', (d.services||[]).length, 'flows', (d.flows||[]).length);
           JS
-      - name: Build compact findings payload as Pages does
-        run: python3 scripts/build_findings_for_pages.py
-      - name: Validate findings payload
+      - name: Build compact web payloads
+        run: |
+          python3 scripts/build_findings_for_pages.py
+          python3 scripts/build_explore_context_for_pages.py
+      - name: Validate compact web payloads
         run: |
           node - <<'JS'
           const fs=require('fs');
-          const d=JSON.parse(fs.readFileSync('docs/data/investigative_findings.json','utf8'));
-          if(!String(d.methodology_version||'').startsWith('RIGP-FINDINGS')) throw new Error('unexpected findings methodology');
-          if(!Array.isArray(d.relation_findings)) throw new Error('relation_findings missing');
-          if(!d.guardrail) throw new Error('findings guardrail missing');
-          if(d.relation_findings.length>1000) throw new Error('findings payload unexpectedly large');
-          console.log('[OK] findings',d.relation_findings.length);
-          JS
-      - name: Test legacy NaN browser fallback
-        run: |
-          node - <<'JS'
-          const fs=require('fs');
-          eval(fs.readFileSync('docs/assets/json_compat.js','utf8'));
-          new Response('{"amount_l12":NaN,"q4":Infinity,"down":-Infinity,"provider":"NaN Servicios"}').json().then(d=>{
-            if(d.amount_l12!==null||d.q4!==null||d.down!==null||d.provider!=='NaN Servicios') throw new Error('compat sanitizer failed');
-            console.log('[OK] legacy non-finite fallback');
-          });
+          const f=JSON.parse(fs.readFileSync('docs/data/investigative_findings.json','utf8'));
+          const e=JSON.parse(fs.readFileSync('docs/data/explore_context.json','utf8'));
+          if(!String(f.methodology_version||'').startsWith('RIGP-FINDINGS')) throw new Error('unexpected findings methodology');
+          if(!Array.isArray(f.relation_findings)||!f.guardrail) throw new Error('findings payload incomplete');
+          if(f.relation_findings.length>2500) throw new Error('findings payload unexpectedly large');
+          if(e.schema!=='RIGP-EXPLORE-CONTEXT-v1') throw new Error('unexpected explore schema');
+          const bytes=fs.statSync('docs/data/explore_context.json').size;
+          if(bytes>1024*1024) throw new Error('explore context unexpectedly large');
+          console.log('[OK] findings',f.relation_findings.length,'explore bytes',bytes);
           JS
