@@ -1,0 +1,44 @@
+name: Check RIGP Decision Side
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/index.html'
+      - 'docs/assets/spend_safe_decision.js'
+      - 'docs/assets/spend_safe_decision.css'
+      - 'docs/RIGP_DECISION_SIDE_METHOD.md'
+      - 'schemas/008_decision_side_links.sql'
+      - '.github/workflows/check-decision-side.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validate safe runtime
+        run: |
+          node --check docs/assets/spend_safe_decision.js
+          ! grep -q 'MutationObserver' docs/assets/spend_safe_decision.js
+          ! grep -q 'setInterval' docs/assets/spend_safe_decision.js
+          ! grep -q 'spend_years_v1.json' docs/assets/spend_safe_decision.js
+      - name: Validate UI and evidence contract
+        run: |
+          grep -q 'assets/spend_safe_decision.js?v=1' docs/index.html
+          grep -q 'assets/spend_safe_decision.css?v=1' docs/index.html
+          grep -q 'Lado de la decisión pública' docs/assets/spend_safe_decision.js
+          grep -q 'Cruce entre ambos lados' docs/assets/spend_safe_decision.js
+          grep -q 'Acta de adjudicación' docs/assets/spend_safe_decision.js
+          grep -q 'Procesos OCDS' docs/assets/spend_safe_decision.js
+          grep -q 'Transparencia Activa' docs/assets/spend_safe_decision.js
+          grep -q 'RIGP no compara nombres para inferir relaciones' docs/assets/spend_safe_decision.js
+          grep -q 'Incluso un vínculo transversal confirmado puede ser legítimo' docs/assets/spend_safe_decision.js
+      - name: Validate persistent architecture
+        run: |
+          grep -q 'create table if not exists decision_actors' schemas/008_decision_side_links.sql
+          grep -q 'create table if not exists cross_side_relationships' schemas/008_decision_side_links.sql
+          grep -q "'POR_VERIFICAR','ROL_CONFIRMADO','DESCARTADO'" schemas/008_decision_side_links.sql
+          grep -q "'POR_VERIFICAR','VINCULO_CONFIRMADO','DESCARTADO'" schemas/008_decision_side_links.sql
+          grep -q 'Coincidencia de nombre → conflicto de interés → delito' docs/RIGP_DECISION_SIDE_METHOD.md
+          grep -q 'Proveedor adjudicado → beneficiario ilícito' docs/RIGP_DECISION_SIDE_METHOD.md
