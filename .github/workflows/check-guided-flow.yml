@@ -34,11 +34,12 @@ jobs:
           assert block, 'primary navigation missing'
           buttons=re.findall(r'<button\b',block.group(1))
           assert len(buttons)==5, f'primary navigation must stay at 5 buttons, got {len(buttons)}'
-          for needle in ['data-view="inicio"','data-view="bandeja"','data-view="explorar"','data-actor-view','data-benefit-view','Vistas de apoyo','spend_safe_guided_flow.js?v=1','spend_safe_guided_flow.css?v=1']:
+          for needle in ['data-view="inicio"','data-view="bandeja"','data-view="explorar"','data-actor-view','data-benefit-view','Vistas de apoyo','spend_safe_guided_flow.js?v=2','spend_safe_guided_flow.css?v=2']:
               assert needle in html, f'index missing {needle}'
-          for needle in ["key:'prioritize'","key:'investigate'","key:'actors'","key:'benefit'",'Lee RIGP como una secuencia','Resultado esperado','señal analítica → hechos y documentos → actores e identidad → beneficio económico']:
+          for needle in ["key:'prioritize'","key:'investigate'","key:'actors'","key:'benefit'",'Lee RIGP como una secuencia','Resultado esperado','data-gf-support','Más contexto','1 · Resumen','4 · Decisión','señal analítica → hechos y documentos → actores e identidad → beneficio económico']:
               assert needle in js, f'guided flow missing {needle}'
-          for needle in ['.gf-steps','.gf-step.active','.nav-tools','body[data-rigp-stage="home"]']:
+          for needle in ['.gf-steps','.gf-step.active','.nav-tools','body[data-rigp-stage="home"]','body[data-rigp-stage="investigate"] #filtersWrap','rigp-show-support','1 · Qué ocurrió','2 · Por qué importa','3 · Cómo se repite']:
               assert needle in css, f'guided style missing {needle}'
-          print('[OK] guided information architecture contract')
+          assert 'nth-child(n+4){display:none}' in css, 'secondary investigate panels must be collapsed by default'
+          print('[OK] guided information architecture and progressive disclosure contract')
           PY
