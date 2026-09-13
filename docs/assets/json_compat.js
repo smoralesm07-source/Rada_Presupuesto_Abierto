@@ -67,7 +67,36 @@ Response.prototype.json=async function(){
     }catch(secondError){throw firstError;}
   }
 };
+
+// Protección de rendimiento del piloto web.
+// La cola analítica completa puede contener decenas de miles de señales y no debe
+// ser agregada en el navegador. GitHub Pages publica investigative_findings.json
+// ya compactado. Si ese archivo faltara, los módulos reciben una cola vacía y
+// degradan de forma controlada en vez de bloquear la pestaña.
+const nativeFetch=globalThis.fetch.bind(globalThis);
+let compactFindings=null;
+function requestUrl(input){return String(typeof input==='string'?input:(input&&input.url)||'')}
+globalThis.fetch=async function(input,init){
+  const url=requestUrl(input);
+  if(url.includes('data/investigation_queue.json')){
+    console.warn('[RIGP] Se evitó cargar la cola analítica completa en el navegador.');
+    return new Response(JSON.stringify({generated_at:null,total_signals:0,priority_tiers:{},queue:[]}),{status:200,headers:{'Content-Type':'application/json'}});
+  }
+  if(url.includes('data/investigative_findings.json')){
+    if(!compactFindings){
+      compactFindings=nativeFetch(input,init).then(async r=>{
+        if(!r.ok)throw new Error('investigative_findings HTTP '+r.status);
+        return {text:await r.text(),status:r.status,statusText:r.statusText,headers:[...r.headers.entries()]};
+      }).catch(err=>{compactFindings=null;throw err});
+    }
+    const c=await compactFindings;
+    return new Response(c.text,{status:c.status,statusText:c.statusText,headers:c.headers});
+  }
+  return nativeFetch(input,init);
+};
+
 globalThis.__PA_SANITIZE_JSON__=sanitizeNonFiniteJson;
 globalThis.__PA_CLEAN_SPEND__=cleanSpendPayload;
 globalThis.__PA_NORM_NAME__=normName;
+globalThis.__RIGP_LIGHTWEIGHT_FINDINGS__=true;
 })();
