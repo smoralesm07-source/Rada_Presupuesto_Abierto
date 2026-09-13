@@ -1,0 +1,40 @@
+name: Check RIGP Investigate UX
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/index.html'
+      - 'docs/assets/spend_safe_investigate_ux.js'
+      - 'docs/assets/spend_safe_investigate_ux.css'
+      - '.github/workflows/check-investigate-ux.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validate JavaScript
+        run: |
+          node --check docs/assets/spend_safe_investigate_ux.js
+          grep -q 'Hecho observado' docs/assets/spend_safe_investigate_ux.js
+          grep -q 'Por qué importa' docs/assets/spend_safe_investigate_ux.js
+          grep -q 'Evidencia disponible' docs/assets/spend_safe_investigate_ux.js
+          grep -q 'Qué falta acreditar' docs/assets/spend_safe_investigate_ux.js
+          grep -q 'Continuar a Actores' docs/assets/spend_safe_investigate_ux.js
+      - name: Validate lightweight contract
+        run: |
+          ! grep -q 'MutationObserver' docs/assets/spend_safe_investigate_ux.js
+          ! grep -q 'setInterval' docs/assets/spend_safe_investigate_ux.js
+          ! grep -q 'spend_years_v1.json' docs/assets/spend_safe_investigate_ux.js
+          ! grep -q 'investigation_queue.json' docs/assets/spend_safe_investigate_ux.js
+      - name: Validate HTML references
+        run: |
+          grep -q 'assets/spend_safe_investigate_ux.css?v=1' docs/index.html
+          grep -q 'assets/spend_safe_investigate_ux.js?v=1' docs/index.html
+      - name: Validate CSS hierarchy
+        run: |
+          grep -q '.iu-summary' docs/assets/spend_safe_investigate_ux.css
+          grep -q '.iu-next' docs/assets/spend_safe_investigate_ux.css
+          grep -q '.iu-details' docs/assets/spend_safe_investigate_ux.css
