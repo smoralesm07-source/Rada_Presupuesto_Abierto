@@ -1,0 +1,57 @@
+name: Review RIGP calibration
+on:
+  workflow_run:
+    workflows:
+      - 'Radar monthly analysis'
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: rigp-calibration-review
+  cancel-in-progress: true
+jobs:
+  review:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build post-run calibration review
+        run: PYTHONPATH=src python -m radar_presupuesto.calibration_review
+      - name: Validate review contract
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('docs/data/calibration_review.json',encoding='utf-8'))
+          assert d['schema']=='RIGP-CALIBRATION-REVIEW-v1'
+          assert d['automatic_threshold_changes'] is False
+          assert d['readiness'] in {
+              'READY_FOR_ANALYST_REVIEW',
+              'READY_WITH_COVERAGE_GAPS',
+              'REQUIRES_METHOD_REVIEW',
+          }
+          assert 'signal_health' in d
+          assert 'coverage' in d
+          assert 'quality_gates' in d
+          print('readiness:',d['readiness'])
+          print('gates:',d['quality_gates'])
+          print('signals:',d['signal_health'])
+          print('coverage:',d['coverage'])
+          print('recommendations:',[(x['priority'],x['topic']) for x in d['recommendations']])
+          PY
+      - name: Publish calibration review
+        run: |
+          git config user.name "radar-presupuesto-bot"
+          git config user.email "radar-presupuesto-bot@users.noreply.github.com"
+          git add docs/data/calibration_review.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "data: publica revisión de calibración RIGP"
+          git pull --rebase origin main
+          git push origin main
