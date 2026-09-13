@@ -85,7 +85,7 @@ jobs:
               ],
               'docs/assets/spend_safe_value_trace.js': [
                   '¿Quién terminó recibiendo, controlando o disponiendo del beneficio económico?',
-                  'su licitud no se califica aquí',
+                  'RIGP no califica su licitud', 'No significa que ese valor provenga de un ilícito',
               ],
               'docs/assets/spend_safe_causality.js': [
                   'Antecedente externo de integridad', 'Nexo con el beneficio',
