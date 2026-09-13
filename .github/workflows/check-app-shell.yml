@@ -1,0 +1,34 @@
+name: Check RIGP App Shell
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/index.html'
+      - 'docs/assets/spend_v13_shell.js'
+      - 'docs/assets/spend_v13_shell.css'
+      - '.github/workflows/check-app-shell.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validate shell JavaScript
+        run: node --check docs/assets/spend_v13_shell.js
+      - name: Validate navigation contract
+        run: |
+          grep -q 'assets/spend_v13_shell.css?v=20' docs/index.html
+          grep -q 'assets/spend_v13_shell.js?v=20' docs/index.html
+          grep -q "home:'inicio'" docs/assets/spend_v13_shell.js
+          grep -q "queue:'bandeja'" docs/assets/spend_v13_shell.js
+          grep -q "findings:'hallazgos'" docs/assets/spend_v13_shell.js
+          grep -q "explore:'explorar'" docs/assets/spend_v13_shell.js
+          grep -q 'Contexto activo' docs/assets/spend_v13_shell.js
+          grep -q 'Qué requiere atención ahora' docs/assets/spend_v13_shell.js
+          grep -q 'data-rigp-go="queue"' docs/assets/spend_v13_shell.js
+      - name: Ensure lightweight findings architecture remains enabled
+        run: |
+          grep -q '__RIGP_LIGHTWEIGHT_FINDINGS__=true' docs/assets/json_compat.js
+          grep -q 'Build compact findings payload for Pages' .github/workflows/pages.yml
