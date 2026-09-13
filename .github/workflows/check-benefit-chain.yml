@@ -71,8 +71,8 @@ jobs:
           grep -q 'assets/spend_safe_causality.css?v=1' docs/index.html
           grep -q 'assets/spend_safe_actor_map.js?v=4' docs/index.html
           grep -q 'assets/spend_safe_actor_map.css?v=3' docs/index.html
-          grep -q 'assets/spend_safe_trace_dossier.js?v=1' docs/index.html
-          grep -q 'assets/spend_safe_trace_dossier.css?v=1' docs/index.html
+          grep -q 'assets/spend_safe_trace_dossier.js?v=2' docs/index.html
+          grep -q 'assets/spend_safe_trace_dossier.css?v=2' docs/index.html
           grep -q 'Receptor económico directo' docs/assets/spend_safe_benefit.js
           grep -q 'Beneficio final' docs/assets/spend_safe_benefit.js
           grep -q 'No es probabilidad de delito' docs/assets/spend_safe_benefit.js
@@ -101,6 +101,11 @@ jobs:
           grep -q "code:'L2'" docs/assets/spend_safe_trace_dossier.js
           grep -q "code:'L3'" docs/assets/spend_safe_trace_dossier.js
           grep -q "code:'L4'" docs/assets/spend_safe_trace_dossier.js
+          grep -q "code:'L5'" docs/assets/spend_safe_trace_dossier.js
+          grep -q "code:'L6'" docs/assets/spend_safe_trace_dossier.js
+          grep -q 'Antecedente y beneficio en el mismo receptor' docs/assets/spend_safe_trace_dossier.js
+          grep -q 'L5 no presume causalidad' docs/assets/spend_safe_trace_dossier.js
+          grep -q 'Nexo hecho–beneficio' docs/assets/spend_safe_trace_dossier.js
           grep -q 'Es profundidad documental de la trazabilidad, no probabilidad de delito' docs/assets/spend_safe_trace_dossier.js
           grep -q 'Copiar dossier' docs/assets/spend_safe_trace_dossier.js
           grep -q 'Imprimir dossier' docs/assets/spend_safe_trace_dossier.js
