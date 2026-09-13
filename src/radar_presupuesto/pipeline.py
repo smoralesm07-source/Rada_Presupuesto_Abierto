@@ -96,8 +96,13 @@ def _run_analytics(parquet_glob: str, cfg: dict, cgr_dir: str) -> dict:
     base = _build_base_signals(parquet_glob, cfg)
     extended = _extend_from_config(parquet_glob, cfg)
     cgr = _run_cgr_correlation(parquet_glob, cgr_dir)
-    queue = prioritize_signals(parquet_glob)
-    findings = build_investigative_findings()
+    # La cola JSON deja de ser el embudo que define qué fenómenos existen para el analista.
+    # Conservamos una cola amplia para auditoría/diagnóstico, mientras los hallazgos canónicos
+    # se construyen directamente desde el parquet completo de señales priorizadas.
+    queue = prioritize_signals(parquet_glob, top_n=5000)
+    # Publicación web acotada, pero seleccionada desde el universo analítico completo.
+    # 600 relaciones mantienen el payload manejable y multiplican la cobertura del piloto.
+    findings = build_investigative_findings(top_n=600)
     dashboard = build_dashboard_json(
         parquet_glob,
         "data/signals/risk_signals.parquet",
