@@ -109,6 +109,18 @@ jobs:
           print('benefit coverage:', b.get('coverage'))
           print('ownership published:', o.get('published_candidates'))
           PY
+      - name: Prune legacy frontend assets from Pages artifact
+        run: |
+          # Las generaciones v2-v15 se conservan temporalmente en Git como historia,
+          # pero no forman parte de la aplicación publicada ni deben inflar el artefacto.
+          rm -f docs/assets/json_compat.js docs/assets/spend_safe.js docs/assets/spend_safe.css
+          rm -f docs/assets/spend_safe_actor_map.js
+          rm -f docs/assets/spend_v2* docs/assets/spend_v3* docs/assets/spend_v4* docs/assets/spend_v5*
+          rm -f docs/assets/spend_v6* docs/assets/spend_v7* docs/assets/spend_v8* docs/assets/spend_v9*
+          rm -f docs/assets/spend_v10* docs/assets/spend_v11* docs/assets/spend_v12* docs/assets/spend_v13*
+          rm -f docs/assets/spend_v14* docs/assets/spend_v15*
+          echo "[RIGP Pages] assets publicados:"
+          find docs/assets -maxdepth 1 -type f -printf '%f\n' | sort
       - name: Check whether GitHub Pages is enabled
         id: pages
         env:
