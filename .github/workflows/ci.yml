@@ -18,6 +18,7 @@ jobs:
       - run: python -m pip install -r requirements.txt
       - name: UI JavaScript syntax
         run: |
+          node --check docs/assets/spend_safe_v3.js
           node --check docs/assets/spend_v14_boot.js
           node --check docs/assets/spend_v14_explore.js
           node --check docs/assets/spend_v14_focus.js
@@ -30,16 +31,18 @@ jobs:
           node --check docs/assets/spend_v12_workqueue.js
       - name: UX and performance contract
         run: |
-          grep -q 'Foco de investigación' docs/assets/spend_v14_focus.js
-          grep -q 'spend_v14_explore.js?v=22' docs/assets/spend_v15_shell.js
-          grep -q '__RIGP_EXPLORE_LIGHT__=true' docs/assets/spend_v14_explore.js
+          grep -q 'data-view="explorar"' docs/index.html
+          grep -q 'spend_safe_v3.js?v=3' docs/index.html
+          grep -q 'explore_context.json' docs/assets/spend_safe_v3.js
+          grep -q 'carga contextual bajo demanda' docs/assets/spend_safe_v3.js
+          ! grep -q 'MutationObserver' docs/assets/spend_safe_v3.js
+          ! grep -q 'setInterval' docs/assets/spend_safe_v3.js
+          ! grep -q 'spend_years_v1.json' docs/assets/spend_safe_v3.js
           ! grep -q 'assets/spend_v2_fast.js' docs/index.html
           ! grep -q 'assets/spend_v4_explorer.js' docs/index.html
           ! grep -q 'assets/spend_v5_focus.js' docs/index.html
           ! grep -q 'assets/spend_v6_dossier.js' docs/index.html
           ! grep -q 'assets/spend_v7_mark_filter.js' docs/index.html
-          ! grep -q 'spend_years_v1.json' docs/assets/spend_v14_boot.js
-          ! grep -q 'spend_years_v1.json' docs/assets/spend_v14_explore.js
       - name: Human review, learning, evidence and work queue contract
         run: |
           grep -q 'useful_signals' docs/assets/spend_v9_review.js
@@ -56,22 +59,31 @@ jobs:
         run: PYTHONPATH=src pytest -q
       - name: End-to-end sample pipeline
         run: PYTHONPATH=src python -m radar_presupuesto.pipeline --sample tests/fixtures/sample_transactions.csv --cgr-dir /tmp/no-cgr
-      - name: Validate sample integrity, queue and findings
+      - name: Build compact contextual payload
+        run: python scripts/build_explore_context_for_pages.py
+      - name: Validate sample integrity, queue, findings and contextual payload
         run: |
           python - <<'PY'
           import json
+          from pathlib import Path
           q=json.load(open('docs/data/quality.json'))
           d=json.load(open('docs/data/dashboard.json'))
           iq=json.load(open('docs/data/investigation_queue.json'))
           fh=json.load(open('docs/data/investigative_findings.json'))
+          ex=Path('docs/data/explore_context.json')
           assert q['transaction_id_collision_ratio'] == 0
           assert q['distinct_transaction_ids'] == q['rows']
           assert iq['total_signals'] == d['metrics']['signals']
           assert fh['methodology_version'].startswith('RIGP-FINDINGS')
           assert 'relation_findings' in fh and 'service_hotspots' in fh and 'provider_hotspots' in fh
           assert 'guardrail' in fh
+          assert ex.exists(), 'explore_context.json was not generated'
+          ec=json.loads(ex.read_text())
+          assert ec['schema'] == 'RIGP-EXPLORE-CONTEXT-v1'
+          assert ex.stat().st_size < 600_000
           print('Priority tiers:', iq['priority_tiers'])
           print('Finding relations:', len(fh['relation_findings']))
+          print('Explore payload KiB:', round(ex.stat().st_size/1024,1))
           PY
       - name: Official source smoke test
         run: |
