@@ -17,6 +17,7 @@ from .extract import download
 from .features import build_profiles
 from .investigative_findings import build_investigative_findings
 from .normalize import normalize_frame, normalize_to_parquet
+from .operational_bundle import build_operational_bundle
 from .prioritization import prioritize_signals
 from .quality import audit_quality
 from .search import build_fts, build_fts_from_parquet
@@ -91,29 +92,53 @@ def _run_cgr_correlation(parquet_glob: str, cgr_dir: str) -> dict:
     return correlate_with_cgr(parquet_glob, cgr_silver_dir=cgr_dir)
 
 
-def _run_analytics(parquet_glob: str, cfg: dict, cgr_dir: str) -> dict:
+def _run_analytics(
+    parquet_glob: str,
+    cfg: dict,
+    cgr_dir: str,
+    years: list[int] | None = None,
+    build_legacy_spend_view: bool = True,
+) -> dict:
     build_profiles(parquet_glob)
     base = _build_base_signals(parquet_glob, cfg)
     extended = _extend_from_config(parquet_glob, cfg)
     cgr = _run_cgr_correlation(parquet_glob, cgr_dir)
-    # La cola JSON deja de ser el embudo que define qué fenómenos existen para el analista.
-    # Conservamos una cola amplia para auditoría/diagnóstico, mientras los hallazgos canónicos
-    # se construyen directamente desde el parquet completo de señales priorizadas.
+
+    # La cola JSON permanece como producto de auditoría; no define el universo visible.
     queue = prioritize_signals(parquet_glob, top_n=5000)
-    # Publicación web acotada, pero seleccionada desde el universo analítico completo.
-    # 600 relaciones mantienen el payload manejable y multiplican la cobertura del piloto.
+
+    # Los hallazgos se generan completos en parquet y luego el bundle operacional
+    # publica un lote acotado con reserva de diversidad, contexto de pares y patrones.
     findings = build_investigative_findings(top_n=600)
+    operational = build_operational_bundle(
+        parquet_glob,
+        years=years,
+        max_published_findings=600,
+        reserve_per_signal=20,
+    )
+
     dashboard = build_dashboard_json(
         parquet_glob,
         "data/signals/risk_signals.parquet",
         prioritized_path="data/signals/prioritized_signals.parquet",
         cgr_json="docs/data/cgr_correlation.json",
     )
-    spend_view = build_spend_view_v2(
-        parquet_glob,
-        output="docs/data/spend_view_v2.json",
-        prioritized_path="data/signals/prioritized_signals.parquet",
-    )
+
+    if build_legacy_spend_view:
+        spend_view = build_spend_view_v2(
+            parquet_glob,
+            output="docs/data/spend_view_v2.json",
+            prioritized_path="data/signals/prioritized_signals.parquet",
+        )
+    else:
+        spend_view = {
+            "skipped": True,
+            "reason": (
+                "La corrida operacional case-first no reconstruye spend_view_v2.json; "
+                "ese producto pertenece al pipeline histórico Corrected Spend Data v3."
+            ),
+        }
+
     sii_document_candidates = build_sii_document_candidates(parquet_glob)
     return {
         "base": base,
@@ -121,6 +146,7 @@ def _run_analytics(parquet_glob: str, cfg: dict, cgr_dir: str) -> dict:
         "cgr": cgr,
         "queue": queue,
         "findings": findings,
+        "operational": operational,
         "dashboard": dashboard,
         "spend_view": spend_view,
         "sii_document_candidates": sii_document_candidates,
@@ -137,15 +163,22 @@ def run_sample(sample: str, cgr_dir: str = DEFAULT_CGR_DIR) -> None:
     quality = audit_quality(parquet)
     if quality["transaction_id_collision_ratio"] != 0:
         raise RuntimeError("transaction_id debe ser único para cada fila fuente")
-    result = _run_analytics(parquet, load_config(), cgr_dir)
+    years = sorted({int(x) for x in df["periodo"].dropna().tolist()}) if "periodo" in df.columns else []
+    result = _run_analytics(parquet, load_config(), cgr_dir, years=years)
     print(
         f"[OK] muestra: {len(df):,} filas | señales={result['extended']['signals']:,} | "
         f"prioridad={result['queue']['priority_tiers']} | hallazgos={result['findings']['relations']:,} | "
+        f"publicados={result['operational']['publication']['relations_published']:,} | "
         f"candidatos SII={result['sii_document_candidates']['rows']:,}"
     )
 
 
-def run_years(years: list[int], build_search_index: bool = True, cgr_dir: str = DEFAULT_CGR_DIR) -> None:
+def run_years(
+    years: list[int],
+    build_search_index: bool = True,
+    cgr_dir: str = DEFAULT_CGR_DIR,
+    build_legacy_spend_view: bool = True,
+) -> None:
     catalog_rows = write_catalog("docs/data/source_catalog.json")
     write_coverage("docs/data/coverage.json")
     catalog = {x["year"]: x for x in catalog_rows if x.get("status") in AVAILABLE_SOURCE_STATUSES}
@@ -162,7 +195,19 @@ def run_years(years: list[int], build_search_index: bool = True, cgr_dir: str = 
         normalize_meta = normalize_to_parquet(raw, parquet)
         print(f"[OK] {year}: {normalize_meta['rows']:,} registros normalizados")
         processed.append(parquet)
-        snapshots.append({"year": year, "source_url": src["url"], "source_status": src.get("status"), "sha256": download_meta.get("sha256"), "bytes": download_meta.get("bytes"), "downloaded_at": download_meta.get("downloaded_at"), "normalized_rows": normalize_meta.get("rows"), "delimiter": normalize_meta.get("delimiter"), "normalized_output": parquet.name})
+        snapshots.append(
+            {
+                "year": year,
+                "source_url": src["url"],
+                "source_status": src.get("status"),
+                "sha256": download_meta.get("sha256"),
+                "bytes": download_meta.get("bytes"),
+                "downloaded_at": download_meta.get("downloaded_at"),
+                "normalized_rows": normalize_meta.get("rows"),
+                "delimiter": normalize_meta.get("delimiter"),
+                "normalized_output": parquet.name,
+            }
+        )
 
     if not processed:
         raise SystemExit("No fue posible procesar ningún año solicitado; revisar docs/data/source_catalog.json")
@@ -171,33 +216,65 @@ def run_years(years: list[int], build_search_index: bool = True, cgr_dir: str = 
     glob = "data/processed/transactions_*.parquet"
     quality = audit_quality(glob)
     if quality["transaction_id_collision_ratio"] != 0:
-        raise RuntimeError("Falla de integridad: transaction_id no es único. Las repeticiones documentales deben compartir fingerprint, no ID físico.")
-    print(f"[OK] calidad: {quality['status']} | devengado={quality['coverage']['monto_devengado']:.1%} | RUT válido={quality['coverage']['valid_rut']:.1%} | ID SHA1={quality['coverage']['hashed_source_identity']:.1%} | repetición documental={quality['source_fact_repeat_ratio']:.2%}")
+        raise RuntimeError(
+            "Falla de integridad: transaction_id no es único. "
+            "Las repeticiones documentales deben compartir fingerprint, no ID físico."
+        )
+    print(
+        f"[OK] calidad: {quality['status']} | devengado={quality['coverage']['monto_devengado']:.1%} | "
+        f"RUT válido={quality['coverage']['valid_rut']:.1%} | "
+        f"ID SHA1={quality['coverage']['hashed_source_identity']:.1%} | "
+        f"repetición documental={quality['source_fact_repeat_ratio']:.2%}"
+    )
 
-    result = _run_analytics(glob, load_config(), cgr_dir)
+    effective_years = sorted(int(p.stem.rsplit("_", 1)[-1]) for p in processed)
+    result = _run_analytics(
+        glob,
+        load_config(),
+        cgr_dir,
+        years=effective_years,
+        build_legacy_spend_view=build_legacy_spend_view,
+    )
     print(f"[OK] señales operativas: {result['extended']['signals']:,} | {result['extended']['by_type']}")
-    print(f"[OK] CGR: {result['cgr']['status']} | enlaces candidatos={result['cgr']['links']:,} | con hallazgos={result['cgr']['links_with_findings']:,}")
+    print(
+        f"[OK] CGR: {result['cgr']['status']} | enlaces candidatos={result['cgr']['links']:,} | "
+        f"con hallazgos={result['cgr']['links_with_findings']:,}"
+    )
     print(f"[OK] cola investigativa: {result['queue']['priority_tiers']}")
     print(
-        f"[OK] hallazgos RIGP: {result['findings']['relations']:,} relaciones | "
-        f"servicios={result['findings']['service_hotspots']:,} | proveedores={result['findings']['provider_hotspots']:,} | "
-        f"redes estrella={result['findings']['network_candidates']:,}"
+        f"[OK] hallazgos RIGP: {result['findings']['relations']:,} relaciones analíticas | "
+        f"publicados={result['operational']['publication']['relations_published']:,} | "
+        f"con pares={result['operational']['finding_context_coverage']['relations_with_peer_context']:,} | "
+        f"con patrón={result['operational']['finding_context_coverage']['relations_with_primary_pattern']:,}"
     )
     print(
-        f"[OK] spend-view L12: {len(result['spend_view']['services']):,} servicios | "
-        f"{len(result['spend_view']['providers']):,} proveedores | "
-        f"{len(result['spend_view']['flows']):,} flujos publicados"
+        f"[OK] salud de señales: activas={result['operational']['signal_health']['active_signal_types']} | "
+        f"requieren revisión={result['operational']['signal_health']['needs_review_signal_types']} | "
+        f"{result['operational']['signal_health']['statuses']}"
     )
+    print(
+        f"[OK] contratación: hallazgos={result['operational']['procurement_context']['findings_requested']:,} | "
+        f"con OC={result['operational']['procurement_context']['findings_with_purchase_order']:,}"
+    )
+    if result["spend_view"].get("skipped"):
+        print("[OK] spend-view histórico omitido en esta corrida operacional")
+    else:
+        print(
+            f"[OK] spend-view L12: {len(result['spend_view']['services']):,} servicios | "
+            f"{len(result['spend_view']['providers']):,} proveedores | "
+            f"{len(result['spend_view']['flows']):,} flujos publicados"
+        )
     print(
         f"[OK] candidatos documentales SII: {result['sii_document_candidates']['rows']:,} entidades | "
-        f"{result['sii_document_candidates']['min_document_date'] or '—'} a {result['sii_document_candidates']['max_document_date'] or '—'}"
+        f"{result['sii_document_candidates']['min_document_date'] or '—'} a "
+        f"{result['sii_document_candidates']['max_document_date'] or '—'}"
     )
 
     if build_search_index:
         indexed = build_fts_from_parquet(glob, "data/index/search.sqlite")
         print(f"[OK] índice FTS: {indexed:,} transacciones")
     else:
-        print("[OK] índice FTS omitido para esta corrida de recalibración")
+        print("[OK] índice FTS omitido para esta corrida operacional")
 
 
 def main() -> None:
@@ -205,12 +282,29 @@ def main() -> None:
     p.add_argument("--years", nargs="*", type=int)
     p.add_argument("--sample")
     p.add_argument("--cgr-dir", default=DEFAULT_CGR_DIR)
-    p.add_argument("--skip-index", action="store_true", help="Omite la reconstrucción FTS; útil para recalibración del motor analítico.")
+    p.add_argument(
+        "--skip-index",
+        action="store_true",
+        help="Omite la reconstrucción FTS; útil para la corrida operacional web.",
+    )
+    p.add_argument(
+        "--skip-legacy-spend-view",
+        action="store_true",
+        help=(
+            "No reconstruye spend_view_v2.json. Recomendado para Radar monthly, "
+            "donde ese producto es responsabilidad de Corrected Spend Data v3."
+        ),
+    )
     args = p.parse_args()
     if args.sample:
         run_sample(args.sample, cgr_dir=args.cgr_dir)
     elif args.years:
-        run_years(args.years, build_search_index=not args.skip_index, cgr_dir=args.cgr_dir)
+        run_years(
+            args.years,
+            build_search_index=not args.skip_index,
+            cgr_dir=args.cgr_dir,
+            build_legacy_spend_view=not args.skip_legacy_spend_view,
+        )
     else:
         p.error("use --sample FILE or --years YYYY ...")
 

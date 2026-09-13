@@ -9,22 +9,32 @@ on:
       - 'src/radar_presupuesto/prioritization.py'
       - 'src/radar_presupuesto/advanced_signals.py'
       - 'src/radar_presupuesto/cgr_correlation.py'
+      - 'src/radar_presupuesto/analysis_window.py'
+      - 'src/radar_presupuesto/peer_groups.py'
+      - 'src/radar_presupuesto/signal_health.py'
+      - 'src/radar_presupuesto/pattern_compatibility.py'
+      - 'src/radar_presupuesto/publication_selection.py'
+      - 'src/radar_presupuesto/procurement_context.py'
+      - 'src/radar_presupuesto/operational_bundle.py'
       - 'config/anomaly_thresholds.yaml'
       - '.github/workflows/radar-monthly.yml'
   workflow_dispatch:
     inputs:
       years:
-        description: 'Años separados por espacio; vacío = últimos 3 bulk disponibles'
+        description: 'Años separados por espacio; vacío = últimos 7 bulk confirmados (mínimo 5)'
         required: false
         default: ''
   schedule:
     - cron: '31 9 10 * *'
 permissions:
   contents: write
+concurrency:
+  group: rigp-operational-radar
+  cancel-in-progress: true
 jobs:
   radar:
     runs-on: ubuntu-latest
-    timeout-minutes: 330
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v6
       - name: Checkout Radar CGR evidence
@@ -38,38 +48,101 @@ jobs:
           python-version: '3.12'
           cache: pip
       - run: python -m pip install -r requirements.txt
+
       - name: Probe sources
         run: PYTHONPATH=src python -m radar_presupuesto.cli probe
-      - name: Resolve years
+
+      - name: Resolve historical analysis window
         id: years
         env:
           REQUESTED: ${{ github.event.inputs.years }}
         run: |
-          if [ -n "$REQUESTED" ]; then echo "years=$REQUESTED" >> "$GITHUB_OUTPUT"; exit 0; fi
-          YEARS=$(python - <<'PY'
-          import json
-          d=json.load(open('docs/data/source_catalog.json'))
-          ok=('linked','linked_available','probed_available')
-          ys=[str(x['year']) for x in d.get('downloads',[]) if x.get('status') in ok]
-          print(' '.join(ys[-3:]))
+          YEARS=$(PYTHONPATH=src python - <<'PY'
+          import os
+          from radar_presupuesto.analysis_window import resolve_analysis_years, describe_window
+          requested=os.environ.get('REQUESTED','').strip()
+          years=resolve_analysis_years(
+              catalog_path='docs/data/source_catalog.json',
+              requested=requested or None,
+              window_years=7,
+              min_years=5,
+          )
+          print(' '.join(map(str,years)))
+          print('[RIGP window]',describe_window(years),file=__import__('sys').stderr)
           PY
           )
+          test -n "$YEARS"
           echo "years=$YEARS" >> "$GITHUB_OUTPUT"
-      - name: Run operational radar
+          echo "RIGP analysis years: $YEARS"
+
+      - name: Run integrated operational radar
         run: |
-          test -n "${{ steps.years.outputs.years }}"
-          PYTHONPATH=src python -m radar_presupuesto.pipeline --years ${{ steps.years.outputs.years }}
+          PYTHONPATH=src python -m radar_presupuesto.pipeline \
+            --years ${{ steps.years.outputs.years }} \
+            --skip-index \
+            --skip-legacy-spend-view
+
+      - name: Build case entity context from available SII enrichment
+        run: python3 scripts/build_case_entity_context.py
+
       - name: Build territorial context export
         run: PYTHONPATH=src python -m radar_presupuesto.territorial_export
+
+      - name: Validate integrated operational products
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          f=json.load(open('docs/data/investigative_findings.json',encoding='utf-8'))
+          b=json.load(open('docs/data/operational_bundle.json',encoding='utf-8'))
+          h=json.load(open('docs/data/signal_health.json',encoding='utf-8'))
+          p=json.load(open('docs/data/procurement_context.json',encoding='utf-8'))
+          c=json.load(open('docs/data/case_entity_context.json',encoding='utf-8'))
+          assert b['schema']=='RIGP-OPERATIONAL-BUNDLE-v1'
+          assert h['schema']=='RIGP-SIGNAL-HEALTH-v1'
+          assert p['schema']=='RIGP-PROCUREMENT-CONTEXT-v1'
+          assert c['schema']=='RIGP-CASE-ENTITY-CONTEXT-v1'
+          assert b['analysis_window']['year_count'] >= 5
+          assert len(f.get('relation_findings') or []) <= 600
+          assert f.get('publication_selection',{}).get('method')=='priority_with_signal_diversity_reserve'
+          assert 'interpretation_contract' in f
+          assert 'context_coverage' in f
+          for row in (f.get('relation_findings') or [])[:20]:
+              assert 'review_priority' in row
+              assert 'primary_pattern' in row
+              assert 'peer_context' in row
+          assert Path('docs/data/investigative_findings.json').stat().st_size < 2_000_000
+          print('analysis_window',b['analysis_window'])
+          print('signal_health',b['signal_health'])
+          print('finding_context_coverage',b['finding_context_coverage'])
+          print('procurement_context',b['procurement_context'])
+          PY
+
       - name: Persist operational summaries only
         run: |
           # IMPORTANTE: spend_view_v2.json y spend_years_v1.json son propiedad de
-          # Corrected Spend Data v3. Este workflow no debe sobrescribirlos con la
-          # granularidad histórica Partida+Capítulo+Área.
+          # Corrected Spend Data v3. Esta corrida case-first no los reconstruye ni publica.
           git config user.name "radar-presupuesto-bot"
           git config user.email "radar-presupuesto-bot@users.noreply.github.com"
-          git add docs/data/dashboard.json docs/data/investigation_queue.json docs/data/investigative_findings.json docs/data/cgr_correlation.json docs/data/source_catalog.json docs/data/coverage.json docs/data/quality.json docs/data/snapshot_manifest.json docs/data/territorial_context_v1.json
+          for f in \
+            docs/data/dashboard.json \
+            docs/data/investigation_queue.json \
+            docs/data/investigative_findings.json \
+            docs/data/cgr_correlation.json \
+            docs/data/source_catalog.json \
+            docs/data/coverage.json \
+            docs/data/quality.json \
+            docs/data/snapshot_manifest.json \
+            docs/data/territorial_context_v1.json \
+            docs/data/signal_health.json \
+            docs/data/operational_bundle.json \
+            docs/data/procurement_context.json \
+            docs/data/case_entity_context.json \
+            docs/data/sii_document_candidates_status.json
+          do
+            if [ -f "$f" ]; then git add "$f"; fi
+          done
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "radar: corrida analítica $(date -u +%F)"
+          git commit -m "radar: corrida operacional integrada $(date -u +%F)"
           git pull --rebase origin main
           git push origin main
