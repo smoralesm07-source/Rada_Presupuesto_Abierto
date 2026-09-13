@@ -6,6 +6,8 @@ on:
       - 'docs/index.html'
       - 'docs/assets/spend_safe_benefit.js'
       - 'docs/assets/spend_safe_benefit.css'
+      - 'docs/assets/spend_safe_societary.js'
+      - 'docs/assets/spend_safe_societary.css'
       - 'docs/RIGP_BENEFIT_CHAIN_METHOD.md'
       - 'scripts/build_benefit_context_for_pages.py'
       - 'scripts/build_findings_for_pages.py'
@@ -23,18 +25,29 @@ jobs:
       - name: Validate syntax and safe runtime
         run: |
           node --check docs/assets/spend_safe_benefit.js
+          node --check docs/assets/spend_safe_societary.js
           python3 -m py_compile scripts/build_benefit_context_for_pages.py
           ! grep -q 'MutationObserver' docs/assets/spend_safe_benefit.js
+          ! grep -q 'MutationObserver' docs/assets/spend_safe_societary.js
           ! grep -q 'setInterval' docs/assets/spend_safe_benefit.js
+          ! grep -q 'setInterval' docs/assets/spend_safe_societary.js
           ! grep -q 'spend_years_v1.json' docs/assets/spend_safe_benefit.js
-      - name: Validate navigation contract
+          ! grep -q 'spend_years_v1.json' docs/assets/spend_safe_societary.js
+      - name: Validate navigation and societary verification contract
         run: |
           grep -q 'data-benefit-view>Beneficiarios' docs/index.html
           grep -q 'assets/spend_safe_benefit.js?v=1' docs/index.html
           grep -q 'assets/spend_safe_benefit.css?v=1' docs/index.html
+          grep -q 'assets/spend_safe_societary.js?v=1' docs/index.html
+          grep -q 'assets/spend_safe_societary.css?v=1' docs/index.html
           grep -q 'Receptor económico directo' docs/assets/spend_safe_benefit.js
           grep -q 'Beneficio final' docs/assets/spend_safe_benefit.js
           grep -q 'No es probabilidad de delito' docs/assets/spend_safe_benefit.js
+          grep -q 'RES · Actuaciones' docs/assets/spend_safe_societary.js
+          grep -q 'RES · Registro de Poderes' docs/assets/spend_safe_societary.js
+          grep -q 'Diario Oficial · Sociedades' docs/assets/spend_safe_societary.js
+          grep -q 'Registro de Accionistas electrónico del RES no es de consulta pública' docs/assets/spend_safe_societary.js
+          grep -q 'Fuente o documento que respalda el vínculo' docs/assets/spend_safe_benefit.js
       - name: Build compact benefit payload
         run: |
           python3 scripts/build_findings_for_pages.py
