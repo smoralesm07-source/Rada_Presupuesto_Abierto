@@ -15,6 +15,17 @@ GUARDRAIL = (
 )
 
 
+def _as_list(value: object) -> list:
+    """Normalize DuckDB/Pandas list-like results without ambiguous truth checks."""
+    if value is None:
+        return []
+    if hasattr(value, "tolist"):
+        value = value.tolist()
+    if isinstance(value, (list, tuple)):
+        return list(value)
+    return [value]
+
+
 def build_procurement_context(
     parquet_glob: str,
     findings_json: str = "docs/data/investigative_findings.json",
@@ -98,7 +109,7 @@ def build_procurement_context(
     for row in df.where(df.notna(), None).to_dict("records"):
         source_rows = int(row.get("source_rows") or 0)
         with_oc = int(row.get("rows_with_purchase_order") or 0)
-        examples = [str(x) for x in (row.get("purchase_order_examples") or []) if x]
+        examples = [str(x) for x in _as_list(row.get("purchase_order_examples")) if x]
         rows.append(
             {
                 **row,
