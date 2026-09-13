@@ -43,13 +43,21 @@ jobs:
         run: PYTHONPATH=src pytest -q
       - name: End-to-end sample pipeline
         run: PYTHONPATH=src python -m radar_presupuesto.pipeline --sample tests/fixtures/sample_transactions.csv --cgr-dir /tmp/no-cgr
-      - name: Exercise publication diversity and procurement bridge
+      - name: Exercise publication diversity, score separation and procurement bridge
         run: |
           PYTHONPATH=src python - <<'PY'
           from radar_presupuesto.publication_selection import rebalance_findings_publication
           from radar_presupuesto.procurement_context import build_procurement_context
-          print(rebalance_findings_publication(max_rows=600, reserve_per_signal=20))
-          print(build_procurement_context('data/processed/transactions_sample.parquet'))
+          from radar_presupuesto.signal_health import build_signal_health
+          from radar_presupuesto.pattern_compatibility import best_pattern
+          publication = rebalance_findings_publication(max_rows=600, reserve_per_signal=20)
+          procurement = build_procurement_context('data/processed/transactions_sample.parquet')
+          health = build_signal_health()
+          pattern = best_pattern(['PROVIDER_CONCENTRATION','NEW_TO_SERIES_HIGH_SPEND','AMOUNT_OUTLIER'])
+          print(publication)
+          print(procurement)
+          print('signal health needs review:', health['needs_review_signal_types'])
+          print('pattern compatibility:', pattern)
           PY
       - name: Validate sample products
         run: |
@@ -60,6 +68,7 @@ jobs:
           iq=json.load(open('docs/data/investigation_queue.json'))
           fh=json.load(open('docs/data/investigative_findings.json'))
           pc=json.load(open('docs/data/procurement_context.json'))
+          sh=json.load(open('docs/data/signal_health.json'))
           assert q['transaction_id_collision_ratio'] == 0
           assert q['distinct_transaction_ids'] == q['rows']
           assert iq['total_signals'] == d['metrics']['signals']
@@ -67,13 +76,31 @@ jobs:
           assert 'relation_findings' in fh and 'service_hotspots' in fh and 'provider_hotspots' in fh
           assert 'guardrail' in fh
           assert fh.get('publication_selection',{}).get('method') == 'priority_with_signal_diversity_reserve'
+          assert fh.get('score_separation',{}).get('review_priority')
+          assert fh.get('score_separation',{}).get('pattern_compatibility')
           assert len(fh['relation_findings']) <= 600
+          for row in fh['relation_findings']:
+              assert 'pattern_compatibility' in row
           assert pc['schema'] == 'RIGP-PROCUREMENT-CONTEXT-v1'
           assert 'coverage' in pc and 'findings' in pc and 'guardrail' in pc
+          assert sh['schema'] == 'RIGP-SIGNAL-HEALTH-v1'
+          assert len(sh['signals']) == 7
+          assert all(x['status'] in {'ACTIVE','LOW_VOLUME','EXPERIMENTAL_ZERO','DOMINANT_REVIEW'} for x in sh['signals'])
           print('Priority tiers:', iq['priority_tiers'])
           print('Finding relations:', len(fh['relation_findings']))
           print('Publication selection:', fh['publication_selection'])
           print('Procurement coverage:', pc['coverage'])
+          print('Signal health:', [(x['signal_type'],x['status'],x['signal_count']) for x in sh['signals']])
+          PY
+      - name: Historical window contract
+        run: |
+          PYTHONPATH=src python - <<'PY'
+          from radar_presupuesto.analysis_window import resolve_analysis_years, describe_window
+          years=resolve_analysis_years('docs/data/source_catalog.json')
+          meta=describe_window(years)
+          assert meta['year_count'] >= 5
+          assert years[-1] == max(years)
+          print('default analysis window:', meta)
           PY
       - name: Official source smoke test
         run: |
