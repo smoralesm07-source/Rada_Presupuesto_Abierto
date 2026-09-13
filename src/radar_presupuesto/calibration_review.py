@@ -25,7 +25,9 @@ def review_payloads(
     findings: dict,
     procurement: dict,
     entity_context: dict,
+    mercado_publico: dict | None = None,
 ) -> dict:
+    mercado_publico = mercado_publico or {}
     signals = signal_health.get('signals') or []
     statuses = {str(x.get('signal_type')): str(x.get('status')) for x in signals}
     counts = {str(x.get('signal_type')): int(x.get('signal_count') or 0) for x in signals}
@@ -43,6 +45,15 @@ def review_payloads(
     procurement_cov = procurement.get('coverage') or operational.get('procurement_context') or {}
     proc_requested = int(procurement_cov.get('findings_requested') or 0)
     proc_oc = int(procurement_cov.get('findings_with_purchase_order') or 0)
+
+    mp_cov = mercado_publico.get('coverage') or {}
+    mp_status = str(mercado_publico.get('status') or 'NOT_GENERATED')
+    mp_targets = int(mp_cov.get('target_orders') or 0)
+    mp_attempted = int(mp_cov.get('api_requests_attempted') or 0)
+    mp_resolved = int(mp_cov.get('orders_resolved') or 0)
+    mp_identity_matches = int(mp_cov.get('identity_matches') or 0)
+    mp_identity_reviews = int(mp_cov.get('identity_reviews') or 0)
+    mp_linked_tenders = int(mp_cov.get('linked_tenders') or 0)
 
     entity_cov = entity_context.get('coverage') or {}
     providers = int(entity_cov.get('providers_published') or 0)
@@ -73,6 +84,14 @@ def review_payloads(
         'procurement_findings_requested': proc_requested,
         'findings_with_purchase_order': proc_oc,
         'purchase_order_ratio': _ratio(proc_oc, proc_requested),
+        'mercado_publico_status': mp_status,
+        'mercado_publico_target_orders': mp_targets,
+        'mercado_publico_requests_attempted': mp_attempted,
+        'mercado_publico_orders_resolved': mp_resolved,
+        'mercado_publico_resolution_ratio': _ratio(mp_resolved, mp_targets),
+        'mercado_publico_identity_matches': mp_identity_matches,
+        'mercado_publico_identity_reviews': mp_identity_reviews,
+        'mercado_publico_linked_tenders': mp_linked_tenders,
         'providers_published': providers,
         'providers_with_valid_rut': valid_rut,
         'valid_rut_ratio': _ratio(valid_rut, providers),
@@ -127,6 +146,33 @@ def review_payloads(
             'action': (
                 'Priorizar el enlace Presupuesto Abierto → orden de compra → Mercado Público para ampliar evidencia '
                 'contractual. La ausencia de OC en el registro presupuestario no es una irregularidad.'
+            ),
+        })
+    if mp_targets and mp_status == 'AWAITING_TICKET':
+        recommendations.append({
+            'priority': 'ALTA',
+            'topic': 'API_MERCADO_PUBLICO_PENDIENTE',
+            'action': (
+                'Configurar el ticket oficial de la API Mercado Público para resolver de forma dirigida los códigos de OC '
+                'ya observados en RIGP. No reemplazar esta brecha por inferencias de nombre o scraping frágil.'
+            ),
+        })
+    elif mp_targets and mp_status in {'READY','READY_WITH_GAPS','PARTIAL_API_FAILURE'} and coverage['mercado_publico_resolution_ratio'] < 0.80:
+        recommendations.append({
+            'priority': 'MEDIA',
+            'topic': 'COBERTURA_API_MERCADO_PUBLICO',
+            'action': (
+                'Revisar códigos no resueltos, disponibilidad API y formato histórico de OC antes de ampliar la capa. '
+                'Un código no resuelto es una brecha de cobertura y no una señal adversa.'
+            ),
+        })
+    if mp_identity_reviews:
+        recommendations.append({
+            'priority': 'ALTA',
+            'topic': 'IDENTIDAD_OC_REQUIERE_REVISION',
+            'action': (
+                'Revisar documentalmente las órdenes donde el RUT explícito de RIGP y el RUT publicado por Mercado Público '
+                'no coinciden. La diferencia se mantiene como candidata y no modifica automáticamente la prioridad del caso.'
             ),
         })
     if providers and coverage['valid_rut_ratio'] < 0.70:
@@ -192,6 +238,7 @@ def build_calibration_review(
     findings_path: str = 'docs/data/investigative_findings.json',
     procurement_path: str = 'docs/data/procurement_context.json',
     entity_context_path: str = 'docs/data/case_entity_context.json',
+    mercado_publico_path: str = 'docs/data/mercado_publico_context.json',
     output_path: str = 'docs/data/calibration_review.json',
 ) -> dict:
     result = review_payloads(
@@ -200,6 +247,7 @@ def build_calibration_review(
         _read(findings_path),
         _read(procurement_path),
         _read(entity_context_path),
+        _read(mercado_publico_path),
     )
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)
