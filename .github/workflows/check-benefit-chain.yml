@@ -52,15 +52,16 @@ jobs:
       - name: Validate benefit and actor traceability contract
         run: |
           grep -q 'data-benefit-view>Beneficiarios' docs/index.html
+          grep -q 'data-actor-view>Actores' docs/index.html
           grep -q 'assets/spend_safe_benefit.js?v=1' docs/index.html
           grep -q 'assets/spend_safe_societary.js?v=1' docs/index.html
           grep -q 'assets/spend_safe_benefit_temporal.js?v=1' docs/index.html
           grep -q 'assets/spend_safe_benefit_convergence.js?v=1' docs/index.html
           grep -q 'assets/spend_safe_decision.js?v=1' docs/index.html
           grep -q 'assets/spend_safe_value_trace.js?v=1' docs/index.html
-          grep -q 'assets/spend_safe_actor_map.js?v=1' docs/index.html
+          grep -q 'assets/spend_safe_actor_map.js?v=2' docs/index.html
           grep -q 'assets/spend_safe_value_trace.css?v=1' docs/index.html
-          grep -q 'assets/spend_safe_actor_map.css?v=1' docs/index.html
+          grep -q 'assets/spend_safe_actor_map.css?v=2' docs/index.html
           grep -q 'Receptor económico directo' docs/assets/spend_safe_benefit.js
           grep -q 'Beneficio final' docs/assets/spend_safe_benefit.js
           grep -q 'No es probabilidad de delito' docs/assets/spend_safe_benefit.js
@@ -72,9 +73,12 @@ jobs:
           grep -q '¿Existe un vínculo documentado entre receptor y decisión pública?' docs/assets/spend_safe_decision.js
           grep -q '¿Quién terminó recibiendo, controlando o disponiendo del beneficio económico?' docs/assets/spend_safe_value_trace.js
           grep -q 'su licitud no se califica aquí' docs/assets/spend_safe_value_trace.js
-          grep -q 'Personas y sociedades que requieren mayor profundización' docs/assets/spend_safe_actor_map.js
+          grep -q 'Actores y beneficio potencial' docs/assets/spend_safe_actor_map.js
+          grep -q 'Personas y sociedades que requieren mayor trazabilidad' docs/assets/spend_safe_actor_map.js
+          grep -q 'Hecho ilícito de base' docs/assets/spend_safe_actor_map.js
           grep -q 'no “beneficiario de un ilícito”' docs/assets/spend_safe_actor_map.js
           grep -q 'Disposición de valor documentada' docs/assets/spend_safe_actor_map.js
+          grep -q 'Para sostener un posible beneficio ilícito' docs/assets/spend_safe_actor_map.js
       - name: Build compact benefit payload
         run: |
           python3 scripts/build_findings_for_pages.py
