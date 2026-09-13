@@ -1,0 +1,64 @@
+name: Check RIGP Benefit Chain
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/index.html'
+      - 'docs/assets/spend_safe_benefit.js'
+      - 'docs/assets/spend_safe_benefit.css'
+      - 'docs/RIGP_BENEFIT_CHAIN_METHOD.md'
+      - 'scripts/build_benefit_context_for_pages.py'
+      - 'scripts/build_findings_for_pages.py'
+      - 'scripts/build_explore_context_for_pages.py'
+      - 'docs/data/entity_enrichment_v1.json'
+      - '.github/workflows/check-benefit-chain.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validate syntax and safe runtime
+        run: |
+          node --check docs/assets/spend_safe_benefit.js
+          python3 -m py_compile scripts/build_benefit_context_for_pages.py
+          ! grep -q 'MutationObserver' docs/assets/spend_safe_benefit.js
+          ! grep -q 'setInterval' docs/assets/spend_safe_benefit.js
+          ! grep -q 'spend_years_v1.json' docs/assets/spend_safe_benefit.js
+      - name: Validate navigation contract
+        run: |
+          grep -q 'data-benefit-view>Beneficiarios' docs/index.html
+          grep -q 'assets/spend_safe_benefit.js?v=1' docs/index.html
+          grep -q 'assets/spend_safe_benefit.css?v=1' docs/index.html
+          grep -q 'Receptor económico directo' docs/assets/spend_safe_benefit.js
+          grep -q 'Beneficio final' docs/assets/spend_safe_benefit.js
+          grep -q 'No es probabilidad de delito' docs/assets/spend_safe_benefit.js
+      - name: Build compact benefit payload
+        run: |
+          python3 scripts/build_findings_for_pages.py
+          python3 scripts/build_explore_context_for_pages.py
+          python3 scripts/build_benefit_context_for_pages.py
+      - name: Validate benefit payload and methodology
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('docs/data/benefit_context.json')
+          assert p.exists(), 'benefit_context.json missing'
+          d=json.loads(p.read_text())
+          assert d.get('schema')=='RIGP-BENEFIT-CONTEXT-v1'
+          assert d.get('methodology')=='RIGP-BENEFIT-CHAIN-v1'
+          assert d.get('candidates'), 'benefit candidates empty'
+          assert d.get('verification_chain') and len(d['verification_chain'])==4
+          assert d.get('coverage',{}).get('ownership_control_sources_integrated')==0
+          assert 'No es probabilidad de delito' in d.get('guardrail','')
+          assert p.stat().st_size < 500_000, f'benefit payload too large: {p.stat().st_size}'
+          for c in d['candidates'].values():
+              assert c.get('stage')=='RECEPTOR_DIRECTO'
+              assert c.get('ownership_control',{}).get('status')=='NO_INTEGRADO'
+          print('[OK] benefit context', d.get('coverage'), round(p.stat().st_size/1024,1), 'KiB')
+          PY
+          grep -q 'Proveedor/receptor directo ≠ beneficiario final' docs/RIGP_BENEFIT_CHAIN_METHOD.md
+          grep -q 'Hallazgo → Persona beneficiaria de delito' docs/RIGP_BENEFIT_CHAIN_METHOD.md
