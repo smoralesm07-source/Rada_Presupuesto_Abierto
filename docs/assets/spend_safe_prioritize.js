@@ -1,5 +1,5 @@
 (()=>{'use strict';
-const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[m]));
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function isActive(){return !!document.querySelector('.nav [data-view="bandeja"].on')}
 function rowsOf(section){return section?[...section.querySelectorAll('.mini-row')]:[]}
 function sectionMap(grid){const m={};for(const s of grid.querySelectorAll('.queue-section')){const t=s.querySelector('.queue-head h3')?.textContent?.trim();if(t)m[t]=s}return m}
