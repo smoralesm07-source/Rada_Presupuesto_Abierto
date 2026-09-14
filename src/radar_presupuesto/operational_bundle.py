@@ -7,7 +7,9 @@ from pathlib import Path
 import duckdb
 
 from .analysis_window import describe_window
+from .pattern_compatibility import CORROBORATION_NOTE
 from .pattern_compatibility import GUARDRAIL as PATTERN_GUARDRAIL
+from .pattern_compatibility import PROFILES as PATTERN_PROFILES
 from .pattern_compatibility import score_pattern_compatibility
 from .peer_groups import build_provider_peer_context
 from .procurement_context import build_procurement_context
@@ -119,6 +121,7 @@ def annotate_published_findings(
 
     peer_matches = 0
     pattern_matches = 0
+    similarity_only = 0
     observed_years: set[int] = set()
     for row in relations:
         try:
@@ -131,7 +134,16 @@ def annotate_published_findings(
             x for x in score_pattern_compatibility(row.get("signal_types") or [])
             if int(x.get("compatibility_score") or 0) > 0
         ]
-        primary = compatibility[0] if compatibility and int(compatibility[0]["compatibility_score"]) >= 40 else None
+        # La hipótesis principal exige corroboración: dos patrones concurrentes.
+        # Con el umbral de score a secas, un PROVIDER_CONCENTRATION solitario
+        # bastaba para proponer una tipología.
+        primary = next(
+            (
+                x for x in compatibility
+                if x.get("corroborated") and int(x.get("compatibility_score") or 0) >= 40
+            ),
+            None,
+        )
         if primary:
             pattern_matches += 1
 
@@ -149,12 +161,32 @@ def annotate_published_findings(
             "attention_level": row.get("attention_level") or "SEGUIMIENTO",
             "guardrail": PRIORITY_GUARDRAIL,
         }
+        if not primary and compatibility:
+            # Sin corroborar no se propone hipótesis, pero tampoco se borra el
+            # parecido: queda en `pattern_compatibility` con su estado, para que el
+            # analista vea a qué se parece y qué le falta para sostenerse.
+            similarity_only += 1
+
         row["primary_pattern"] = primary
         row["pattern_compatibility"] = compatibility[:2]
         row["peer_context"] = peer
 
     effective_years = sorted({int(y) for y in (years or observed_years)})
     payload["analysis_window"] = describe_window(effective_years)
+    # El texto de cada perfil --qué lo descarta, qué documento pedir-- es idéntico
+    # en todas las filas. Vive una vez a nivel de payload, como el guardrail.
+    payload["pattern_profiles"] = [
+        {
+            "pattern_code": profile.code,
+            "pattern_label": profile.label,
+            "pattern_description": profile.description,
+            "review_question": profile.review_question,
+            "discards": list(profile.discards),
+            "next_document": profile.next_document,
+        }
+        for profile in PATTERN_PROFILES
+    ]
+    payload["corroboration_rule"] = CORROBORATION_NOTE
     payload["interpretation_contract"] = {
         "review_priority": PRIORITY_GUARDRAIL,
         "pattern_compatibility": PATTERN_GUARDRAIL,
@@ -168,6 +200,10 @@ def annotate_published_findings(
         "published_relations": len(relations),
         "relations_with_peer_context": peer_matches,
         "relations_with_primary_pattern": pattern_matches,
+        # Relaciones que se parecen a un perfil pero con un solo patrón: no son
+        # hipótesis todavía. Si este número domina, el radar está viendo una capa
+        # de señales, no convergencia, y eso hay que verlo en la corrida.
+        "relations_with_uncorroborated_similarity": similarity_only,
     }
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
     return payload["context_coverage"]
