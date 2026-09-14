@@ -7,6 +7,16 @@ from pathlib import Path
 
 SCHEMA = 'RIGP-CALIBRATION-REVIEW-v1'
 
+SIGNAL_FAMILY = {
+    'POTENTIAL_FRAGMENTATION': 'DOCUMENTOS_Y_PAGOS',
+    'EXACT_DUPLICATE_CANDIDATE': 'DOCUMENTOS_Y_PAGOS',
+    'PROVIDER_CONCENTRATION': 'COMPETENCIA_Y_CONCENTRACION',
+    'NEW_TO_SERIES_HIGH_SPEND': 'ENTRADA_Y_CAMBIO_DE_ESCALA',
+    'AMOUNT_OUTLIER': 'MAGNITUD_ATIPICA',
+    'PAYMENT_DELAY_OUTLIER': 'EJECUCION_CONTRACTUAL',
+    'YEAR_END_SPIKE': 'EJECUCION_PRESUPUESTARIA',
+}
+
 
 def _read(path: str, default: dict | None = None) -> dict:
     p = Path(path)
@@ -17,6 +27,32 @@ def _read(path: str, default: dict | None = None) -> dict:
 
 def _ratio(num: int | float, den: int | float) -> float:
     return round(float(num) / float(den), 4) if den else 0.0
+
+
+def _family_health(counts: dict[str, int], total: int) -> tuple[dict[str, dict], list[str]]:
+    family_counts: dict[str, int] = {}
+    family_types: dict[str, list[str]] = {}
+    for signal, count in counts.items():
+        family = SIGNAL_FAMILY.get(signal)
+        if not family:
+            continue
+        family_counts[family] = family_counts.get(family, 0) + int(count or 0)
+        family_types.setdefault(family, []).append(signal)
+
+    health: dict[str, dict] = {}
+    dominant: list[str] = []
+    for family, count in sorted(family_counts.items(), key=lambda x: (-x[1], x[0])):
+        types = sorted(family_types.get(family) or [])
+        share = _ratio(count, total)
+        health[family] = {
+            'signal_count': int(count),
+            'share_of_signal_universe': share,
+            'signal_types': types,
+        }
+        # This catches combined monoculture that individual-signal thresholds miss.
+        if share >= 0.80 and len([s for s in types if counts.get(s, 0) > 0]) >= 2:
+            dominant.append(family)
+    return health, dominant
 
 
 def review_payloads(
@@ -31,11 +67,13 @@ def review_payloads(
     signals = signal_health.get('signals') or []
     statuses = {str(x.get('signal_type')): str(x.get('status')) for x in signals}
     counts = {str(x.get('signal_type')): int(x.get('signal_count') or 0) for x in signals}
+    total_signals = int(signal_health.get('total_signals') or sum(counts.values()))
     dominant = [s for s, status in statuses.items() if status == 'DOMINANT_REVIEW']
     zero = [s for s, status in statuses.items() if status == 'EXPERIMENTAL_ZERO']
     low = [s for s, status in statuses.items() if status == 'LOW_VOLUME']
     active = [s for s, status in statuses.items() if status == 'ACTIVE']
     nonzero = [s for s, n in counts.items() if n > 0]
+    family_health, dominant_families = _family_health(counts, total_signals)
 
     relation_count = len(findings.get('relation_findings') or [])
     context = findings.get('context_coverage') or operational.get('finding_context_coverage') or {}
@@ -66,6 +104,13 @@ def review_payloads(
     publication = findings.get('publication_selection') or operational.get('publication') or {}
     max_rows = int(publication.get('max_rows') or 600)
     publication_method = publication.get('method')
+    available_by_signal = publication.get('available_by_signal') or {}
+    published_by_signal = publication.get('published_by_signal') or {}
+    publication_signal_coverage = {
+        str(signal): _ratio(int(published_by_signal.get(signal) or 0), int(available or 0))
+        for signal, available in available_by_signal.items()
+        if int(available or 0) > 0
+    }
 
     gates = {
         'historical_window_min_5_years': year_count >= 5,
@@ -97,6 +142,7 @@ def review_payloads(
         'valid_rut_ratio': _ratio(valid_rut, providers),
         'providers_matched_in_sii': sii_matched,
         'sii_match_ratio_over_valid_rut': _ratio(sii_matched, valid_rut),
+        'publication_signal_coverage': publication_signal_coverage,
     }
 
     recommendations: list[dict] = []
@@ -108,6 +154,19 @@ def review_payloads(
             'action': (
                 'Revisar umbral, población comparable y regla de publicación de las señales dominantes. '
                 'No modificar pesos automáticamente ni reducir el score sólo para equilibrar conteos.'
+            ),
+        })
+    if dominant_families:
+        recommendations.append({
+            'priority': 'ALTA',
+            'topic': 'DOMINANCIA_COMBINADA_DE_FAMILIA',
+            'families': dominant_families,
+            'family_health': {family: family_health[family] for family in dominant_families},
+            'action': (
+                'Revisar solapamiento entre detectores de la misma familia antes de tocar umbrales. '
+                'Para DOCUMENTOS_Y_PAGOS, medir cuánto se superponen fragmentación y duplicidad a nivel de relación, '
+                'fingerprint y documento; contrastar una muestra de casos explicados y casos profundizados. '
+                'La concentración combinada no justifica cambiar pesos automáticamente.'
             ),
         })
     if zero:
@@ -216,17 +275,20 @@ def review_payloads(
         'analysis_window': window,
         'quality_gates': gates,
         'signal_health': {
-            'total_signals': int(signal_health.get('total_signals') or 0),
+            'total_signals': total_signals,
             'active': active,
             'low_volume': low,
             'experimental_zero': zero,
             'dominant_review': dominant,
             'counts': counts,
+            'families': family_health,
+            'dominant_families': dominant_families,
         },
         'coverage': coverage,
         'recommendations': recommendations,
         'method_note': (
             'Este producto decide qué calibraciones conviene estudiar; no cambia umbrales, pesos ni clasifica delitos. '
+            'La revisión considera tanto señales individuales como concentración combinada por familia. '
             'Cualquier ajuste requiere revisión humana y contraste con casos explicados y casos que ameritaron profundización.'
         ),
     }

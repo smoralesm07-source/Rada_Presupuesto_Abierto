@@ -111,3 +111,48 @@ def test_review_flags_low_marketplace_resolution_and_identity_candidates():
     assert base['coverage']['mercado_publico_resolution_ratio'] == 0.6
     assert 'COBERTURA_API_MERCADO_PUBLICO' in topics
     assert 'IDENTIDAD_OC_REQUIERE_REVISION' in topics
+
+
+def test_review_detects_combined_family_dominance_even_when_individual_signals_are_active():
+    health = {
+        'total_signals': 100,
+        'signals': [
+            {'signal_type': 'POTENTIAL_FRAGMENTATION', 'status': 'ACTIVE', 'signal_count': 45},
+            {'signal_type': 'EXACT_DUPLICATE_CANDIDATE', 'status': 'ACTIVE', 'signal_count': 46},
+            {'signal_type': 'AMOUNT_OUTLIER', 'status': 'ACTIVE', 'signal_count': 9},
+        ],
+    }
+    findings = {
+        'relation_findings': [{} for _ in range(10)],
+        'publication_selection': {
+            'method': 'priority_with_signal_diversity_reserve',
+            'max_rows': 600,
+            'available_by_signal': {
+                'POTENTIAL_FRAGMENTATION': 100,
+                'EXACT_DUPLICATE_CANDIDATE': 80,
+                'AMOUNT_OUTLIER': 20,
+            },
+            'published_by_signal': {
+                'POTENTIAL_FRAGMENTATION': 20,
+                'EXACT_DUPLICATE_CANDIDATE': 20,
+                'AMOUNT_OUTLIER': 10,
+            },
+        },
+        'interpretation_contract': {'separation_rule': 'separado'},
+        'context_coverage': {'relations_with_peer_context': 10, 'relations_with_primary_pattern': 8},
+    }
+    out = review_payloads(
+        {'analysis_window': {'years': [2020, 2021, 2022, 2023, 2024, 2025, 2026], 'year_count': 7}},
+        health,
+        findings,
+        {'coverage': {'findings_requested': 10, 'findings_with_purchase_order': 8}},
+        {'coverage': {'providers_published': 10, 'providers_with_valid_rut': 10, 'providers_matched_in_sii': 10}},
+    )
+
+    assert out['signal_health']['dominant_review'] == []
+    assert out['signal_health']['dominant_families'] == ['DOCUMENTOS_Y_PAGOS']
+    assert out['signal_health']['families']['DOCUMENTOS_Y_PAGOS']['share_of_signal_universe'] == 0.91
+    assert out['coverage']['publication_signal_coverage']['POTENTIAL_FRAGMENTATION'] == 0.2
+    topics = {x['topic'] for x in out['recommendations']}
+    assert 'DOMINANCIA_COMBINADA_DE_FAMILIA' in topics
+    assert out['automatic_threshold_changes'] is False
