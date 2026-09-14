@@ -29,7 +29,7 @@ nunca si ambas son «mejora el sistema».
 | Sesión | Misión | Zonas | Desde |
 |---|---|---|---|
 | Claude · motor RIGP | Portar el motor analítico del PR #6 a `main`, una pieza por PR: scoring relativo a pares, dos ejes de score, ventanas de acción y aprendizaje, tipologías, cruce CGR por RUT. | `src/radar_presupuesto/**`; `config/**`; `scripts/**`; `tests/**` de motor; `.github/workflows/ci.yml` sólo donde el contrato de pruebas sigue al motor. | 2026-09-14 |
-| ChatGPT · RIGP case-first | Consolidar la experiencia por expediente y llevarla a un piloto operativo multiusuario: sesión persistente, bandeja compartida, toma y edición de expediente, trazabilidad y reanudación desde otro navegador, sin alterar el motor analítico. | `docs/index.html`; `docs/assets/rigp_case_app.*`; `docs/assets/rigp_case_explain.*`; `docs/assets/rigp_shell_*`; `docs/assets/rigp_case_repository.js`; `docs/assets/rigp_case_supabase.*`; `.github/workflows/check-case-app.yml` para el contrato case-first; `.github/workflows/pages.yml` sólo para empaquetar/publicar los assets case-first ya referenciados por `docs/index.html`; `schemas/012_case_workspace.sql`; pruebas estrictamente necesarias. En Supabase: proyecto `ldmtlwzqaqmegedktlxr`, esquema `rigp`, exclusivamente objetos `case_workspace_state`, `case_workspace_event` y sus políticas/grants. | 2026-09-14 |
+| ChatGPT · RIGP case-first | Consolidar la experiencia por expediente y llevarla a un piloto operativo multiusuario: sesión persistente, bandeja compartida, toma y edición de expediente, trazabilidad y reanudación desde otro navegador, sin alterar el motor analítico. | `docs/index.html`; `docs/assets/rigp_case_app.*`; `docs/assets/rigp_case_explain.*`; `docs/assets/rigp_shell_*`; `docs/assets/rigp_case_repository.js`; `docs/assets/rigp_case_supabase.*`; `.github/workflows/check-case-app.yml` para el contrato case-first; `.github/workflows/pages.yml` sólo para empaquetar/publicar los assets case-first ya referenciados por `docs/index.html`; `schemas/012_case_workspace.sql`; pruebas estrictamente necesarias. En Supabase: proyecto `ldmtlwzqaqmegedktlxr`; tablas/políticas `rigp.case_workspace_state`, `rigp.case_workspace_event`; RPC públicos `rigp_case_workspace_load()` y `rigp_case_workspace_sync(...)` sólo como fachada SECURITY INVOKER del workspace. | 2026-09-14 |
 
 ### Límites explícitos de la misión Claude · motor RIGP
 
@@ -70,11 +70,14 @@ las siguientes fronteras:
   modifica desde esta misión el pipeline analítico, sus disparadores ni CI del motor.
 - **No mutar esquemas ni contenido de `docs/data/**`**; se consumen como contrato de lectura.
 - La persistencia multiusuario queda autorizada únicamente en el proyecto Supabase
-  `ldmtlwzqaqmegedktlxr`, esquema `rigp`, mediante los objetos nuevos
-  `case_workspace_state` y `case_workspace_event`, sus índices, RLS y grants mínimos.
-  **No modificar `candidate_case`, `candidate_evidence`, `case_assignment`,
-  `case_review_event`, `pilot_member` ni otros objetos preexistentes**: se leen sólo
-  para comprender el contrato y evitar duplicaciones.
+  `ldmtlwzqaqmegedktlxr` mediante `rigp.case_workspace_state`,
+  `rigp.case_workspace_event`, sus índices/RLS/grants, y las fachadas públicas
+  `public.rigp_case_workspace_load()` y `public.rigp_case_workspace_sync(...)`.
+  Estas dos funciones deben ser **SECURITY INVOKER**, estar revocadas para `anon` y
+  `PUBLIC`, y concederse sólo a `authenticated`; no pueden saltarse RLS.
+- **No modificar `candidate_case`, `candidate_evidence`, `case_assignment`,
+  `case_review_event`, `pilot_member` ni otros objetos preexistentes**. La membresía
+  se resuelve reutilizando `public.rigp_ops_get_session()` sin cambiarlo.
 - El frontend puede usar únicamente la **publishable key**. **Nunca** se expone ni
   versiona una secret key, `service_role`, contraseña, token de usuario o connection string.
 - Antes de cualquier grant al rol `authenticated`, el objeto correspondiente debe
