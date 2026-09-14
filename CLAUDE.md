@@ -131,6 +131,8 @@ Mismo concepto, dos nombres. Antes de escribir uno nuevo, revisa esta tabla.
 | Expediente analítico | `rigp.candidate_case` + `schemas/011_cases.sql` | `case_model.py` |
 | Estado de trabajo case-first | `rigp.case_workspace_state` (misión ChatGPT) | — |
 | Señales de contraparte SII | `entity_signals.py` ✅ portado | `entity_signals.py` |
+| Enlace CGR por entidad (scoring) | `cgr_correlation.py` | dentro de `typologies.py` |
+| Exposición a auditoría por servicio | `public_service_audits.py` | — |
 
 ---
 

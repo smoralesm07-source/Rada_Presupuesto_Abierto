@@ -23,6 +23,7 @@ from .normalize import normalize_frame, normalize_to_parquet
 from .operational_bundle import build_operational_bundle
 from .peer_groups import build_provider_peer_context
 from .prioritization import prioritize_signals
+from .public_service_audits import build_public_service_audits
 from .quality import audit_quality
 from .search import build_fts, build_fts_from_parquet
 from .sii_document_candidates import build_sii_document_candidates
@@ -125,6 +126,12 @@ def _run_analytics(
 
     cgr = _run_cgr_correlation(parquet_glob, cgr_dir)
 
+    # Dónde la Contraloría observó desórdenes administrativos, a nivel de
+    # servicio público. Cruzar el organismo auditado es mucho más sólido que
+    # cruzar proveedores: son pocos, tienen razón social canónica y el
+    # presupuesto ya los identifica por partida y capítulo.
+    service_audits = build_public_service_audits(parquet_glob, cgr_silver_dir=cgr_dir)
+
     # El contexto de pares se construye antes de priorizar: la rareza empírica y la
     # materialidad relativa del score se miden contra él. Antes se armaba dentro del
     # bundle operacional, es decir después del scoring, y el score no lo veía.
@@ -177,6 +184,7 @@ def _run_analytics(
         "extended": extended,
         "entity": entity,
         "cgr": cgr,
+        "service_audits": service_audits,
         "peer": peer,
         "calibration": calibration,
         "queue": queue,
@@ -290,6 +298,12 @@ def run_years(
         f"[OK] calibración: {result['calibration']['status']} | "
         f"cierres={result['calibration']['source']['cases_closed']:,} | "
         f"ajustes activos={result['queue']['calibration_applied']}"
+    )
+    sa = result["service_audits"]["coverage"]
+    print(
+        f"[OK] servicios auditados: {sa['services_with_observations']} con observaciones | "
+        f"cruzan={sa['matched_bodies']} · fuera de alcance={sa['out_of_scope_bodies']} · "
+        f"sin cruce={sa['unmatched_bodies']} de {sa['audited_bodies']}"
     )
     print(
         f"[OK] cola investigativa: {result['queue']['priority_tiers']} | "
