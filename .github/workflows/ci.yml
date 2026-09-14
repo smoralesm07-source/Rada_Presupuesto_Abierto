@@ -92,13 +92,15 @@ jobs:
           assert pc['schema'] == 'RIGP-PROCUREMENT-CONTEXT-v1'
           assert 'coverage' in pc and 'findings' in pc and 'guardrail' in pc
           assert sh['schema'] == 'RIGP-SIGNAL-HEALTH-v1'
-          assert len(sh['signals']) == 7
+          assert len(sh['signals']) == sh['expected_signal_types']
+          assert {x['layer'] for x in sh['signals']} == {'TRANSACCION','ENTIDAD'}
           assert all(x['status'] in {'ACTIVE','LOW_VOLUME','EXPERIMENTAL_ZERO','DOMINANT_REVIEW'} for x in sh['signals'])
           print('Priority tiers:', iq['priority_tiers'])
           print('Finding relations:', len(fh['relation_findings']))
           print('Publication selection:', fh['publication_selection'])
           print('Procurement coverage:', pc['coverage'])
-          print('Signal health:', [(x['signal_type'],x['status'],x['signal_count']) for x in sh['signals']])
+          print('Signal health:', [(x['signal_type'],x['layer'],x['status'],x['signal_count']) for x in sh['signals']])
+          print('Capas activas:', sh['active_layers'])
           PY
       - name: Historical window contract
         run: |

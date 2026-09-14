@@ -39,6 +39,11 @@ LEGAL_REVIEW = {
         "Revisar adjudicación inicial, crecimiento interanual, compradores públicos y capacidad económica observable.",
         "Un cambio de escala no implica irregularidad; sirve para decidir dónde profundizar.",
     ],
+    "CONTRAPARTE_Y_CAPACIDAD": [
+        "Contrastar la carpeta tributaria del proveedor —giros vigentes, tramo de ventas del año comercial pagado, trabajadores— con el objeto y la magnitud de lo contratado.",
+        "Descartar intermediación o distribución autorizada, reorganización societaria con continuidad de obligaciones, y desactualización del registro publicado.",
+        "Un proveedor joven, pequeño o que termina giro son hechos ordinarios: la señal ordena a quién pedir antecedentes primero, no acredita simulación ni interposición.",
+    ],
     "EJECUCION_CONTRACTUAL": [
         "Revisar hitos de contrato, recepción conforme, modificaciones, controversias, notas de crédito y condiciones de pago.",
         "Comparar plazos y comportamiento con contratos y proveedores equivalentes del mismo servicio.",
@@ -106,6 +111,11 @@ def build_investigative_findings(
             WHEN 'AMOUNT_OUTLIER' THEN 'MAGNITUD_ATIPICA'
             WHEN 'PAYMENT_DELAY_OUTLIER' THEN 'EJECUCION_CONTRACTUAL'
             WHEN 'YEAR_END_SPIKE' THEN 'EJECUCION_PRESUPUESTARIA'
+            WHEN 'NEWBORN_SUPPLIER' THEN 'CONTRAPARTE_Y_CAPACIDAD'
+            WHEN 'CAPACITY_MISMATCH' THEN 'CONTRAPARTE_Y_CAPACIDAD'
+            WHEN 'ACTIVITY_MISMATCH' THEN 'CONTRAPARTE_Y_CAPACIDAD'
+            WHEN 'TERMINATION_AFTER_PAYMENT' THEN 'CONTRAPARTE_Y_CAPACIDAD'
+            WHEN 'DORMANT_REACTIVATION' THEN 'CONTRAPARTE_Y_CAPACIDAD'
             ELSE 'OTRA_SENAL'
           END AS signal_family
         FROM prioritized
@@ -148,6 +158,11 @@ def build_investigative_findings(
                 WHEN strpos(signal_types,'NEW_TO_SERIES_HIGH_SPEND')>0 OR strpos(signal_types,'AMOUNT_OUTLIER')>0 THEN 'IRRUPCION_CAMBIO_ESCALA'
                 WHEN strpos(signal_types,'PAYMENT_DELAY_OUTLIER')>0 THEN 'EJECUCION_CONTRACTUAL'
                 WHEN strpos(signal_types,'YEAR_END_SPIKE')>0 THEN 'EJECUCION_PRESUPUESTARIA'
+                WHEN strpos(signal_types,'CAPACITY_MISMATCH')>0
+                     OR strpos(signal_types,'NEWBORN_SUPPLIER')>0
+                     OR strpos(signal_types,'TERMINATION_AFTER_PAYMENT')>0
+                     OR strpos(signal_types,'ACTIVITY_MISMATCH')>0
+                     OR strpos(signal_types,'DORMANT_REACTIVATION')>0 THEN 'CONTRAPARTE_Y_CAPACIDAD'
                 ELSE 'PATRON_ATIPICO'
               END finding_family,
               CASE
