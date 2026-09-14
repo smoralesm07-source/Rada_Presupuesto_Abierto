@@ -68,4 +68,8 @@ jobs:
           grep -qi 'enable row level security' schemas/012_case_workspace.sql
           grep -qi 'revoke all on table rigp.case_workspace_state from anon' schemas/012_case_workspace.sql
           grep -qi 'revoke all on table rigp.case_workspace_event from anon' schemas/012_case_workspace.sql
-          grep -q 'pm.can_manage_cases' schemas/012_case_workspace.sql
+          grep -q 'public.rigp_ops_get_session' schemas/012_case_workspace.sql
+          grep -qi 'security invoker' schemas/012_case_workspace.sql
+          grep -q 'rigp_case_workspace_load' schemas/012_case_workspace.sql
+          grep -q 'rigp_case_workspace_sync' schemas/012_case_workspace.sql
+          ! grep -Eq 'from[[:space:]]+rigp\.pilot_member' schemas/012_case_workspace.sql
