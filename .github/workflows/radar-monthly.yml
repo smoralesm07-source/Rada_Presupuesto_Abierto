@@ -84,10 +84,10 @@ jobs:
 
       - name: Run integrated operational radar
         run: |
-          PYTHONPATH=src python -m radar_presupuesto.pipeline \
-            --years ${{ steps.years.outputs.years }} \
-            --skip-index \
-            --skip-legacy-spend-view
+                   PYTHONPATH=src python -m radar_presupuesto.pipeline --years ${{ steps.years.outputs.years }}
+          EXTRA=""
+          if [ "${{ inputs.skip_index }}" = "true" ]; then EXTRA="--skip-index"; fi
+          PYTHONPATH=src python -m radar_presupuesto.pipeline --years ${{ steps.years.outputs.years }} $EXTRA
 
       - name: Build case entity context from available SII enrichment
         run: python3 scripts/build_case_entity_context.py
