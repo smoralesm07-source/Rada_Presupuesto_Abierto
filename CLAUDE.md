@@ -112,11 +112,12 @@ Mismo concepto, dos nombres. Antes de escribir uno nuevo, revisa esta tabla.
 | Grupos de pares | `peer_groups.py` | dentro de `prioritization.py` |
 | Selección para publicar | `publication_selection.py` | dentro de `prioritization.py` |
 | Tipologías / patrones | `pattern_compatibility.py` | `typologies.py` |
-| Calibración con cierres | `calibration_review.py` | `calibration.py` |
+| Revisión de salud de la corrida | `calibration_review.py` | — |
+| Calibración con cierres del analista | `calibration.py` ✅ portado | `calibration.py` |
 | Contexto de compras | `procurement_context.py` | `relation_context.py` |
 | Mercado Público | `mercado_publico_bridge.py` ✅ operativo | `procurement.py` (sin cliente) |
-| Expediente | — | `case_model.py` |
-| Señales de contraparte SII | — | `entity_signals.py` |
+| Expediente | `schemas/011_cases.sql` + `docs/assets/rigp_case_repository.js` | `case_model.py` |
+| Señales de contraparte SII | `entity_signals.py` ✅ portado | `entity_signals.py` |
 
 ---
 

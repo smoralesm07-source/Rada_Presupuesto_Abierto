@@ -10,6 +10,7 @@ import yaml
 
 from .advanced_signals import extend_signals
 from .analytics import build_signals
+from .calibration import build_calibration
 from .cgr_correlation import correlate_with_cgr
 from .coverage import write_coverage
 from .dashboard import build_dashboard_json
@@ -129,6 +130,11 @@ def _run_analytics(
     # bundle operacional, es decir después del scoring, y el score no lo veía.
     peer = build_provider_peer_context(parquet_glob)
 
+    # La calibración se construye antes de priorizar porque el score la consume.
+    # Mide contra los hallazgos ya publicados, que son los que el analista
+    # alcanzó a cerrar: los de esta corrida todavía no existen.
+    calibration = build_calibration()
+
     # La cola JSON permanece como producto de auditoría; no define el universo visible.
     queue = prioritize_signals(parquet_glob, peer_context_path=peer["path"], top_n=5000)
 
@@ -172,6 +178,7 @@ def _run_analytics(
         "entity": entity,
         "cgr": cgr,
         "peer": peer,
+        "calibration": calibration,
         "queue": queue,
         "findings": findings,
         "operational": operational,
@@ -279,6 +286,11 @@ def run_years(
     )
     # Si el scoring cae al prior por tipo en masa, el ranking dejó de ser relativo a
     # pares sin que nadie lo note. Se reporta para que se vea en el log de la corrida.
+    print(
+        f"[OK] calibración: {result['calibration']['status']} | "
+        f"cierres={result['calibration']['source']['cases_closed']:,} | "
+        f"ajustes activos={result['queue']['calibration_applied']}"
+    )
     print(
         f"[OK] cola investigativa: {result['queue']['priority_tiers']} | "
         f"base del score={result['queue']['scoring_basis']}"
