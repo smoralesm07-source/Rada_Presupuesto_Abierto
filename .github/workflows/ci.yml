@@ -43,21 +43,29 @@ jobs:
         run: PYTHONPATH=src pytest -q
       - name: End-to-end sample pipeline
         run: PYTHONPATH=src python -m radar_presupuesto.pipeline --sample tests/fixtures/sample_transactions.csv --cgr-dir /tmp/no-cgr
-      - name: Exercise publication diversity, score separation and procurement bridge
+      - name: Exercise publication diversity, score separation, procurement and run summary
         run: |
           PYTHONPATH=src python - <<'PY'
           from radar_presupuesto.publication_selection import rebalance_findings_publication
           from radar_presupuesto.procurement_context import build_procurement_context
           from radar_presupuesto.signal_health import build_signal_health
           from radar_presupuesto.pattern_compatibility import best_pattern
+          from radar_presupuesto.run_summary import build_run_summary
           publication = rebalance_findings_publication(max_rows=600, reserve_per_signal=20)
           procurement = build_procurement_context('data/processed/transactions_sample.parquet')
           health = build_signal_health()
           pattern = best_pattern(['PROVIDER_CONCENTRATION','NEW_TO_SERIES_HIGH_SPEND','AMOUNT_OUTLIER'])
+          summary = build_run_summary(output_json='/tmp/radar_run_summary.json')
+          assert summary['schema'] == 'RIGP-RUN-SUMMARY-v1'
+          assert 0 <= summary['context']['peer_context_coverage'] <= 1
+          assert 0 <= summary['procurement']['purchase_order_coverage'] <= 1
+          assert 'statuses' in summary['signals']
+          assert 'warnings' in summary
           print(publication)
           print(procurement)
           print('signal health needs review:', health['needs_review_signal_types'])
           print('pattern compatibility:', pattern)
+          print('run summary:', summary)
           PY
       - name: Validate sample products
         run: |
