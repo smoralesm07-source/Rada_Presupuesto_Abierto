@@ -3,8 +3,8 @@
 const DATA_URL='data/investigative_findings.json';
 const ENTITY_URL='data/case_entity_context.json';
 const PROCUREMENT_URL='data/procurement_context.json';
-const CASE_KEY='rigp_cases_v1';
 const PAGE_SIZE=18;
+const caseRepo=window.RIGPCaseRepository;
 
 const LEVEL_LABEL={
   ATENCION_INMEDIATA:'Atención inmediata',
@@ -19,7 +19,23 @@ const SIGNAL_LABEL={
   POTENTIAL_FRAGMENTATION:'Operaciones similares en secuencia',
   EXACT_DUPLICATE_CANDIDATE:'Documentos potencialmente repetidos',
   PAYMENT_DELAY_OUTLIER:'Plazo de pago atípico',
-  YEAR_END_SPIKE:'Concentración al cierre de año'
+  YEAR_END_SPIKE:'Concentración al cierre de año',
+  NEWBORN_SUPPLIER:'Proveedor de reciente inicio de actividades',
+  CAPACITY_MISMATCH:'Pago relevante frente a capacidad registral publicada',
+  ACTIVITY_MISMATCH:'Giro registrado poco alineado con la línea presupuestaria',
+  TERMINATION_AFTER_PAYMENT:'Término de giro posterior a pagos observados',
+  DORMANT_REACTIVATION:'Reaparición tras período sin pagos observados'
+};
+const ENTITY_SIGNAL_TYPES=new Set([
+  'NEWBORN_SUPPLIER','CAPACITY_MISMATCH','ACTIVITY_MISMATCH',
+  'TERMINATION_AFTER_PAYMENT','DORMANT_REACTIVATION'
+]);
+const ENTITY_SIGNAL_HELP={
+  NEWBORN_SUPPLIER:'El inicio de actividades es cercano al primer pago público observado. Contrastar constitución, adjudicación y trayectoria previa.',
+  CAPACITY_MISMATCH:'El monto observado es alto frente al tramo de ventas publicado. Contrastar año comercial, intermediación y capacidad operativa.',
+  ACTIVITY_MISMATCH:'El giro registrado difiere del perfil empírico de actividades de la línea presupuestaria. Revisar el objeto efectivamente contratado.',
+  TERMINATION_AFTER_PAYMENT:'Existe término de giro posterior a pagos observados. Revisar continuidad de obligaciones y eventuales reorganizaciones societarias.',
+  DORMANT_REACTIVATION:'El proveedor reaparece después de años sin pagos dentro de la ventana procesada. Confirmar la ausencia en la serie completa y revisar cambios relevantes.'
 };
 const FAMILY_LABEL={
   CONVERGENCIA_MULTIFACTOR:'Convergencia de patrones',
@@ -32,12 +48,8 @@ const FAMILY_LABEL={
   PATRON_ATIPICO:'Patrón atípico'
 };
 const STATUS_LABEL={
-  TRIAGE:'Triage',
-  EN_REVISION:'En revisión',
-  PROFUNDIZAR:'Profundizar',
-  EXPLICADO:'Explicado',
-  ESCALADO:'Escalado',
-  CERRADO:'Cerrado'
+  TRIAGE:'Triage',EN_REVISION:'En revisión',PROFUNDIZAR:'Profundizar',
+  EXPLICADO:'Explicado',ESCALADO:'Escalado',CERRADO:'Cerrado'
 };
 const STATUS_ORDER=['TRIAGE','EN_REVISION','PROFUNDIZAR','ESCALADO','EXPLICADO','CERRADO'];
 const EVIDENCE_TEMPLATE=[
@@ -59,57 +71,35 @@ const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const fmt=new Intl.NumberFormat('es-CL');
 const fmt1=new Intl.NumberFormat('es-CL',{maximumFractionDigits:1});
-const money=v=>{
-  v=Number(v||0);
-  if(!v)return '—';
-  const a=Math.abs(v);
-  if(a>=1e12)return '$'+new Intl.NumberFormat('es-CL',{maximumFractionDigits:2}).format(v/1e12)+' bill.';
-  if(a>=1e9)return '$'+fmt1.format(v/1e9)+' mil M';
-  if(a>=1e6)return '$'+fmt1.format(v/1e6)+' M';
-  return '$'+fmt.format(Math.round(v));
-};
+const money=v=>{v=Number(v||0);if(!v)return '—';const a=Math.abs(v);if(a>=1e12)return '$'+fmt1.format(v/1e12)+' bill.';if(a>=1e9)return '$'+fmt1.format(v/1e9)+' mil M';if(a>=1e6)return '$'+fmt1.format(v/1e6)+' M';return '$'+fmt.format(Math.round(v));};
 const pct=v=>`${Math.round(Number(v||0)*100)}%`;
 const wholePct=v=>`${fmt1.format(Number(v||0))}%`;
 const idOf=r=>String(r.finding_id||`${r.organization_id}|${r.provider_id}|${r.periodo}`);
 const rank=r=>r.attention_level==='ATENCION_INMEDIATA'?0:r.attention_level==='REVISION_PRIORITARIA'?1:2;
 const pair=r=>`${r.organization_name||r.organization_id||'Servicio'} → ${r.provider_name||r.provider_id||'Proveedor'}`;
+const readCases=()=>caseRepo?.list?.()||[];
+const getCase=id=>caseRepo?.get?.(id)||null;
+const caseForFinding=fid=>caseRepo?.findByFinding?.(fid)||null;
 
 function now(){return new Date().toISOString()}
-function uuid(){
-  if(globalThis.crypto?.randomUUID)return crypto.randomUUID();
-  return 'case-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);
-}
-function readCases(){
-  try{const x=JSON.parse(localStorage.getItem(CASE_KEY)||'[]');return Array.isArray(x)?x:[]}
-  catch{return []}
-}
-function writeCases(rows){try{localStorage.setItem(CASE_KEY,JSON.stringify(rows));return true}catch{return false}}
-function getCase(id){return readCases().find(c=>c.case_id===id)||null}
-function patchCase(id,patch,eventType='ACTUALIZACION'){
-  const rows=readCases();
-  const i=rows.findIndex(c=>c.case_id===id);
-  if(i<0)return null;
-  const c=rows[i];
-  Object.assign(c,patch,{updated_at:now()});
-  c.events=Array.isArray(c.events)?c.events:[];
-  c.events.unshift({event_type:eventType,created_at:c.updated_at});
-  c.events=c.events.slice(0,50);
-  rows[i]=c;
-  writeCases(rows);
-  return c;
-}
+function uuid(){if(globalThis.crypto?.randomUUID)return crypto.randomUUID();return 'case-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10)}
+function patchCase(id,patch,eventType='ACTUALIZACION'){return caseRepo?.patch?.(id,patch,eventType)||null}
 function findingById(id){return S.rows.find(r=>idOf(r)===String(id))||null}
-function caseForFinding(fid){return readCases().find(c=>(c.finding_ids||[]).includes(fid))||null}
-function primaryPattern(r){
-  if(!r)return null;
-  if(Object.prototype.hasOwnProperty.call(r,'primary_pattern'))return r.primary_pattern||null;
-  const legacy=r.pattern_compatibility;
-  if(Array.isArray(legacy)){
-    const top=legacy[0]||null;
-    return top&&Number(top.compatibility_score||0)>=40?top:null;
-  }
-  return legacy||null;
+function patternCandidates(r){
+  if(!r)return [];
+  if(Array.isArray(r.pattern_compatibility))return r.pattern_compatibility;
+  return r.pattern_compatibility&&typeof r.pattern_compatibility==='object'?[r.pattern_compatibility]:[];
 }
+function patternState(r){
+  if(!r)return null;
+  const primary=r.primary_pattern||null;
+  if(primary)return {pattern:primary,corroborated:primary.corroborated!==false,status:primary.evidence_status||'CORROBORADO'};
+  const candidates=patternCandidates(r).filter(p=>Number(p.compatibility_score||0)>0).sort((a,b)=>Number(b.compatibility_score||0)-Number(a.compatibility_score||0));
+  const top=candidates[0]||null;
+  if(!top)return null;
+  return {pattern:top,corroborated:!!top.corroborated,status:top.evidence_status||'SIN_CORROBORAR'};
+}
+function entitySignalTypes(r){return (r?.signal_types||[]).filter(s=>ENTITY_SIGNAL_TYPES.has(s))}
 function defaultHypothesis(r){
   switch(r.finding_family){
     case'COMPETENCIA_ADJUDICACION':return 'Determinar si la concentración o irrupción observada se explica por condiciones normales de contratación o si existen antecedentes objetivos que justifiquen profundizar la revisión.';
@@ -123,37 +113,29 @@ function defaultHypothesis(r){
 function ensureCase(r){
   const fid=idOf(r),existing=caseForFinding(fid);
   if(existing){S.caseId=existing.case_id;return existing}
-  const date=new Date();
+  const date=new Date(),pState=patternState(r);
   const code=`RIGP-${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}${String(date.getDate()).padStart(2,'0')}-${fid.replace(/[^A-Z0-9]/gi,'').slice(-6).toUpperCase()}`;
   const c={
     case_id:uuid(),case_ref:code,title:r.finding_title||FAMILY_LABEL[r.finding_family]||'Expediente RIGP',
     status:'TRIAGE',priority_score:Number(r.max_priority_score||0),attention_level:r.attention_level||'SEGUIMIENTO',
-    hypothesis:defaultHypothesis(r),scope:'',conclusion:'',organization_id:r.organization_id||'',
-    organization_name:r.organization_name||'',provider_id:r.provider_id||'',provider_name:r.provider_name||'',
-    period_year:r.periodo||null,finding_ids:[fid],
+    hypothesis:defaultHypothesis(r),scope:'',conclusion:'',organization_id:r.organization_id||'',organization_name:r.organization_name||'',
+    provider_id:r.provider_id||'',provider_name:r.provider_name||'',period_year:r.periodo||null,finding_ids:[fid],
     evidence:EVIDENCE_TEMPLATE.map(([kind,label,guide])=>({kind,label,guide,status:'PENDIENTE',note:''})),
     notes:'',created_at:now(),updated_at:now(),events:[{event_type:'EXPEDIENTE_CREADO',created_at:now()}],
-    source_context:{finding_family:r.finding_family,signal_types:r.signal_types||[],why_review:r.why_review||'',max_transaction_amount:r.max_transaction_amount||0}
+    source_context:{finding_family:r.finding_family,signal_types:r.signal_types||[],why_review:r.why_review||'',max_transaction_amount:r.max_transaction_amount||0,pattern_status:pState?.status||'SIN_PATRON'}
   };
-  const rows=readCases();rows.unshift(c);writeCases(rows);S.caseId=c.case_id;return c;
+  const saved=caseRepo?.upsert?.(c,{reason:'EXPEDIENTE_CREADO'})||c;S.caseId=saved.case_id;return saved;
 }
 
-async function fetchOptional(url){
-  try{const r=await fetch(url,{cache:'no-store'});if(!r.ok)return null;return await r.json()}
-  catch{return null}
-}
+async function fetchOptional(url){try{const r=await fetch(url,{cache:'no-store'});if(!r.ok)return null;return await r.json()}catch{return null}}
 async function loadCaseContext(){
-  if(S.contextLoaded||S.contextLoading)return;
-  S.contextLoading=true;
+  if(S.contextLoaded||S.contextLoading)return;S.contextLoading=true;
   const [entity,procurement]=await Promise.all([fetchOptional(ENTITY_URL),fetchOptional(PROCUREMENT_URL)]);
   S.entityContext=entity;S.procurementContext=procurement;S.contextLoaded=true;S.contextLoading=false;
   if(['caso','entidad','informe'].includes(S.view))render();
 }
 function entityContextFor(c){return S.entityContext?.entities?.[c.provider_id]||null}
-function procurementContextFor(c){
-  const fid=(c.finding_ids||[])[0];
-  return (S.procurementContext?.findings||[]).find(x=>String(x.finding_id)===String(fid))||null;
-}
+function procurementContextFor(c){const fid=(c.finding_ids||[])[0];return (S.procurementContext?.findings||[]).find(x=>String(x.finding_id)===String(fid))||null}
 function filteredRows(){
   const q=S.query.trim().toLocaleLowerCase('es');
   return S.rows.filter(r=>{
@@ -167,128 +149,108 @@ function setStatus(text){$('status').textContent=text}
 function renderKpis(){
   const cases=readCases(),active=cases.filter(c=>!['EXPLICADO','CERRADO'].includes(c.status)),rows=filteredRows();
   const immediate=rows.filter(r=>r.attention_level==='ATENCION_INMEDIATA').length;
-  const services=new Set(rows.map(r=>r.organization_id).filter(Boolean)).size;
-  const providers=new Set(rows.map(r=>r.provider_id).filter(Boolean)).size;
+  const services=new Set(rows.map(r=>r.organization_id).filter(Boolean)).size,providers=new Set(rows.map(r=>r.provider_id).filter(Boolean)).size;
   $('kpis').innerHTML=[[active.length,'expedientes activos'],[immediate,'hallazgos inmediatos'],[services,'servicios en foco'],[providers,'proveedores en foco']].map(([v,l])=>`<div><b>${fmt.format(v)}</b><span>${l}</span></div>`).join('');
 }
 function renderNav(){
-  document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('on',b.dataset.view===S.view));
-  $('filters').hidden=S.view!=='triage';
-  $('caseBanner').hidden=!S.caseId;
-  const c=S.caseId?getCase(S.caseId):null;
+  document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('on',b.dataset.view===S.view));$('filters').hidden=S.view!=='triage';
+  $('caseBanner').hidden=!S.caseId;const c=S.caseId?getCase(S.caseId):null;
   $('caseBanner').innerHTML=c?`<span>Expediente activo</span><b>${esc(c.case_ref)}</b><em>${esc(STATUS_LABEL[c.status]||c.status)}</em>`:'';
 }
+function repositoryPill(){const d=caseRepo?.describe?.()||{};return d.remote_attached?'Repositorio remoto + caché local':'Piloto local · repositorio de expedientes'}
 function renderBandeja(){
   const cases=readCases().sort((a,b)=>(STATUS_ORDER.indexOf(a.status)-STATUS_ORDER.indexOf(b.status))||Number(b.priority_score||0)-Number(a.priority_score||0));
-  const open=cases.filter(c=>!['EXPLICADO','CERRADO'].includes(c.status));
-  const closed=cases.filter(c=>['EXPLICADO','CERRADO'].includes(c.status));
+  const open=cases.filter(c=>!['EXPLICADO','CERRADO'].includes(c.status)),closed=cases.filter(c=>['EXPLICADO','CERRADO'].includes(c.status));
   const candidate=filteredRows().find(r=>!caseForFinding(idOf(r)));
-  $('workspace').innerHTML=`<div class="section-head"><div><div class="eyebrow">Mi bandeja</div><h2>Trabajo analítico organizado por expediente</h2><p>El hallazgo sirve para descubrir. El expediente concentra hipótesis, evidencia, actores, revisión y conclusión.</p></div><span class="pilot-pill">Piloto local · persistencia del navegador</span></div>${candidate?`<section class="next-case"><div><span class="eyebrow">Siguiente sugerido para triage</span><h3>${esc(candidate.finding_title||FAMILY_LABEL[candidate.finding_family]||'Hallazgo')}</h3><p>${esc(pair(candidate))}</p><small>${esc(candidate.why_review||'Revisión recomendada.')}</small></div><div><b>${Math.round(Number(candidate.max_priority_score||0))}/100</b><button data-create-case="${esc(idOf(candidate))}">Crear expediente</button></div></section>`:''}<div class="board"><section class="panel"><div class="panel-head"><h3>Activos</h3><span>${open.length}</span></div><div class="case-list">${open.map(caseRow).join('')||'<div class="empty">Aún no hay expedientes activos.</div>'}</div></section><section class="panel"><div class="panel-head"><h3>Resueltos / cerrados</h3><span>${closed.length}</span></div><div class="case-list">${closed.slice(0,12).map(caseRow).join('')||'<div class="empty">Sin expedientes cerrados.</div>'}</div></section></div>`;
+  $('workspace').innerHTML=`<div class="section-head"><div><div class="eyebrow">Mi bandeja</div><h2>Trabajo analítico organizado por expediente</h2><p>El hallazgo sirve para descubrir. El expediente concentra hipótesis, evidencia, actores, revisión y conclusión.</p></div><span class="pilot-pill">${esc(repositoryPill())}</span></div>${candidate?`<section class="next-case"><div><span class="eyebrow">Siguiente sugerido para triage</span><h3>${esc(candidate.finding_title||FAMILY_LABEL[candidate.finding_family]||'Hallazgo')}</h3><p>${esc(pair(candidate))}</p><small>${esc(candidate.why_review||'Revisión recomendada.')}</small></div><div><b>${Math.round(Number(candidate.max_priority_score||0))}/100</b><button data-create-case="${esc(idOf(candidate))}">Crear expediente</button></div></section>`:''}<div class="board"><section class="panel"><div class="panel-head"><h3>Activos</h3><span>${open.length}</span></div><div class="case-list">${open.map(caseRow).join('')||'<div class="empty">Aún no hay expedientes activos.</div>'}</div></section><section class="panel"><div class="panel-head"><h3>Resueltos / cerrados</h3><span>${closed.length}</span></div><div class="case-list">${closed.slice(0,12).map(caseRow).join('')||'<div class="empty">Sin expedientes cerrados.</div>'}</div></section></div>`;
 }
-function caseRow(c){
-  return `<button class="case-row" data-open-case="${esc(c.case_id)}"><span class="case-dot ${esc(c.status)}"></span><span class="case-row-main"><b>${esc(c.title)}</b><small>${esc(c.organization_name||c.organization_id||'Servicio')} → ${esc(c.provider_name||c.provider_id||'Proveedor')} · ${esc(c.period_year||'')}</small></span><span class="case-row-status">${esc(STATUS_LABEL[c.status]||c.status)}</span><span class="case-row-score">${Math.round(Number(c.priority_score||0))}</span></button>`;
+function caseRow(c){return `<button class="case-row" data-open-case="${esc(c.case_id)}"><span class="case-dot ${esc(c.status)}"></span><span class="case-row-main"><b>${esc(c.title)}</b><small>${esc(c.organization_name||c.organization_id||'Servicio')} → ${esc(c.provider_name||c.provider_id||'Proveedor')} · ${esc(c.period_year||'')}</small></span><span class="case-row-status">${esc(STATUS_LABEL[c.status]||c.status)}</span><span class="case-row-score">${Math.round(Number(c.priority_score||0))}</span></button>`}
+function patternInline(r){
+  const state=patternState(r);if(!state)return '';
+  const p=state.pattern,label=state.corroborated?'Hipótesis corroborada':'Parecido aún sin corroborar';
+  const note=!state.corroborated&&p.corroboration_note?`<small>${esc(p.corroboration_note)}</small>`:'';
+  return `<p><b>${label}:</b> ${esc(p.pattern_label||p.pattern_code||'Patrón')} · ${Math.round(Number(p.compatibility_score||0))}/100</p>${note}`;
 }
 function renderTriage(){
-  const rows=filteredRows(),pages=Math.max(1,Math.ceil(rows.length/PAGE_SIZE));
-  S.page=Math.max(0,Math.min(S.page,pages-1));
-  const slice=rows.slice(S.page*PAGE_SIZE,S.page*PAGE_SIZE+PAGE_SIZE);
-  const counts={};for(const r of rows)for(const s of r.signal_types||[])counts[s]=(counts[s]||0)+1;
+  const rows=filteredRows(),pages=Math.max(1,Math.ceil(rows.length/PAGE_SIZE));S.page=Math.max(0,Math.min(S.page,pages-1));
+  const slice=rows.slice(S.page*PAGE_SIZE,S.page*PAGE_SIZE+PAGE_SIZE),counts={};for(const r of rows)for(const s of r.signal_types||[])counts[s]=(counts[s]||0)+1;
   const diversity=Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([s,n])=>`<span>${esc(SIGNAL_LABEL[s]||s)} <b>${n}</b></span>`).join('');
   $('workspace').innerHTML=`<div class="section-head"><div><div class="eyebrow">Triage</div><h2>Decidir qué merece un expediente</h2><p>Prioriza por convergencia y contexto. La puntuación ordena revisión; no mide culpabilidad ni probabilidad de delito.</p></div><span>${rows.length} relaciones · página ${S.page+1}/${pages}</span></div><div class="diversity"><strong>Diversidad del lote publicado</strong>${diversity||'<span>Sin señales</span>'}</div><section class="triage-grid">${slice.map(triageCard).join('')||'<div class="empty">Sin resultados.</div>'}</section><div class="pager"><button data-page="-1" ${S.page===0?'disabled':''}>Anterior</button><button data-page="1" ${S.page===pages-1?'disabled':''}>Siguiente</button></div>`;
 }
 function triageCard(r){
-  const c=caseForFinding(idOf(r));
-  const signals=(r.signal_types||[]).slice(0,4).map(s=>`<span>${esc(SIGNAL_LABEL[s]||s)}</span>`).join('');
-  const pattern=primaryPattern(r);
-  return `<article class="triage-card level-${esc(r.attention_level)}"><div class="triage-top"><span>${esc(LEVEL_LABEL[r.attention_level]||r.attention_level)}</span><b>${Math.round(Number(r.max_priority_score||0))}/100</b></div><h3>${esc(r.finding_title||FAMILY_LABEL[r.finding_family]||'Hallazgo')}</h3><p class="pair">${esc(pair(r))}</p><p>${esc(r.why_review||'Relación priorizada para revisión contextual.')}</p>${pattern?`<p><b>Patrón compatible:</b> ${esc(pattern.pattern_label)} · ${Math.round(Number(pattern.compatibility_score||0))}/100</p>`:''}<div class="signal-list">${signals}</div><div class="triage-meta"><span>${esc(r.periodo||'')}</span><span>${money(r.max_transaction_amount)}</span></div>${c?`<button data-open-case="${esc(c.case_id)}">Abrir expediente</button>`:`<button data-create-case="${esc(idOf(r))}">Crear expediente</button>`}</article>`;
+  const c=caseForFinding(idOf(r));const signals=(r.signal_types||[]).slice(0,5).map(s=>`<span>${esc(SIGNAL_LABEL[s]||s)}</span>`).join('');
+  return `<article class="triage-card level-${esc(r.attention_level)}"><div class="triage-top"><span>${esc(LEVEL_LABEL[r.attention_level]||r.attention_level)}</span><b>${Math.round(Number(r.max_priority_score||0))}/100</b></div><h3>${esc(r.finding_title||FAMILY_LABEL[r.finding_family]||'Hallazgo')}</h3><p class="pair">${esc(pair(r))}</p><p>${esc(r.why_review||'Relación priorizada para revisión contextual.')}</p>${patternInline(r)}<div class="signal-list">${signals}</div><div class="triage-meta"><span>${esc(r.periodo||'')}</span><span>${money(r.max_transaction_amount)}</span></div>${c?`<button data-open-case="${esc(c.case_id)}">Abrir expediente</button>`:`<button data-create-case="${esc(idOf(r))}">Crear expediente</button>`}</article>`;
+}
+function patternPanel(r){
+  const state=patternState(r);if(!state)return '';
+  const p=state.pattern,discards=(p.discards||[]).slice(0,3).map(x=>`<div><b>Qué lo debilitaría</b><small>${esc(x)}</small></div>`).join('');
+  const status=state.corroborated?'Corroborado':'Sin corroborar';
+  return `<section class="panel span2"><div class="panel-head"><h3>Lectura de patrón</h3><span>${status}</span></div><p><b>${esc(p.pattern_label||p.pattern_code||'Patrón')}</b> · compatibilidad descriptiva ${Math.round(Number(p.compatibility_score||0))}/100</p><p>${esc(p.review_question||'Contrastar la explicación con antecedentes documentales.')}</p>${!state.corroborated?`<p class="guard-card"><b>Aún no es una hipótesis propuesta por el motor.</b> ${esc(p.corroboration_note||'Falta evidencia concurrente e independiente.')}</p>`:''}${p.next_document?`<p class="guard-card"><b>Siguiente documento útil:</b> ${esc(p.next_document)}</p>`:''}${discards?`<div class="counterparty-list">${discards}</div>`:''}<p class="guard-card">${esc(p.guardrail||'La compatibilidad describe parecido analítico; no acredita irregularidad.')}</p></section>`;
 }
 function siiFacts(c){
   if(!S.contextLoaded)return `<section class="panel"><div class="panel-head"><h3>Capacidad y trayectoria</h3><span>Cargando al abrir el caso</span></div><p class="guard-card">El contexto SII se carga sólo aquí para no aumentar el costo del inicio.</p></section>`;
-  const ctx=entityContextFor(c);
-  if(!ctx)return `<section class="panel"><div class="panel-head"><h3>Capacidad y trayectoria</h3><span>Sin contexto publicado</span></div><p class="guard-card">No existe contexto SII compacto para este proveedor.</p></section>`;
+  const ctx=entityContextFor(c);if(!ctx)return `<section class="panel"><div class="panel-head"><h3>Capacidad y trayectoria</h3><span>Sin contexto publicado</span></div><p class="guard-card">No existe contexto SII compacto para este proveedor.</p></section>`;
   if(ctx.identity_status!=='RUT_RESOLVED')return `<section class="panel"><div class="panel-head"><h3>Identidad del proveedor</h3><span>No resuelta por RUT</span></div><p>${esc(ctx.identity_note||'No se infiere identidad desde nombres o hashes.')}</p></section>`;
-  const s=ctx.sii;
-  if(!s)return `<section class="panel"><div class="panel-head"><h3>Capacidad y trayectoria</h3><span>RUT resuelto · sin match SII</span></div><dl class="facts"><div><dt>RUT</dt><dd>${esc(ctx.rut||'—')}</dd></div></dl></section>`;
+  const s=ctx.sii;if(!s)return `<section class="panel"><div class="panel-head"><h3>Capacidad y trayectoria</h3><span>RUT resuelto · sin match SII</span></div><dl class="facts"><div><dt>RUT</dt><dd>${esc(ctx.rut||'—')}</dd></div></dl></section>`;
   return `<section class="panel"><div class="panel-head"><h3>Capacidad y trayectoria SII</h3><span>Contexto, no conclusión</span></div><dl class="facts"><div><dt>RUT</dt><dd>${esc(ctx.rut||'—')}</dd></div><div><dt>Razón social</dt><dd>${esc(s.legal_name||'—')}</dd></div><div><dt>Estado tributario</dt><dd>${esc(s.tax_status||'—')}</dd></div><div><dt>Inicio de actividades</dt><dd>${esc(s.start_date||'—')}</dd></div><div><dt>Término de giro</dt><dd>${esc(s.termination_date||'—')}</dd></div><div><dt>Actividad principal</dt><dd>${esc(s.main_activity||'—')}</dd></div><div><dt>Tramo de ventas</dt><dd>${esc(s.sales_band||s.sales_band_code||'—')}</dd></div><div><dt>Trabajadores</dt><dd>${esc(s.workers??'—')}</dd></div></dl><p class="guard-card">${esc(S.entityContext?.guardrail||'La información tributaria sólo caracteriza capacidad y trayectoria observable.')}</p></section>`;
+}
+function entitySignalsPanel(r){
+  const types=entitySignalTypes(r);if(!types.length)return '';
+  return `<section class="panel span2"><div class="panel-head"><h3>Señales de contraparte SII</h3><span>Otra capa de evidencia</span></div><div class="counterparty-list">${types.map(s=>`<div><b>${esc(SIGNAL_LABEL[s]||s)}</b><small>${esc(ENTITY_SIGNAL_HELP[s]||'Contexto registral para revisión documental.')}</small></div>`).join('')}</div><p class="guard-card">Estas señales describen antigüedad, capacidad, giro o trayectoria registral. No constituyen por sí mismas indicio de irregularidad y deben contrastarse con documentos y contexto contractual.</p></section>`;
 }
 function procurementFacts(c){
   if(!S.contextLoaded)return `<section class="panel"><div class="panel-head"><h3>Contratación / OC</h3><span>Cargando al abrir el caso</span></div><p class="guard-card">Se carga bajo demanda.</p></section>`;
-  const p=procurementContextFor(c);
-  if(!p)return `<section class="panel"><div class="panel-head"><h3>Contratación / OC</h3><span>Contexto aún no generado</span></div><p class="guard-card">El puente a Mercado Público está preparado, pero este hallazgo aún no tiene un contexto de orden de compra publicado.</p></section>`;
+  const p=procurementContextFor(c);if(!p)return `<section class="panel"><div class="panel-head"><h3>Contratación / OC</h3><span>Contexto aún no generado</span></div><p class="guard-card">El puente a Mercado Público está preparado, pero este hallazgo aún no tiene un contexto de orden de compra publicado.</p></section>`;
   return `<section class="panel"><div class="panel-head"><h3>Contratación / orden de compra</h3><span>Puente Presupuesto → Mercado Público</span></div><dl class="facts"><div><dt>Filas fuente</dt><dd>${fmt.format(Number(p.source_rows||0))}</dd></div><div><dt>Filas con OC</dt><dd>${fmt.format(Number(p.rows_with_purchase_order||0))} · ${pct(p.purchase_order_row_coverage)}</dd></div><div><dt>OC distintas</dt><dd>${fmt.format(Number(p.purchase_order_count||0))}</dd></div><div><dt>Devengado relación</dt><dd>${money(p.devengado_total)}</dd></div></dl><div class="signal-list large">${(p.purchase_order_examples||[]).map(x=>`<span>${esc(x)}</span>`).join('')||'<span>Sin OC informada</span>'}</div><p class="guard-card">${esc(p.guardrail||S.procurementContext?.guardrail||'La OC debe contrastarse con el procedimiento de compra.')}</p></section>`;
 }
 function peerFacts(r){
-  const p=r?.peer_context;
-  if(!p)return '';
+  const p=r?.peer_context;if(!p)return '';
   const ratio=p.amount_to_peer_median_ratio==null?'—':`${fmt1.format(Number(p.amount_to_peer_median_ratio))}×`;
   const group=[p.subtitulo?`Subtítulo ${p.subtitulo}`:'',p.item?`Ítem ${p.item}`:''].filter(Boolean).join(' · ')||'Grupo comparable';
   return `<section class="panel"><div class="panel-head"><h3>Posición frente a pares</h3><span>${esc(group)}</span></div><dl class="facts"><div><dt>Proveedores comparables</dt><dd>${fmt.format(Number(p.peer_provider_count||0))}</dd></div><div><dt>Monto del proveedor</dt><dd>${money(p.provider_amount)}</dd></div><div><dt>Mediana del grupo</dt><dd>${money(p.peer_median_amount)}</dd></div><div><dt>P90 del grupo</dt><dd>${money(p.peer_p90_amount)}</dd></div><div><dt>Percentil</dt><dd>${wholePct(p.peer_percentile_pct)}</dd></div><div><dt>Respecto de la mediana</dt><dd>${ratio}</dd></div></dl><p class="guard-card">${esc(p.guardrail||'La comparación con pares aporta contexto de materialidad y no constituye una conclusión de integridad.')}</p></section>`;
 }
 function renderCaso(){
-  const c=S.caseId?getCase(S.caseId):null;
-  if(!c){$('workspace').innerHTML=`<div class="empty large"><h2>No hay expediente seleccionado</h2><p>Abre uno desde Mi bandeja o crea uno desde Triage.</p><button data-view="triage">Ir a Triage</button></div>`;return}
+  const c=S.caseId?getCase(S.caseId):null;if(!c){$('workspace').innerHTML=`<div class="empty large"><h2>No hay expediente seleccionado</h2><p>Abre uno desde Mi bandeja o crea uno desde Hallazgos.</p><button data-view="triage">Ir a Hallazgos</button></div>`;return}
   if(!S.contextLoaded&&!S.contextLoading)loadCaseContext();
-  const r=findingById((c.finding_ids||[])[0]);
-  const evidence=(c.evidence||[]).map((e,i)=>`<div class="evidence-row"><div><b>${esc(e.label)}</b><small>${esc(e.guide)}</small></div><select data-evidence-status="${i}"><option value="PENDIENTE" ${e.status==='PENDIENTE'?'selected':''}>Pendiente</option><option value="EN_REVISION" ${e.status==='EN_REVISION'?'selected':''}>En revisión</option><option value="VERIFICADA" ${e.status==='VERIFICADA'?'selected':''}>Verificada</option><option value="DESCARTADA" ${e.status==='DESCARTADA'?'selected':''}>Descartada</option><option value="NO_DISPONIBLE" ${e.status==='NO_DISPONIBLE'?'selected':''}>No disponible</option></select></div>`).join('');
-  const pattern=primaryPattern(r);
-  $('workspace').innerHTML=`<div class="case-head"><div><div class="eyebrow">Caso</div><h2>${esc(c.title)}</h2><p>${esc(c.organization_name||c.organization_id)} → ${esc(c.provider_name||c.provider_id)} · ${esc(c.period_year||'')}</p></div><div class="case-priority"><b>${Math.round(Number(c.priority_score||0))}</b><span>prioridad de revisión</span></div></div><section class="case-status-bar">${STATUS_ORDER.filter(x=>x!=='CERRADO').map(st=>`<button data-case-status="${st}" class="${c.status===st?'on':''}">${esc(STATUS_LABEL[st])}</button>`).join('')}</section><div class="case-layout"><section class="panel span2"><div class="panel-head"><h3>Hipótesis de trabajo</h3><span>Debe poder confirmarse o descartarse</span></div><textarea id="hypothesis" rows="4">${esc(c.hypothesis||'')}</textarea><div class="save-hint">Se guarda al salir del campo.</div></section><section class="panel"><div class="panel-head"><h3>Qué sabemos</h3><span>Hechos del producto analítico</span></div><dl class="facts"><div><dt>Servicio</dt><dd>${esc(c.organization_name||c.organization_id)}</dd></div><div><dt>Proveedor</dt><dd>${esc(c.provider_name||c.provider_id)}</dd></div><div><dt>Período</dt><dd>${esc(c.period_year||'—')}</dd></div><div><dt>Monto máximo asociado</dt><dd>${money(r?.max_transaction_amount||c.source_context?.max_transaction_amount)}</dd></div><div><dt>Familia</dt><dd>${esc(FAMILY_LABEL[r?.finding_family||c.source_context?.finding_family]||r?.finding_family||c.source_context?.finding_family||'—')}</dd></div>${pattern?`<div><dt>Compatibilidad descriptiva</dt><dd>${esc(pattern.pattern_label)} · ${Math.round(Number(pattern.compatibility_score||0))}/100</dd></div>`:''}</dl></section><section class="panel"><div class="panel-head"><h3>Señales que originan la revisión</h3><span>No son conclusiones</span></div><div class="signal-list large">${(r?.signal_types||c.source_context?.signal_types||[]).map(s=>`<span>${esc(SIGNAL_LABEL[s]||s)}</span>`).join('')}</div>${pattern?`<p class="guard-card"><b>Pregunta del patrón:</b> ${esc(pattern.review_question||'')}</p>`:''}<p class="guard-card">${esc(pattern?.guardrail||r?.guardrail||S.payload?.guardrail||'Un hallazgo prioriza revisión y no acredita irregularidad ni responsabilidad.')}</p></section>${peerFacts(r)}${siiFacts(c)}${procurementFacts(c)}<section class="panel span2"><div class="panel-head"><h3>Plan de evidencia</h3><span>Separar candidato, verificado y descartado</span></div><div class="evidence-list">${evidence}</div></section><section class="panel span2"><div class="panel-head"><h3>Notas del analista</h3><span>Argumentos, pendientes y decisiones</span></div><textarea id="caseNotes" rows="5" placeholder="Registra por qué se profundiza, qué se descartó y qué falta verificar…">${esc(c.notes||'')}</textarea><div class="save-hint">Se guarda al salir del campo.</div></section><section class="route-card"><div><span class="eyebrow">Siguiente paso</span><h3>Profundizar sólo donde cambie la decisión</h3><p>Usa Entidad 360° para contextualizar servicio y proveedor. Cuando la evidencia sea suficiente, genera el informe del expediente.</p></div><div><button data-view="entidad">Abrir Entidad 360°</button><button data-view="informe" class="secondary">Preparar informe</button></div></section></div>`;
+  const r=findingById((c.finding_ids||[])[0]),evidence=(c.evidence||[]).map((e,i)=>`<div class="evidence-row"><div><b>${esc(e.label)}</b><small>${esc(e.guide)}</small></div><select data-evidence-status="${i}"><option value="PENDIENTE" ${e.status==='PENDIENTE'?'selected':''}>Pendiente</option><option value="EN_REVISION" ${e.status==='EN_REVISION'?'selected':''}>En revisión</option><option value="VERIFICADA" ${e.status==='VERIFICADA'?'selected':''}>Verificada</option><option value="DESCARTADA" ${e.status==='DESCARTADA'?'selected':''}>Descartada</option><option value="NO_DISPONIBLE" ${e.status==='NO_DISPONIBLE'?'selected':''}>No disponible</option></select></div>`).join('');
+  const pState=patternState(r),p=pState?.pattern;
+  $('workspace').innerHTML=`<div class="case-head"><div><div class="eyebrow">Expediente</div><h2>${esc(c.title)}</h2><p>${esc(c.organization_name||c.organization_id)} → ${esc(c.provider_name||c.provider_id)} · ${esc(c.period_year||'')}</p></div><div class="case-priority"><b>${Math.round(Number(c.priority_score||0))}</b><span>prioridad de revisión</span></div></div><section class="case-status-bar">${STATUS_ORDER.filter(x=>x!=='CERRADO').map(st=>`<button data-case-status="${st}" class="${c.status===st?'on':''}">${esc(STATUS_LABEL[st])}</button>`).join('')}</section><div class="case-layout"><section class="panel span2"><div class="panel-head"><h3>Hipótesis de trabajo del analista</h3><span>Debe poder confirmarse o descartarse</span></div>${pState&&!pState.corroborated?'<p class="guard-card"><b>El motor no propone una hipótesis todavía.</b> Existe similitud descriptiva, pero falta corroboración independiente. La hipótesis escrita aquí corresponde al analista y debe tratarse como línea de trabajo.</p>':''}<textarea id="hypothesis" rows="4">${esc(c.hypothesis||'')}</textarea><div class="save-hint">Se guarda al salir del campo.</div></section><section class="panel"><div class="panel-head"><h3>Qué sabemos</h3><span>Hechos del producto analítico</span></div><dl class="facts"><div><dt>Servicio</dt><dd>${esc(c.organization_name||c.organization_id)}</dd></div><div><dt>Proveedor</dt><dd>${esc(c.provider_name||c.provider_id)}</dd></div><div><dt>Período</dt><dd>${esc(c.period_year||'—')}</dd></div><div><dt>Monto máximo asociado</dt><dd>${money(r?.max_transaction_amount||c.source_context?.max_transaction_amount)}</dd></div><div><dt>Familia</dt><dd>${esc(FAMILY_LABEL[r?.finding_family||c.source_context?.finding_family]||r?.finding_family||c.source_context?.finding_family||'—')}</dd></div>${p?`<div><dt>Lectura de patrón</dt><dd>${esc(p.pattern_label||p.pattern_code)} · ${esc(pState.status)} · ${Math.round(Number(p.compatibility_score||0))}/100</dd></div>`:''}</dl></section><section class="panel"><div class="panel-head"><h3>Señales que originan la revisión</h3><span>No son conclusiones</span></div><div class="signal-list large">${(r?.signal_types||c.source_context?.signal_types||[]).map(s=>`<span>${esc(SIGNAL_LABEL[s]||s)}</span>`).join('')}</div><p class="guard-card">${esc(p?.guardrail||r?.guardrail||S.payload?.guardrail||'Un hallazgo prioriza revisión y no acredita irregularidad ni responsabilidad.')}</p></section>${patternPanel(r)}${peerFacts(r)}${entitySignalsPanel(r)}${siiFacts(c)}${procurementFacts(c)}<section class="panel span2"><div class="panel-head"><h3>Plan de evidencia</h3><span>Separar candidato, verificado y descartado</span></div><div class="evidence-list">${evidence}</div></section><section class="panel span2"><div class="panel-head"><h3>Notas del analista</h3><span>Argumentos, pendientes y decisiones</span></div><textarea id="caseNotes" rows="5" placeholder="Registra por qué se profundiza, qué se descartó y qué falta verificar…">${esc(c.notes||'')}</textarea><div class="save-hint">Se guarda al salir del campo.</div></section><section class="route-card"><div><span class="eyebrow">Siguiente paso</span><h3>Profundizar sólo donde cambie la decisión</h3><p>Usa Entidad para contextualizar servicio y proveedor. Cuando la evidencia sea suficiente, genera el informe del expediente.</p></div><div><button data-view="entidad">Abrir Entidad</button><button data-view="informe" class="secondary">Preparar informe</button></div></section></div>`;
 }
 function relatedProvider(c){return S.rows.filter(r=>String(r.provider_id||'')===String(c.provider_id||''))}
 function relatedService(c){return S.rows.filter(r=>String(r.organization_id||'')===String(c.organization_id||''))}
 function entitySummary(rows,mode,c){
   const names=mode==='provider'?new Map(rows.map(r=>[r.organization_id,r.organization_name||r.organization_id])):new Map(rows.map(r=>[r.provider_id,r.provider_name||r.provider_id]));
-  const years=[...new Set(rows.map(r=>r.periodo).filter(Boolean))].sort();
-  const families=[...new Set(rows.map(r=>FAMILY_LABEL[r.finding_family]||r.finding_family).filter(Boolean))];
-  const signals=[...new Set(rows.flatMap(r=>r.signal_types||[]))];
-  const immediate=rows.filter(r=>r.attention_level==='ATENCION_INMEDIATA').length;
-  const maxScore=Math.max(0,...rows.map(r=>Number(r.max_priority_score||0)));
+  const years=[...new Set(rows.map(r=>r.periodo).filter(Boolean))].sort(),families=[...new Set(rows.map(r=>FAMILY_LABEL[r.finding_family]||r.finding_family).filter(Boolean))],signals=[...new Set(rows.flatMap(r=>r.signal_types||[]))];
+  const immediate=rows.filter(r=>r.attention_level==='ATENCION_INMEDIATA').length,maxScore=Math.max(0,...rows.map(r=>Number(r.max_priority_score||0)));
   return `<div class="entity-hero"><div><span class="eyebrow">${mode==='provider'?'Proveedor':'Servicio público'}</span><h2>${esc(mode==='provider'?(c.provider_name||c.provider_id):(c.organization_name||c.organization_id))}</h2><p>${rows.length} relaciones publicadas · ${names.size} ${mode==='provider'?'servicios':'proveedores'} · ${immediate} de atención inmediata</p></div><b>${Math.round(maxScore)}/100</b></div><div class="entity-grid-summary"><div><span>Períodos con hallazgos</span><b>${esc(years.join(', ')||'—')}</b></div><div><span>Familias observadas</span><b>${families.length}</b></div><div><span>Contrapartes</span><b>${names.size}</b></div><div><span>Señales distintas</span><b>${signals.length}</b></div></div><section class="panel"><div class="panel-head"><h3>Patrones publicados</h3><span>Contexto, no imputación</span></div><div class="signal-list large">${signals.map(s=>`<span>${esc(SIGNAL_LABEL[s]||s)}</span>`).join('')}</div><p>${families.map(esc).join(' · ')}</p></section><section class="panel"><div class="panel-head"><h3>${mode==='provider'?'Servicios relacionados':'Proveedores relacionados'}</h3><span>Hasta 20 contrapartes del producto publicado</span></div><div class="counterparty-list">${[...names.entries()].slice(0,20).map(([id,name])=>`<div><b>${esc(name)}</b><small>${esc(id)}</small></div>`).join('')||'<div class="empty">Sin contrapartes.</div>'}</div></section>`;
 }
 function entitySiiDetail(c){
-  if(S.entityMode!=='provider')return '';
-  const ctx=entityContextFor(c);
+  if(S.entityMode!=='provider')return '';const ctx=entityContextFor(c);
   if(!S.contextLoaded)return `<section class="source-gap"><b>Cargando contexto SII</b><p>Se carga sólo al entrar a esta vista.</p></section>`;
   if(!ctx)return `<section class="source-gap"><b>Sin contexto SII publicado</b><p>No se inventan identidades o atributos faltantes.</p></section>`;
   if(ctx.identity_status!=='RUT_RESOLVED')return `<section class="source-gap"><b>Identidad no resuelta por RUT</b><p>${esc(ctx.identity_note||'No se infiere identidad desde nombres o hashes.')}</p></section>`;
-  const s=ctx.sii;
-  if(!s)return `<section class="source-gap"><b>RUT resuelto, sin match en el contexto SII</b><p>${esc(ctx.rut||'')}</p></section>`;
-  const activities=(s.activities||[]).map(a=>`<span>${esc(a.glosa||a.codigo||'Actividad')}</span>`).join('');
-  const marks=(s.marks||[]).map(m=>`<div><b>${esc(m.signal_type||'Señal SII')}</b><small>${esc(m.why||'Contexto tributario para revisión.')}</small></div>`).join('');
+  const s=ctx.sii;if(!s)return `<section class="source-gap"><b>RUT resuelto, sin match en el contexto SII</b><p>${esc(ctx.rut||'')}</p></section>`;
+  const activities=(s.activities||[]).map(a=>`<span>${esc(a.glosa||a.codigo||'Actividad')}</span>`).join(''),marks=(s.marks||[]).map(m=>`<div><b>${esc(m.signal_type||'Señal SII')}</b><small>${esc(m.why||'Contexto tributario para revisión.')}</small></div>`).join('');
   return `<section class="panel"><div class="panel-head"><h3>Ficha tributaria compacta</h3><span>RUT validado</span></div><dl class="facts"><div><dt>RUT</dt><dd>${esc(ctx.rut||'—')}</dd></div><div><dt>Razón social</dt><dd>${esc(s.legal_name||'—')}</dd></div><div><dt>Estado</dt><dd>${esc(s.tax_status||'—')}</dd></div><div><dt>Inicio</dt><dd>${esc(s.start_date||'—')}</dd></div><div><dt>Término de giro</dt><dd>${esc(s.termination_date||'—')}</dd></div><div><dt>Ventas</dt><dd>${esc(s.sales_band||s.sales_band_code||'—')}</dd></div><div><dt>Trabajadores</dt><dd>${esc(s.workers??'—')}</dd></div><div><dt>Región</dt><dd>${esc(s.main_region||'—')}</dd></div></dl><div class="signal-list large">${activities}</div>${marks?`<div class="counterparty-list">${marks}</div>`:''}<p class="guard-card">${esc(S.entityContext?.guardrail||'El contexto SII caracteriza capacidad y trayectoria observable; no acredita irregularidad.')}</p></section>`;
 }
 function renderEntidad(){
-  const c=S.caseId?getCase(S.caseId):null;
-  if(!c){$('workspace').innerHTML=`<div class="empty large"><h2>Entidad 360° necesita un expediente activo</h2><button data-view="bandeja">Ir a Mi bandeja</button></div>`;return}
-  if(!S.contextLoaded&&!S.contextLoading)loadCaseContext();
-  const rows=S.entityMode==='provider'?relatedProvider(c):relatedService(c);
-  const activeFinding=findingById((c.finding_ids||[])[0]);
-  $('workspace').innerHTML=`<div class="section-head"><div><div class="eyebrow">Entidad 360°</div><h2>Contexto concentrado del expediente</h2><p>No es otra aplicación: es una vista de apoyo del caso activo.</p></div><div class="segmented"><button data-entity-mode="provider" class="${S.entityMode==='provider'?'on':''}">Proveedor</button><button data-entity-mode="service" class="${S.entityMode==='service'?'on':''}">Servicio</button></div></div>${entitySummary(rows,S.entityMode,c)}${S.entityMode==='provider'?peerFacts(activeFinding):''}${entitySiiDetail(c)}<section class="source-gap"><b>Regla de identidad</b><p>RIGP usa RUT validado cuando existe. No intenta revertir hashes SHA1 ni elevar coincidencias por nombre a identidad confirmada.</p></section>`;
+  const c=S.caseId?getCase(S.caseId):null;if(!c){$('workspace').innerHTML=`<div class="empty large"><h2>Entidad necesita un expediente activo</h2><button data-view="bandeja">Ir a Mi bandeja</button></div>`;return}
+  if(!S.contextLoaded&&!S.contextLoading)loadCaseContext();const rows=S.entityMode==='provider'?relatedProvider(c):relatedService(c),activeFinding=findingById((c.finding_ids||[])[0]);
+  $('workspace').innerHTML=`<div class="section-head"><div><div class="eyebrow">Entidad</div><h2>Contexto concentrado del expediente</h2><p>Es una vista de apoyo del caso activo, no otra aplicación.</p></div><div class="segmented"><button data-entity-mode="provider" class="${S.entityMode==='provider'?'on':''}">Proveedor</button><button data-entity-mode="service" class="${S.entityMode==='service'?'on':''}">Servicio</button></div></div>${entitySummary(rows,S.entityMode,c)}${S.entityMode==='provider'?peerFacts(activeFinding)+entitySignalsPanel(activeFinding):''}${entitySiiDetail(c)}<section class="source-gap"><b>Regla de identidad</b><p>RIGP usa RUT validado cuando existe. No intenta revertir hashes SHA1 ni elevar coincidencias por nombre a identidad confirmada.</p></section>`;
 }
-function evidenceStats(c){
-  const e=c.evidence||[];
-  return {verified:e.filter(x=>x.status==='VERIFICADA').length,pending:e.filter(x=>['PENDIENTE','EN_REVISION'].includes(x.status)).length,discarded:e.filter(x=>x.status==='DESCARTADA').length,total:e.length};
-}
+function evidenceStats(c){const e=c.evidence||[];return {verified:e.filter(x=>x.status==='VERIFICADA').length,pending:e.filter(x=>['PENDIENTE','EN_REVISION'].includes(x.status)).length,discarded:e.filter(x=>x.status==='DESCARTADA').length,total:e.length}}
+function patternReportLabel(r){const s=patternState(r);if(!s)return'no asignado';return `${s.pattern.pattern_label||s.pattern.pattern_code} (${Math.round(Number(s.pattern.compatibility_score||0))}/100 · ${s.corroborated?'corroborado':'sin corroborar'})`}
 function renderInforme(){
-  const c=S.caseId?getCase(S.caseId):null;
-  if(!c){$('workspace').innerHTML=`<div class="empty large"><h2>No hay expediente para informar</h2><button data-view="bandeja">Ir a Mi bandeja</button></div>`;return}
+  const c=S.caseId?getCase(S.caseId):null;if(!c){$('workspace').innerHTML=`<div class="empty large"><h2>No hay expediente para informar</h2><button data-view="bandeja">Ir a Mi bandeja</button></div>`;return}
   if(!S.contextLoaded&&!S.contextLoading)loadCaseContext();
-  const st=evidenceStats(c),r=findingById((c.finding_ids||[])[0]),ctx=entityContextFor(c),proc=procurementContextFor(c),conclusion=c.conclusion||'';
-  const pattern=primaryPattern(r),peer=r?.peer_context;
-  $('workspace').innerHTML=`<div class="section-head"><div><div class="eyebrow">Informe</div><h2>Síntesis trazable del expediente</h2><p>Separa señal, evidencia y conclusión humana.</p></div><button data-copy-report>Copiar síntesis</button></div><article class="report" id="reportText"><header><b>${esc(c.case_ref)}</b><span>${esc(STATUS_LABEL[c.status]||c.status)}</span></header><h3>${esc(c.title)}</h3><dl class="facts"><div><dt>Servicio</dt><dd>${esc(c.organization_name||c.organization_id)}</dd></div><div><dt>Proveedor</dt><dd>${esc(c.provider_name||c.provider_id)}</dd></div><div><dt>Período</dt><dd>${esc(c.period_year||'—')}</dd></div><div><dt>Prioridad de revisión</dt><dd>${Math.round(Number(c.priority_score||0))}/100</dd></div>${pattern?`<div><dt>Patrón descriptivo</dt><dd>${esc(pattern.pattern_label)} · ${Math.round(Number(pattern.compatibility_score||0))}/100</dd></div>`:''}</dl><section><h4>Hipótesis de trabajo</h4><p>${esc(c.hypothesis||'Sin hipótesis registrada.')}</p></section><section><h4>Origen del expediente</h4><p>${esc(r?.why_review||c.source_context?.why_review||'Hallazgo analítico priorizado.')}</p><div class="signal-list">${(r?.signal_types||c.source_context?.signal_types||[]).map(s=>`<span>${esc(SIGNAL_LABEL[s]||s)}</span>`).join('')}</div></section><section><h4>Contexto estructurado</h4><p>${ctx?.rut?`RUT proveedor: ${esc(ctx.rut)}. `:''}${ctx?.sii?.sales_band?`Tramo de ventas: ${esc(ctx.sii.sales_band)}. `:''}${peer?`Posición frente a pares: percentil ${wholePct(peer.peer_percentile_pct)}, ${peer.amount_to_peer_median_ratio==null?'sin razón a mediana':fmt1.format(Number(peer.amount_to_peer_median_ratio))+'× la mediana'}. `:''}${proc?`OC distintas observadas: ${fmt.format(Number(proc.purchase_order_count||0))}; cobertura de filas con OC: ${pct(proc.purchase_order_row_coverage)}.`:'Contexto de contratación aún no publicado para este caso.'}</p></section><section><h4>Estado de evidencia</h4><p>${st.verified} verificadas · ${st.pending} pendientes/en revisión · ${st.discarded} descartadas · ${st.total} líneas de comprobación.</p></section><section><h4>Notas del analista</h4><p>${esc(c.notes||'Sin notas registradas.')}</p></section><section><h4>Conclusión</h4><textarea id="caseConclusion" rows="5" placeholder="Registra una conclusión descriptiva, incluyendo explicaciones normales o razones para profundizar.">${esc(conclusion)}</textarea><div class="save-hint">Se guarda al salir del campo.</div></section><footer>${esc(S.payload?.guardrail||'RIGP prioriza revisión. No acredita irregularidad, delito ni responsabilidad.')}</footer></article>`;
+  const st=evidenceStats(c),r=findingById((c.finding_ids||[])[0]),ctx=entityContextFor(c),proc=procurementContextFor(c),peer=r?.peer_context,signals=entitySignalTypes(r);
+  $('workspace').innerHTML=`<div class="section-head"><div><div class="eyebrow">Informe</div><h2>Síntesis trazable del expediente</h2><p>Separa señal, evidencia y conclusión humana.</p></div><button data-copy-report>Copiar síntesis</button></div><article class="report" id="reportText"><header><b>${esc(c.case_ref)}</b><span>${esc(STATUS_LABEL[c.status]||c.status)}</span></header><h3>${esc(c.title)}</h3><dl class="facts"><div><dt>Servicio</dt><dd>${esc(c.organization_name||c.organization_id)}</dd></div><div><dt>Proveedor</dt><dd>${esc(c.provider_name||c.provider_id)}</dd></div><div><dt>Período</dt><dd>${esc(c.period_year||'—')}</dd></div><div><dt>Prioridad de revisión</dt><dd>${Math.round(Number(c.priority_score||0))}/100</dd></div><div><dt>Lectura de patrón</dt><dd>${esc(patternReportLabel(r))}</dd></div></dl><section><h4>Hipótesis de trabajo</h4><p>${esc(c.hypothesis||'Sin hipótesis registrada.')}</p></section><section><h4>Origen del expediente</h4><p>${esc(r?.why_review||c.source_context?.why_review||'Hallazgo analítico priorizado.')}</p><div class="signal-list">${(r?.signal_types||c.source_context?.signal_types||[]).map(s=>`<span>${esc(SIGNAL_LABEL[s]||s)}</span>`).join('')}</div></section><section><h4>Contexto estructurado</h4><p>${ctx?.rut?`RUT proveedor: ${esc(ctx.rut)}. `:''}${ctx?.sii?.sales_band?`Tramo de ventas: ${esc(ctx.sii.sales_band)}. `:''}${peer?`Posición frente a pares: percentil ${wholePct(peer.peer_percentile_pct)}, ${peer.amount_to_peer_median_ratio==null?'sin razón a mediana':fmt1.format(Number(peer.amount_to_peer_median_ratio))+'× la mediana'}. `:''}${proc?`OC distintas observadas: ${fmt.format(Number(proc.purchase_order_count||0))}; cobertura de filas con OC: ${pct(proc.purchase_order_row_coverage)}.`:'Contexto de contratación aún no publicado para este caso.'}</p>${signals.length?`<p><b>Señales registrales SII:</b> ${signals.map(s=>esc(SIGNAL_LABEL[s]||s)).join(' · ')}</p>`:''}</section><section><h4>Estado de evidencia</h4><p>${st.verified} verificadas · ${st.pending} pendientes/en revisión · ${st.discarded} descartadas · ${st.total} líneas de comprobación.</p></section><section><h4>Notas del analista</h4><p>${esc(c.notes||'Sin notas registradas.')}</p></section><section><h4>Conclusión</h4><textarea id="caseConclusion" rows="5" placeholder="Registra una conclusión descriptiva, incluyendo explicaciones normales o razones para profundizar.">${esc(c.conclusion||'')}</textarea><div class="save-hint">Se guarda al salir del campo.</div></section><footer>${esc(S.payload?.guardrail||'RIGP prioriza revisión. No acredita irregularidad, delito ni responsabilidad.')}</footer></article>`;
 }
-function render(){
-  renderNav();renderKpis();
-  if(S.view==='bandeja')renderBandeja();
-  else if(S.view==='triage')renderTriage();
-  else if(S.view==='caso')renderCaso();
-  else if(S.view==='entidad')renderEntidad();
-  else if(S.view==='informe')renderInforme();
-}
+function render(){renderNav();renderKpis();if(S.view==='bandeja')renderBandeja();else if(S.view==='triage')renderTriage();else if(S.view==='caso')renderCaso();else if(S.view==='entidad')renderEntidad();else if(S.view==='informe')renderInforme()}
 function textReport(c){
-  const r=findingById((c.finding_ids||[])[0]),st=evidenceStats(c),ctx=entityContextFor(c),proc=procurementContextFor(c);
-  const pattern=primaryPattern(r),peer=r?.peer_context;
-  const signals=(r?.signal_types||c.source_context?.signal_types||[]).map(s=>SIGNAL_LABEL[s]||s).join(', ');
-  return `${c.case_ref}\n${c.title}\nEstado: ${STATUS_LABEL[c.status]||c.status}\nServicio: ${c.organization_name||c.organization_id}\nProveedor: ${c.provider_name||c.provider_id}\nPeríodo: ${c.period_year||'—'}\nPrioridad de revisión: ${Math.round(Number(c.priority_score||0))}/100\nPatrón descriptivo: ${pattern?`${pattern.pattern_label} (${Math.round(Number(pattern.compatibility_score||0))}/100)`:'no asignado'}\n\nHipótesis de trabajo\n${c.hypothesis||'Sin hipótesis registrada.'}\n\nOrigen del expediente\n${r?.why_review||c.source_context?.why_review||'Hallazgo analítico priorizado.'}\nSeñales: ${signals||'—'}\n\nContexto estructurado\nRUT: ${ctx?.rut||'no resuelto/publicado'}\nTramo ventas SII: ${ctx?.sii?.sales_band||ctx?.sii?.sales_band_code||'no disponible'}\nPosición frente a pares: ${peer?`percentil ${wholePct(peer.peer_percentile_pct)}; ${peer.amount_to_peer_median_ratio==null?'sin razón a mediana':fmt1.format(Number(peer.amount_to_peer_median_ratio))+'× mediana'}`:'no disponible'}\nOC distintas: ${proc?.purchase_order_count??'no disponible'}\n\nEstado de evidencia\n${st.verified} verificadas; ${st.pending} pendientes/en revisión; ${st.discarded} descartadas.\n\nNotas\n${c.notes||'Sin notas.'}\n\nConclusión\n${c.conclusion||'Sin conclusión.'}\n\n${S.payload?.guardrail||'RIGP prioriza revisión. No acredita irregularidad, delito ni responsabilidad.'}`;
+  const r=findingById((c.finding_ids||[])[0]),st=evidenceStats(c),ctx=entityContextFor(c),proc=procurementContextFor(c),peer=r?.peer_context;
+  const signals=(r?.signal_types||c.source_context?.signal_types||[]).map(s=>SIGNAL_LABEL[s]||s).join(', '),entitySignals=entitySignalTypes(r).map(s=>SIGNAL_LABEL[s]||s).join(', ');
+  return `${c.case_ref}\n${c.title}\nEstado: ${STATUS_LABEL[c.status]||c.status}\nServicio: ${c.organization_name||c.organization_id}\nProveedor: ${c.provider_name||c.provider_id}\nPeríodo: ${c.period_year||'—'}\nPrioridad de revisión: ${Math.round(Number(c.priority_score||0))}/100\nLectura de patrón: ${patternReportLabel(r)}\n\nHipótesis de trabajo\n${c.hypothesis||'Sin hipótesis registrada.'}\n\nOrigen del expediente\n${r?.why_review||c.source_context?.why_review||'Hallazgo analítico priorizado.'}\nSeñales: ${signals||'—'}\nSeñales registrales SII: ${entitySignals||'—'}\n\nContexto estructurado\nRUT: ${ctx?.rut||'no resuelto/publicado'}\nTramo ventas SII: ${ctx?.sii?.sales_band||ctx?.sii?.sales_band_code||'no disponible'}\nPosición frente a pares: ${peer?`percentil ${wholePct(peer.peer_percentile_pct)}; ${peer.amount_to_peer_median_ratio==null?'sin razón a mediana':fmt1.format(Number(peer.amount_to_peer_median_ratio))+'× mediana'}`:'no disponible'}\nOC distintas: ${proc?.purchase_order_count??'no disponible'}\n\nEstado de evidencia\n${st.verified} verificadas; ${st.pending} pendientes/en revisión; ${st.discarded} descartadas.\n\nNotas\n${c.notes||'Sin notas.'}\n\nConclusión\n${c.conclusion||'Sin conclusión.'}\n\n${S.payload?.guardrail||'RIGP prioriza revisión. No acredita irregularidad, delito ni responsabilidad.'}`;
 }
 
 document.addEventListener('click',e=>{
@@ -301,30 +263,18 @@ document.addEventListener('click',e=>{
   const cp=e.target.closest('[data-copy-report]');if(cp&&S.caseId){const c=getCase(S.caseId);navigator.clipboard?.writeText(textReport(c)).then(()=>{cp.textContent='Copiado';setTimeout(()=>cp.textContent='Copiar síntesis',1200)}).catch(()=>{})}
 });
 document.addEventListener('change',e=>{
-  if(e.target.matches('[data-evidence-status]')&&S.caseId){const c=getCase(S.caseId);const i=Number(e.target.dataset.evidenceStatus);if(c?.evidence?.[i]){c.evidence[i].status=e.target.value;patchCase(S.caseId,{evidence:c.evidence},'EVIDENCIA_ACTUALIZADA');renderKpis()}}
+  if(e.target.matches('[data-evidence-status]')&&S.caseId){const c=getCase(S.caseId),i=Number(e.target.dataset.evidenceStatus);if(c?.evidence?.[i]){c.evidence[i].status=e.target.value;patchCase(S.caseId,{evidence:c.evidence},'EVIDENCIA_ACTUALIZADA');renderKpis()}}
 });
 document.addEventListener('focusout',e=>{
-  if(!S.caseId)return;
-  if(e.target.id==='hypothesis')patchCase(S.caseId,{hypothesis:e.target.value},'HIPOTESIS_ACTUALIZADA');
-  if(e.target.id==='caseNotes')patchCase(S.caseId,{notes:e.target.value},'NOTA_ACTUALIZADA');
-  if(e.target.id==='caseConclusion')patchCase(S.caseId,{conclusion:e.target.value},'CONCLUSION_ACTUALIZADA');
+  if(!S.caseId)return;if(e.target.id==='hypothesis')patchCase(S.caseId,{hypothesis:e.target.value},'HIPOTESIS_ACTUALIZADA');if(e.target.id==='caseNotes')patchCase(S.caseId,{notes:e.target.value},'NOTA_ACTUALIZADA');if(e.target.id==='caseConclusion')patchCase(S.caseId,{conclusion:e.target.value},'CONCLUSION_ACTUALIZADA');
 });
 $('search').addEventListener('input',e=>{S.query=e.target.value;S.page=0;if(S.view==='triage')render()});
-document.querySelectorAll('[data-level]').forEach(b=>b.addEventListener('click',()=>{
-  document.querySelectorAll('[data-level]').forEach(x=>x.classList.remove('on'));b.classList.add('on');S.level=b.dataset.level;S.page=0;if(S.view!=='triage')S.view='triage';render();
-}));
+document.querySelectorAll('[data-level]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-level]').forEach(x=>x.classList.remove('on'));b.classList.add('on');S.level=b.dataset.level;S.page=0;if(S.view!=='triage')S.view='triage';render()}));
+caseRepo?.subscribe?.(()=>{renderKpis();if(S.view==='bandeja')renderBandeja()});
 
-fetch(DATA_URL,{cache:'no-store'})
-  .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
-  .then(d=>{
-    S.payload=d;S.rows=Array.isArray(d.relation_findings)?d.relation_findings:[];
-    const window=d.analysis_window?.years?.length?` · ${d.analysis_window.years.join('–')}`:'';
-    setStatus(`${fmt.format(S.rows.length)} relaciones priorizadas cargadas · arquitectura por expediente${window}`);
-    $('guardrail').textContent=d.guardrail||'RIGP prioriza revisión y no acredita irregularidad, delito ni responsabilidad.';
-    render();
-  })
-  .catch(err=>{
-    setStatus('No fue posible cargar el producto analítico.');
-    $('workspace').innerHTML=`<div class="empty large"><h2>Error de carga</h2><p>${esc(err.message)}</p></div>`;
-  });
+if(!caseRepo){setStatus('No fue posible iniciar el repositorio de expedientes.');$('workspace').innerHTML='<div class="empty large"><h2>Repositorio no disponible</h2><p>Recarga la aplicación. Los datos analíticos no serán modificados.</p></div>';return}
+fetch(DATA_URL,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(d=>{
+  S.payload=d;S.rows=Array.isArray(d.relation_findings)?d.relation_findings:[];const years=d.analysis_window?.years||[],windowLabel=years.length?` · ${years[0]}–${years[years.length-1]}`:'';
+  setStatus(`${fmt.format(S.rows.length)} relaciones priorizadas cargadas · arquitectura por expediente${windowLabel}`);$('guardrail').textContent=d.guardrail||'RIGP prioriza revisión y no acredita irregularidad, delito ni responsabilidad.';render();
+}).catch(err=>{setStatus('No fue posible cargar el producto analítico.');$('workspace').innerHTML=`<div class="empty large"><h2>Error de carga</h2><p>${esc(err.message)}</p></div>`});
 })();
