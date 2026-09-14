@@ -6,6 +6,7 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = ROOT / "docs" / "index.html"
 REPOSITORY_JS = ROOT / "docs" / "assets" / "rigp_case_repository.js"
+CASE_APP_JS = ROOT / "docs" / "assets" / "rigp_case_app.js"
 SHELL_JS = ROOT / "docs" / "assets" / "rigp_shell_v2.js"
 JOURNAL_JS = ROOT / "docs" / "assets" / "rigp_shell_case_journal.js"
 
@@ -32,6 +33,40 @@ def test_case_repository_declares_remote_ready_contract_without_backend_dependen
     assert "data/investigative_findings.json" not in js
 
 
+def test_case_app_uses_repository_without_direct_localstorage_access():
+    js = CASE_APP_JS.read_text(encoding="utf-8")
+    assert "RIGPCaseRepository" in js
+    assert "caseRepo?.list" in js
+    assert "caseRepo?.get" in js
+    assert "caseRepo?.findByFinding" in js
+    assert "caseRepo?.upsert" in js
+    assert "caseRepo?.patch" in js
+    assert "caseRepo?.subscribe" in js
+    assert "localStorage" not in js
+    assert "rigp_cases_v1" not in js
+
+
+def test_case_app_exposes_corroboration_and_entity_signal_context():
+    js = CASE_APP_JS.read_text(encoding="utf-8")
+    assert "pattern_compatibility" in js
+    assert "SIN_CORROBORAR" in js
+    assert "Parecido aún sin corroborar" in js
+    assert "Aún no es una hipótesis propuesta por el motor" in js
+    assert "corroboration_note" in js
+    assert "next_document" in js
+    assert "discards" in js
+    for signal in (
+        "NEWBORN_SUPPLIER",
+        "CAPACITY_MISMATCH",
+        "ACTIVITY_MISMATCH",
+        "TERMINATION_AFTER_PAYMENT",
+        "DORMANT_REACTIVATION",
+    ):
+        assert signal in js
+    assert "Señales de contraparte SII" in js
+    assert "No constituyen por sí mismas indicio de irregularidad" in js
+
+
 def test_shell_and_journal_use_repository_without_direct_localstorage_access():
     for path in (SHELL_JS, JOURNAL_JS):
         js = path.read_text(encoding="utf-8")
@@ -45,11 +80,11 @@ def test_shell_and_journal_use_repository_without_direct_localstorage_access():
 def test_case_repository_javascript_syntax():
     node = shutil.which("node")
     assert node, "Node.js is required to validate browser JavaScript syntax"
-    for path in (REPOSITORY_JS, SHELL_JS, JOURNAL_JS):
+    for path in (REPOSITORY_JS, CASE_APP_JS, SHELL_JS, JOURNAL_JS):
         subprocess.run([node, "--check", str(path)], check=True)
 
 
-def test_case_repository_preserves_legacy_ui_and_can_attach_remote_adapter():
+def test_case_repository_preserves_legacy_cache_and_can_attach_remote_adapter():
     node = shutil.which("node")
     assert node, "Node.js is required to exercise the browser repository contract"
     script = r'''
@@ -76,7 +111,7 @@ vm.runInThisContext(source,{filename:process.argv[1]});
   assert.equal(repo.list().length,1);
   assert.equal(repo.findByFinding('f1').case_id,'local-1');
 
-  // El núcleo legado aún puede escribir por la clave histórica durante la transición.
+  // El puente histórico sigue disponible para migrar datos previos, aunque la UI ya no lo usa.
   localStorage.setItem('rigp_cases_v1',JSON.stringify([
     {case_id:'local-1',case_ref:'RIGP-L1',status:'TRIAGE',finding_ids:['f1'],evidence:[],updated_at:'2026-09-14T10:00:00Z'},
     {case_id:'local-2',case_ref:'RIGP-L2',status:'EN_REVISION',finding_ids:['f2'],evidence:[],updated_at:'2026-09-14T11:00:00Z'}
