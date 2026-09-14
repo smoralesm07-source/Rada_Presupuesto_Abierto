@@ -16,6 +16,7 @@ on:
       - 'src/radar_presupuesto/publication_selection.py'
       - 'src/radar_presupuesto/procurement_context.py'
       - 'src/radar_presupuesto/operational_bundle.py'
+      - 'src/radar_presupuesto/browser_publication.py'
       - 'config/anomaly_thresholds.yaml'
       - '.github/workflows/radar-monthly.yml'
   workflow_dispatch:
@@ -88,6 +89,9 @@ jobs:
       - name: Build territorial context export
         run: PYTHONPATH=src python -m radar_presupuesto.territorial_export
 
+      - name: Compact browser publication
+        run: PYTHONPATH=src python -m radar_presupuesto.browser_publication
+
       - name: Validate integrated operational products
         run: |
           python - <<'PY'
@@ -102,8 +106,13 @@ jobs:
           assert h['schema']=='RIGP-SIGNAL-HEALTH-v1'
           assert p['schema']=='RIGP-PROCUREMENT-CONTEXT-v1'
           assert c['schema']=='RIGP-CASE-ENTITY-CONTEXT-v1'
+          assert f.get('browser_publication',{}).get('schema')=='RIGP-BROWSER-PUBLICATION-v1'
+          assert f.get('browser_publication',{}).get('analytical_effect')=='NONE'
           assert b['analysis_window']['year_count'] >= 5
           assert len(f.get('relation_findings') or []) <= 600
+          assert len(f.get('service_hotspots') or []) <= 80
+          assert len(f.get('provider_hotspots') or []) <= 80
+          assert len(f.get('network_candidates') or []) <= 80
           assert f.get('publication_selection',{}).get('method')=='priority_with_signal_diversity_reserve'
           assert 'interpretation_contract' in f
           assert 'context_coverage' in f
@@ -111,7 +120,10 @@ jobs:
               assert 'review_priority' in row
               assert 'primary_pattern' in row
               assert 'peer_context' in row
-          assert Path('docs/data/investigative_findings.json').stat().st_size < 2_000_000
+          size=Path('docs/data/investigative_findings.json').stat().st_size
+          assert size < 2_000_000, f'browser payload too large: {size} bytes'
+          print('browser_payload_bytes',size)
+          print('browser_compaction',f['browser_publication'])
           print('analysis_window',b['analysis_window'])
           print('signal_health',b['signal_health'])
           print('finding_context_coverage',b['finding_context_coverage'])
