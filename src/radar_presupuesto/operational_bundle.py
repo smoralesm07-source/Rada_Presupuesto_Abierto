@@ -6,7 +6,8 @@ from pathlib import Path
 
 import duckdb
 
-from .analysis_window import describe_window
+from .analysis_window import describe_window, load_windows
+from .analysis_window import LEARNING_ONLY
 from .pattern_compatibility import CORROBORATION_NOTE
 from .pattern_compatibility import GUARDRAIL as PATTERN_GUARDRAIL
 from .pattern_compatibility import PROFILES as PATTERN_PROFILES
@@ -119,9 +120,12 @@ def annotate_published_findings(
     peers = _peer_map(peer_parquet)
     relations = payload.get("relation_findings") or []
 
+    windows = load_windows()
     peer_matches = 0
     pattern_matches = 0
     similarity_only = 0
+    actionable = 0
+    learning_only = 0
     observed_years: set[int] = set()
     for row in relations:
         try:
@@ -167,12 +171,24 @@ def annotate_published_findings(
             # analista vea a qué se parece y qué le falta para sostenerse.
             similarity_only += 1
 
+        # En qué ventana cae la relación y si todavía puede trabajarse. Un
+        # hallazgo antiguo no es menos relevante: es menos accionable, y la
+        # bandeja necesita saber la diferencia.
+        actionability = windows.actionability(year, last_activity=row.get("last_activity"))
+        if actionability["state"] == LEARNING_ONLY:
+            learning_only += 1
+        else:
+            actionable += 1
+
         row["primary_pattern"] = primary
         row["pattern_compatibility"] = compatibility[:2]
         row["peer_context"] = peer
+        row["window"] = actionability["window"]
+        row["actionability"] = actionability
 
     effective_years = sorted({int(y) for y in (years or observed_years)})
     payload["analysis_window"] = describe_window(effective_years)
+    payload["analysis_windows"] = windows.describe(effective_years)
     # El texto de cada perfil --qué lo descarta, qué documento pedir-- es idéntico
     # en todas las filas. Vive una vez a nivel de payload, como el guardrail.
     payload["pattern_profiles"] = [
@@ -204,6 +220,8 @@ def annotate_published_findings(
         # hipótesis todavía. Si este número domina, el radar está viendo una capa
         # de señales, no convergencia, y eso hay que verlo en la corrida.
         "relations_with_uncorroborated_similarity": similarity_only,
+        "relations_in_action_window": actionable,
+        "relations_learning_only": learning_only,
     }
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
     return payload["context_coverage"]

@@ -112,8 +112,10 @@ def extend_signals(
                cur.periodo,cur.mes,cur.amount,threshold.q,cur.organizations,
                CASE WHEN cur.organizations>=3 THEN 'HIGH' ELSE 'MEDIUM' END,
                'MEDIUM','DERIVED_SIGNAL',
-               'Proveedor no observado en años anteriores de la serie procesada ingresa con gasto acumulado en la cola superior de sus pares nuevos.',
-               'Nuevo en la serie no significa nueva empresa ni irregularidad; puede reflejar cambio de proveedor, licitación reciente o cobertura histórica incompleta.',
+               -- «Nuevo» vale lo que valga la línea base que lo respalda. La señal
+               -- ahora dice con cuántos años se midió, en vez de afirmar novedad a secas.
+               'Proveedor no observado en los '||cast(meta.series_years-1 AS VARCHAR)||' año(s) anteriores de la serie procesada, e ingresa con gasto acumulado en la cola superior de sus pares nuevos.',
+               'Nuevo en la serie no significa nueva empresa ni irregularidad; puede reflejar cambio de proveedor, licitación reciente o cobertura histórica incompleta. La afirmación se apoya en '||cast(meta.series_years-1 AS VARCHAR)||' año(s) de línea base: con menos de tres, trátese como indicio débil.',
                '["Confirmar primera aparición en serie completa","Revisar adjudicación inicial y OC","Comparar monto con proveedores nuevos pares","Contrastar antigüedad societaria en fuentes externas"]'
         FROM cur,threshold,meta
         WHERE meta.series_years>=2 AND cur.tx>=3

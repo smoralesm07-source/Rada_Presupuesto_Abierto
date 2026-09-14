@@ -1,0 +1,23 @@
+# Ventanas de análisis del RIGP
+#
+# Separar estos dos horizontes es lo que evita que la bandeja se llene de
+# hallazgos que ya no se pueden trabajar, y lo que permite que la historia
+# antigua sirva para algo en vez de estorbar.
+windows:
+  # Desde qué año una relación puede convertirse en expediente. Mover este año
+  # hacia atrás agranda la bandeja con casos menos accionables; moverlo hacia
+  # adelante la achica y puede dejar fuera trabajo vigente.
+  action_from_year: 2023
+
+  # Desde qué año se acumula línea base: prevalencia, medianas de pares y
+  # primera aparición de proveedores. Nunca llega a la bandeja. Cuanto más
+  # atrás, más sólida es la afirmación de que un proveedor es "nuevo".
+  learning_from_year: 2016
+
+  # Supuesto OPERATIVO sobre hasta cuándo es razonable esperar obtener respaldo
+  # documental. No es un plazo de prescripción ni de conservación legal: esos
+  # dependen de la norma aplicable y deben fijarse contra ella.
+  evidence_horizon_months: 60
+
+  # Cuándo empezar a avisar que la evidencia se acerca al horizonte.
+  evidence_warning_months: 42
