@@ -16,3 +16,7 @@ data/signals/*
 *.parquet
 *.gz
 .DS_Store
+
+# Casos sintéticos: artefactos generados y reproducibles desde la semilla.
+# No se versionan para que un archivo de prueba no termine confundido con datos.
+data/calibration/synthetic/

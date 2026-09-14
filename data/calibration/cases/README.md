@@ -30,3 +30,18 @@ Estos archivos contienen las notas y decisiones del analista. Decide
 conscientemente si deben versionarse: para que la calibración opere en la
 corrida mensual del CI tienen que estar en el repositorio, pero eso los hace
 públicos si el repositorio lo es.
+
+## Probar el mecanismo sin analistas
+
+Mientras no haya cierres reales, `scripts/generate_synthetic_cases.py` arma un
+escenario de prueba y muestra cómo respondería la calibración:
+
+```
+python3 scripts/generate_synthetic_cases.py --simular
+```
+
+Escribe en `data/calibration/synthetic/`, no aquí, y **esos casos no pueden
+mover el ranking**: cada uno lleva una marca `synthetic` que viaja con el caso,
+de modo que cualquier calibración que los toque queda en estado `SIMULACION` y
+`load_multipliers` la rechaza. Reescribir el esquema del archivo no alcanza para
+colarlos.
