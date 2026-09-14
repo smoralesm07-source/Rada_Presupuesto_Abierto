@@ -38,9 +38,11 @@ jobs:
           iq=json.load(open('docs/data/investigation_queue.json'))
           sm=json.load(open('docs/data/snapshot_manifest.json'))
           years=sorted(x['year'] for x in sm.get('snapshots', []))
-          assert years == [2024, 2025, 2026], years
-          assert d['metrics']['first_year'] == 2024, d['metrics']
-          assert d['metrics']['last_year'] == 2026, d['metrics']
+          # Clavar los años impedía ampliar la serie histórica. La verificación
+          # sigue viva: el tablero y el manifiesto tienen que decir lo mismo.
+          assert years, 'el manifiesto debe registrar al menos un año'
+          assert d['metrics']['first_year'] == min(years), d['metrics']
+          assert d['metrics']['last_year'] == max(years), d['metrics']
           assert d['metrics']['transactions'] > 0
           assert d['metrics']['recipients'] > 0
           assert d['metrics']['providers'] > 0
