@@ -29,7 +29,7 @@ nunca si ambas son «mejora el sistema».
 | Sesión | Misión | Zonas | Desde |
 |---|---|---|---|
 | Claude · motor RIGP | Portar el motor analítico del PR #6 a `main`, una pieza por PR: scoring relativo a pares, dos ejes de score, ventanas de acción y aprendizaje, tipologías, cruce CGR por RUT. | `src/radar_presupuesto/**`; `config/**`; `scripts/**`; `tests/**` de motor; `.github/workflows/ci.yml` sólo donde el contrato de pruebas sigue al motor. | 2026-09-14 |
-| ChatGPT · RIGP case-first | Consolidar la experiencia por expediente y llevarla a un piloto operativo multiusuario: sesión persistente, bandeja compartida, toma y edición de expediente, trazabilidad y reanudación desde otro navegador, sin alterar el motor analítico. | `docs/index.html`; `docs/assets/rigp_case_app.*`; `docs/assets/rigp_case_explain.*`; `docs/assets/rigp_shell_*`; `docs/assets/rigp_case_repository.js`; `docs/assets/rigp_case_supabase.*`; `.github/workflows/check-case-app.yml` sólo para que el contrato siga la arquitectura case-first; `schemas/012_case_workspace.sql`; pruebas estrictamente necesarias. En Supabase: proyecto `ldmtlwzqaqmegedktlxr`, esquema `rigp`, exclusivamente objetos `case_workspace_state`, `case_workspace_event` y sus políticas/grants. | 2026-09-14 |
+| ChatGPT · RIGP case-first | Consolidar la experiencia por expediente y llevarla a un piloto operativo multiusuario: sesión persistente, bandeja compartida, toma y edición de expediente, trazabilidad y reanudación desde otro navegador, sin alterar el motor analítico. | `docs/index.html`; `docs/assets/rigp_case_app.*`; `docs/assets/rigp_case_explain.*`; `docs/assets/rigp_shell_*`; `docs/assets/rigp_case_repository.js`; `docs/assets/rigp_case_supabase.*`; `.github/workflows/check-case-app.yml` para el contrato case-first; `.github/workflows/pages.yml` sólo para empaquetar/publicar los assets case-first ya referenciados por `docs/index.html`; `schemas/012_case_workspace.sql`; pruebas estrictamente necesarias. En Supabase: proyecto `ldmtlwzqaqmegedktlxr`, esquema `rigp`, exclusivamente objetos `case_workspace_state`, `case_workspace_event` y sus políticas/grants. | 2026-09-14 |
 
 ### Límites explícitos de la misión Claude · motor RIGP
 
@@ -64,9 +64,10 @@ las siguientes fronteras:
   la misión y se actualice antes esta sección.
 - **No tocar `config/**` ni umbrales analíticos.**
 - **No tocar `.github/workflows/**`** como parte de esta misión de producto/UX,
-  **salvo `.github/workflows/check-case-app.yml`** cuando sea estrictamente
-  necesario alinear su contrato con la arquitectura case-first vigente. Esta
-  excepción no otorga control sobre ningún otro workflow ni sobre CI del motor.
+  **salvo `.github/workflows/check-case-app.yml`** para mantener el contrato de
+  validación y **`.github/workflows/pages.yml`** exclusivamente para que el artefacto
+  publicado incluya los assets case-first que `docs/index.html` referencia. No se
+  modifica desde esta misión el pipeline analítico, sus disparadores ni CI del motor.
 - **No mutar esquemas ni contenido de `docs/data/**`**; se consumen como contrato de lectura.
 - La persistencia multiusuario queda autorizada únicamente en el proyecto Supabase
   `ldmtlwzqaqmegedktlxr`, esquema `rigp`, mediante los objetos nuevos
