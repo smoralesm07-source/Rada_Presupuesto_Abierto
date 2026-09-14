@@ -216,9 +216,15 @@ def build_operational_bundle(
     output_json: str = "docs/data/operational_bundle.json",
     max_published_findings: int = 600,
     reserve_per_signal: int = 20,
+    peer_context: dict | None = None,
 ) -> dict:
-    """Build the bounded analytical products used by the case-first RIGP pilot."""
-    peer = build_provider_peer_context(parquet_glob)
+    """Build the bounded analytical products used by the case-first RIGP pilot.
+
+    El contexto de pares ahora se construye antes del scoring, porque la
+    priorización lo necesita. Si el pipeline ya lo armó, se reutiliza en vez de
+    recalcularlo sobre el mismo parquet.
+    """
+    peer = peer_context or build_provider_peer_context(parquet_glob)
     signal_health = build_signal_health()
     publication = rebalance_findings_publication(
         payload_json=findings_json,
