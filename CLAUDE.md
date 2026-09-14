@@ -28,7 +28,30 @@ nunca si ambas son «mejora el sistema».
 
 | Sesión | Misión | Zonas | Desde |
 |---|---|---|---|
-| _(declara aquí antes de empezar)_ | | | |
+| ChatGPT · RIGP case-first | Consolidar la experiencia de trabajo por expediente: `Inicio → Bandeja → Hallazgos → Explorar`, mantener `Expediente / Entidad / Informe` como vistas contextuales y preparar la evolución del caso hacia persistencia durable sin alterar el motor analítico ni los desarrollos paralelos. | `docs/index.html`; `docs/assets/rigp_case_app.*`; `docs/assets/rigp_case_explain.*`; `docs/assets/rigp_shell_*`; pruebas estrictamente necesarias para estas superficies. | 2026-09-14 |
+
+### Límites explícitos de la misión ChatGPT · RIGP case-first
+
+Para evitar traslapes con otros desarrollos activos, esta sesión asume por defecto
+las siguientes fronteras:
+
+- **No tocar `src/radar_presupuesto/**`**, salvo que el usuario amplíe explícitamente
+  la misión y se actualice antes esta sección.
+- **No tocar `config/**` ni umbrales analíticos.**
+- **No tocar `.github/workflows/**`** como parte de esta misión de producto/UX.
+- **No mutar esquemas ni contenido de `docs/data/**`**; se consumen como contrato de
+  lectura. Si una futura persistencia durable exige un nuevo contrato, debe
+  declararse aquí y coordinarse antes de escribirlo.
+- **No reemplazar, borrar ni renombrar módulos del otro desarrollo**, aunque parezcan
+  redundantes. Primero se revisa la misión declarada y se resuelve el solapamiento.
+- **No portar en bloque el PR #6** ni recrear módulos que ya existan bajo otro nombre.
+- La siguiente evolución prevista —persistencia durable del expediente— se limita,
+  por ahora, a diseño de modelo e integración desde la capa case-first. Cualquier
+  backend, tabla, servicio o módulo nuevo queda fuera de alcance hasta que se
+  declare su zona exacta en este archivo.
+- Todo cambio de esta sesión debe salir desde ramas `chatgpt/rigp-*` y entrar a
+  `main` por pull request. Antes de fusionar, se compara con `main`; ante conflicto
+  con trabajo ajeno, se detiene la fusión y se coordina en vez de forzarla.
 
 ### Reglas operativas
 
