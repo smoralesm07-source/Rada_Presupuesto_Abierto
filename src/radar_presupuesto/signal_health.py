@@ -6,15 +6,25 @@ from pathlib import Path
 
 import duckdb
 
-EXPECTED_SIGNALS = [
-    "AMOUNT_OUTLIER",
-    "POTENTIAL_FRAGMENTATION",
-    "EXACT_DUPLICATE_CANDIDATE",
-    "YEAR_END_SPIKE",
-    "PROVIDER_CONCENTRATION",
-    "PAYMENT_DELAY_OUTLIER",
-    "NEW_TO_SERIES_HIGH_SPEND",
-]
+# De qué capa viene cada señal. Importa para la corroboración: dos patrones de
+# la misma capa miran el mismo hecho desde ángulos parecidos; dos de capas
+# distintas son evidencia independiente.
+SIGNAL_LAYER = {
+    "AMOUNT_OUTLIER": "TRANSACCION",
+    "POTENTIAL_FRAGMENTATION": "TRANSACCION",
+    "EXACT_DUPLICATE_CANDIDATE": "TRANSACCION",
+    "YEAR_END_SPIKE": "TRANSACCION",
+    "PROVIDER_CONCENTRATION": "TRANSACCION",
+    "PAYMENT_DELAY_OUTLIER": "TRANSACCION",
+    "NEW_TO_SERIES_HIGH_SPEND": "TRANSACCION",
+    "NEWBORN_SUPPLIER": "ENTIDAD",
+    "CAPACITY_MISMATCH": "ENTIDAD",
+    "ACTIVITY_MISMATCH": "ENTIDAD",
+    "TERMINATION_AFTER_PAYMENT": "ENTIDAD",
+    "DORMANT_REACTIVATION": "ENTIDAD",
+}
+
+EXPECTED_SIGNALS = list(SIGNAL_LAYER)
 
 
 def _status(count: int, share: float, min_volume: int) -> str:
@@ -82,6 +92,7 @@ def build_signal_health(
         report.append(
             {
                 "signal_type": signal,
+                "layer": SIGNAL_LAYER.get(signal, "TRANSACCION"),
                 "status": status,
                 "signal_count": count,
                 "share_of_signal_universe": round(share, 6),
@@ -105,6 +116,12 @@ def build_signal_health(
         ),
         "total_signals": int(total),
         "expected_signal_types": len(EXPECTED_SIGNALS),
+        # Cuántas capas están produciendo hoy. Una sola capa activa significa que
+        # la corroboración cruzada no puede ocurrir, por muchos patrones que haya.
+        "active_layers": sorted({
+            SIGNAL_LAYER.get(x["signal_type"], "TRANSACCION")
+            for x in report if x["status"] != "EXPERIMENTAL_ZERO"
+        }),
         "active_signal_types": sum(1 for x in report if x["status"] == "ACTIVE"),
         "needs_review_signal_types": sum(1 for x in report if x["status"] != "ACTIVE"),
         "signals": report,

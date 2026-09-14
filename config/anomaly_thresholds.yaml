@@ -22,3 +22,29 @@ payment_delay_outlier:
 new_to_series_high_spend:
   min_amount: 50000000
   quantile_floor: 0.99
+
+# --- Capa de entidad (contraparte), derivada del enriquecimiento SII ---------
+# Cambiar cualquiera de estos valores cambia qué proveedores entran a revisión.
+# Los mínimos de monto existen para que la señal no se dispare por pagos
+# irrelevantes: un proveedor recién creado que cobró $200.000 no es un hallazgo.
+entity_signals:
+  # UF de referencia para traducir tramos de ventas SII a pesos. Es una
+  # aproximación declarada, no el valor del día del pago.
+  uf_clp_reference: 39000
+  newborn_supplier:
+    max_months_since_start: 12
+    min_amount: 20000000
+  capacity_mismatch:
+    min_amount: 20000000
+    min_ratio: 3.0
+  activity_mismatch:
+    min_amount: 50000000
+    # Divisiones ACTECO que, juntas, explican al menos este porcentaje del gasto
+    # del subtítulo forman el perfil esperado. Se aprende del gasto observado.
+    peer_division_share_floor: 0.02
+  termination_after_payment:
+    max_months_after_last_payment: 12
+    min_amount: 20000000
+  dormant_reactivation:
+    min_gap_years: 2
+    min_amount: 50000000

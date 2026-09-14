@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 from radar_presupuesto.operational_bundle import annotate_published_findings
+from radar_presupuesto.pattern_compatibility import PROFILES
 
 
 def _findings(tmp_path: Path, relations: list[dict]) -> Path:
@@ -79,6 +80,8 @@ def test_profile_catalogue_and_rule_travel_once_at_payload_level(tmp_path: Path)
     payload = json.loads(path.read_text(encoding="utf-8"))
 
     profiles = payload["pattern_profiles"]
-    assert len(profiles) == 4
+    # Contra el catálogo real, no contra un número escrito a mano: agregar un
+    # perfil no debe romper esta prueba, pero sí debe seguir viajando completo.
+    assert {p["pattern_code"] for p in profiles} == {p.code for p in PROFILES}
     assert all(p["discards"] and p["next_document"] for p in profiles)
     assert "2 patrones concurrentes" in payload["corroboration_rule"]
