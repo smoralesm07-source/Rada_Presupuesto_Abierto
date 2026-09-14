@@ -13,6 +13,8 @@ from .analytics import build_signals
 from .cgr_correlation import correlate_with_cgr
 from .coverage import write_coverage
 from .dashboard import build_dashboard_json
+from .entity_signals import build_entity_signals, merge_into_risk_signals
+from .entity_signals import summarize as summarize_entity_signals
 from .extract import download
 from .features import build_profiles
 from .investigative_findings import build_investigative_findings
@@ -71,6 +73,17 @@ def _build_base_signals(parquet_glob: str, cfg: dict) -> dict:
     )
 
 
+def _build_entity_signals(parquet_glob: str, cfg: dict) -> dict:
+    """Capa de contraparte: se construye aparte y luego entra a la cola común.
+
+    Sin el merge la capa existiría como producto aislado y no participaría de la
+    priorización ni de la corroboración de tipologías.
+    """
+    result = build_entity_signals(parquet_glob, config=cfg.get("entity_signals", {}))
+    result["merge"] = merge_into_risk_signals(parquet_glob)
+    return result
+
+
 def _extend_from_config(parquet_glob: str, cfg: dict) -> dict:
     concentration = cfg.get("provider_concentration", {})
     delay = cfg.get("payment_delay_outlier", {})
@@ -103,6 +116,12 @@ def _run_analytics(
     build_profiles(parquet_glob)
     base = _build_base_signals(parquet_glob, cfg)
     extended = _extend_from_config(parquet_glob, cfg)
+
+    # La capa de entidad entra a la cola antes de priorizar: aporta patrones de
+    # otra naturaleza, que es lo que permite corroborar una hipótesis en vez de
+    # proponerla desde una sola señal de la capa de transacción.
+    entity = _build_entity_signals(parquet_glob, cfg)
+
     cgr = _run_cgr_correlation(parquet_glob, cgr_dir)
 
     # El contexto de pares se construye antes de priorizar: la rareza empírica y la
@@ -150,6 +169,7 @@ def _run_analytics(
     return {
         "base": base,
         "extended": extended,
+        "entity": entity,
         "cgr": cgr,
         "peer": peer,
         "queue": queue,
@@ -245,6 +265,10 @@ def run_years(
         build_legacy_spend_view=build_legacy_spend_view,
     )
     print(f"[OK] señales operativas: {result['extended']['signals']:,} | {result['extended']['by_type']}")
+    print(
+        f"[OK] capa de entidad: {summarize_entity_signals(result['entity'])} | "
+        f"incorporadas a la cola={result['entity']['merge'].get('merged', 0):,}"
+    )
     print(
         f"[OK] CGR: {result['cgr']['status']} | enlaces candidatos={result['cgr']['links']:,} | "
         f"con hallazgos={result['cgr']['links_with_findings']:,}"

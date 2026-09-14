@@ -74,6 +74,8 @@ PROFILES = (
             "PROVIDER_CONCENTRATION": 50,
             "NEW_TO_SERIES_HIGH_SPEND": 25,
             "AMOUNT_OUTLIER": 25,
+            "NEWBORN_SUPPLIER": 20,
+            "CAPACITY_MISMATCH": 20,
         },
         review_question="¿La concentración se explica por mercado, modalidad, contrato o condiciones técnicas, o requiere revisar con mayor detalle la competencia y adjudicación?",
         discards=(
@@ -92,6 +94,9 @@ PROFILES = (
             "NEW_TO_SERIES_HIGH_SPEND": 50,
             "AMOUNT_OUTLIER": 30,
             "PROVIDER_CONCENTRATION": 20,
+            "NEWBORN_SUPPLIER": 35,
+            "CAPACITY_MISMATCH": 25,
+            "DORMANT_REACTIVATION": 25,
         },
         review_question="¿El crecimiento observado es compatible con la adjudicación, trayectoria y capacidad observable del proveedor?",
         discards=(
@@ -118,6 +123,27 @@ PROFILES = (
             "El organismo recibió la transferencia de fondos tarde y el pago siguió al ingreso efectivo.",
         ),
         next_document="Estado de pago con fecha de recepción conforme, y el decreto de modificación presupuestaria del período.",
+    ),
+    PatternProfile(
+        code="CAPACIDAD_Y_TRAYECTORIA",
+        label="Capacidad y trayectoria de la contraparte",
+        description="Características registrales del proveedor que no encajan con la magnitud o el objeto de lo contratado.",
+        weights={
+            "CAPACITY_MISMATCH": 45,
+            "TERMINATION_AFTER_PAYMENT": 40,
+            "NEWBORN_SUPPLIER": 30,
+            "ACTIVITY_MISMATCH": 25,
+            "DORMANT_REACTIVATION": 20,
+        },
+        review_question="¿La capacidad declarada, el giro y la trayectoria registral del proveedor son consistentes con el objeto y la magnitud de lo contratado?",
+        discards=(
+            "El proveedor es intermediario o distribuidor autorizado: el tramo de ventas refleja margen, no el volumen que factura al Estado.",
+            "El tramo SII corresponde a un año comercial anterior al pago y la empresa creció en el intervalo.",
+            "El término de giro es una reorganización societaria con continuidad de obligaciones en otra sociedad.",
+            "El giro fue ampliado formalmente antes de contratar y el registro publicado está desactualizado.",
+            "La ausencia previa es del radar, no del proveedor: los años intermedios no están en la ventana procesada.",
+        ),
+        next_document="Carpeta tributaria con giros vigentes y tramo del año comercial pagado, más la escritura de constitución o el aviso de término de giro.",
     ),
 )
 

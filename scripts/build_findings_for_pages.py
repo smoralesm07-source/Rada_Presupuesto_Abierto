@@ -33,6 +33,11 @@ SIGNAL_FAMILY = {
     "AMOUNT_OUTLIER": "MAGNITUD_ATIPICA",
     "PAYMENT_DELAY_OUTLIER": "EJECUCION_CONTRACTUAL",
     "YEAR_END_SPIKE": "EJECUCION_PRESUPUESTARIA",
+    "NEWBORN_SUPPLIER": "CONTRAPARTE_Y_CAPACIDAD",
+    "CAPACITY_MISMATCH": "CONTRAPARTE_Y_CAPACIDAD",
+    "ACTIVITY_MISMATCH": "CONTRAPARTE_Y_CAPACIDAD",
+    "TERMINATION_AFTER_PAYMENT": "CONTRAPARTE_Y_CAPACIDAD",
+    "DORMANT_REACTIVATION": "CONTRAPARTE_Y_CAPACIDAD",
 }
 
 TITLES = {
@@ -43,6 +48,7 @@ TITLES = {
     "IRRUPCION_CAMBIO_ESCALA": "Proveedor con irrupción o cambio de escala material",
     "EJECUCION_CONTRACTUAL": "Comportamiento contractual fuera de patrón",
     "EJECUCION_PRESUPUESTARIA": "Patrón temporal de ejecución que requiere contexto",
+    "CONTRAPARTE_Y_CAPACIDAD": "Características registrales del proveedor que conviene contrastar",
     "PATRON_ATIPICO": "Patrón atípico que requiere contexto",
 }
 
@@ -65,6 +71,11 @@ def finding_family(signal_types: list[str], signal_families: list[str]) -> str:
         return "EJECUCION_CONTRACTUAL"
     if "YEAR_END_SPIKE" in st:
         return "EJECUCION_PRESUPUESTARIA"
+    if st & {
+        "CAPACITY_MISMATCH", "NEWBORN_SUPPLIER", "TERMINATION_AFTER_PAYMENT",
+        "ACTIVITY_MISMATCH", "DORMANT_REACTIVATION",
+    }:
+        return "CONTRAPARTE_Y_CAPACIDAD"
     return "PATRON_ATIPICO"
 
 

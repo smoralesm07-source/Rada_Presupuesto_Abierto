@@ -28,8 +28,32 @@ nunca si ambas son «mejora el sistema».
 
 | Sesión | Misión | Zonas | Desde |
 |---|---|---|---|
-| Claude · motor RIGP | Portar el motor analítico del PR #6 a `main`, una pieza por PR: scoring relativo a pares, dos ejes de score, ventanas de acción y aprendizaje, tipologías, cruce CGR por RUT. | `src/radar_presupuesto/**`; `config/**`; `tests/**` de motor. | 2026-09-14 |
+| Claude · motor RIGP | Portar el motor analítico del PR #6 a `main`, una pieza por PR: scoring relativo a pares, dos ejes de score, ventanas de acción y aprendizaje, tipologías, cruce CGR por RUT. | `src/radar_presupuesto/**`; `config/**`; `scripts/**`; `tests/**` de motor; `.github/workflows/ci.yml` sólo donde el contrato de pruebas sigue al motor. | 2026-09-14 |
 | ChatGPT · RIGP case-first | Consolidar la experiencia de trabajo por expediente: `Inicio → Bandeja → Hallazgos → Explorar`, mantener `Expediente / Entidad / Informe` como vistas contextuales y preparar la evolución del caso hacia persistencia durable sin alterar el motor analítico ni los desarrollos paralelos. | `docs/index.html`; `docs/assets/rigp_case_app.*`; `docs/assets/rigp_case_explain.*`; `docs/assets/rigp_shell_*`; pruebas estrictamente necesarias para estas superficies. | 2026-09-14 |
+
+### Límites explícitos de la misión Claude · motor RIGP
+
+Es la contraparte de la frontera de abajo: la otra misión no entra al motor, y
+ésta no entra a la interfaz.
+
+- **No tocar `docs/index.html` ni `docs/assets/**`.** El PR #6 los reescribe
+  entero y esa es una decisión de producto del usuario, no de una sesión.
+- **No mutar en silencio la forma de `docs/data/**`.** Si una pieza portada
+  cambia un payload, el mismo PR sube la versión del esquema y lo declara.
+  Renombrar una columna que nadie lee se verifica antes con una búsqueda, no con
+  una suposición.
+- **`.github/workflows/ci.yml` se toca sólo por dos motivos**: cuando el
+  contrato de pruebas sigue al motor —por ejemplo, una aserción que fijaba el
+  número de señales— y cuando el CI no está cubriendo algo que debería, como un
+  PR apilado que no corría por el filtro de rama base. Siempre validando el YAML
+  antes de commitear. Ningún otro workflow.
+- **No fusionar el PR #6 en bloque.** Se conserva abierto como referencia y se
+  porta de a una pieza, cada una con su prueba.
+- **No borrar ni renombrar módulos del otro desarrollo** aunque el mapa de
+  duplicados los liste como equivalentes. Portar significa hacer que el módulo
+  que ya existe en `main` haga el trabajo, no reemplazarlo por el homónimo del
+  PR #6.
+- Todo cambio sale desde ramas `claude/*` y entra a `main` por pull request.
 
 ### Límites explícitos de la misión ChatGPT · RIGP case-first
 
@@ -53,23 +77,6 @@ las siguientes fronteras:
 - Todo cambio de esta sesión debe salir desde ramas `chatgpt/rigp-*` y entrar a
   `main` por pull request. Antes de fusionar, se compara con `main`; ante conflicto
   con trabajo ajeno, se detiene la fusión y se coordina en vez de forzarla.
-
-### Límites explícitos de la misión Claude · motor RIGP
-
-Es la contraparte de la frontera de arriba: la otra misión no entra al motor, y
-ésta no entra a la interfaz.
-
-- **No tocar `docs/index.html` ni `docs/assets/**`.** El PR #6 los reescribe
-  entero y esa es una decisión de producto del usuario, no de una sesión.
-- **No mutar en silencio la forma de `docs/data/**`.** Si una pieza portada cambia
-  un payload, el mismo PR sube la versión del esquema y lo declara. Renombrar una
-  columna que nadie lee se verifica antes con una búsqueda, no con una suposición.
-- **No fusionar el PR #6 en bloque.** Se conserva abierto como referencia y se
-  porta de a una pieza, cada una con su prueba.
-- **No borrar ni renombrar módulos del otro desarrollo** aunque el mapa de
-  duplicados los liste como equivalentes. Portar significa hacer que el módulo que
-  ya existe en `main` haga el trabajo, no reemplazarlo por el homónimo del PR #6.
-- Todo cambio sale desde ramas `claude/*` y entra a `main` por pull request.
 
 ### Reglas operativas
 
