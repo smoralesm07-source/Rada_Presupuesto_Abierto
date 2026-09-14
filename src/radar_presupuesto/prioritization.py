@@ -65,7 +65,8 @@ def prioritize_signals(
             SELECT local_entity_id provider_id,count(*) cgr_match_count,
                    max(confidence) cgr_max_confidence,
                    max(try_cast(cgr_max_aml_score AS DOUBLE)) cgr_max_aml_score,
-                   max(cgr_finding_count) cgr_finding_count
+                   max(cgr_finding_count) cgr_finding_count,
+                   max(CASE match_grade WHEN 'RUT_EXACT' THEN 3 WHEN 'NAME_EXACT' THEN 2 ELSE 1 END) cgr_identity_rank
             FROM cgr WHERE local_entity_type='PROVIDER' GROUP BY 1
         """)
         con.execute("""
@@ -73,12 +74,13 @@ def prioritize_signals(
             SELECT local_entity_id organization_id,count(*) cgr_match_count,
                    max(confidence) cgr_max_confidence,
                    max(try_cast(cgr_max_aml_score AS DOUBLE)) cgr_max_aml_score,
-                   max(cgr_finding_count) cgr_finding_count
+                   max(cgr_finding_count) cgr_finding_count,
+                   max(CASE match_grade WHEN 'RUT_EXACT' THEN 3 WHEN 'NAME_EXACT' THEN 2 ELSE 1 END) cgr_identity_rank
             FROM cgr WHERE local_entity_type='ORGANIZATION' GROUP BY 1
         """)
     else:
-        con.execute("CREATE OR REPLACE TEMP VIEW cgr_provider AS SELECT NULL::VARCHAR provider_id,0 cgr_match_count,0.0 cgr_max_confidence,NULL::DOUBLE cgr_max_aml_score,0 cgr_finding_count WHERE FALSE")
-        con.execute("CREATE OR REPLACE TEMP VIEW cgr_org AS SELECT NULL::VARCHAR organization_id,0 cgr_match_count,0.0 cgr_max_confidence,NULL::DOUBLE cgr_max_aml_score,0 cgr_finding_count WHERE FALSE")
+        con.execute("CREATE OR REPLACE TEMP VIEW cgr_provider AS SELECT NULL::VARCHAR provider_id,0 cgr_match_count,0.0 cgr_max_confidence,NULL::DOUBLE cgr_max_aml_score,0 cgr_finding_count,0 cgr_identity_rank WHERE FALSE")
+        con.execute("CREATE OR REPLACE TEMP VIEW cgr_org AS SELECT NULL::VARCHAR organization_id,0 cgr_match_count,0.0 cgr_max_confidence,NULL::DOUBLE cgr_max_aml_score,0 cgr_finding_count,0 cgr_identity_rank WHERE FALSE")
 
     peer_context_available = bool(peer_context_path) and Path(peer_context_path).exists()
     if peer_context_available:
@@ -141,7 +143,8 @@ def prioritize_signals(
                    CASE WHEN s.signal_type='YEAR_END_SPIKE' THEN coalesce(co.cgr_match_count,0) ELSE greatest(coalesce(cp.cgr_match_count,0),coalesce(co.cgr_match_count,0)) END cgr_match_count,
                    CASE WHEN s.signal_type='YEAR_END_SPIKE' THEN coalesce(co.cgr_max_confidence,0) ELSE greatest(coalesce(cp.cgr_max_confidence,0),coalesce(co.cgr_max_confidence,0)) END cgr_max_confidence,
                    CASE WHEN s.signal_type='YEAR_END_SPIKE' THEN coalesce(co.cgr_max_aml_score,0) ELSE greatest(coalesce(cp.cgr_max_aml_score,0),coalesce(co.cgr_max_aml_score,0)) END cgr_max_aml_score,
-                   CASE WHEN s.signal_type='YEAR_END_SPIKE' THEN coalesce(co.cgr_finding_count,0) ELSE greatest(coalesce(cp.cgr_finding_count,0),coalesce(co.cgr_finding_count,0)) END cgr_finding_count
+                   CASE WHEN s.signal_type='YEAR_END_SPIKE' THEN coalesce(co.cgr_finding_count,0) ELSE greatest(coalesce(cp.cgr_finding_count,0),coalesce(co.cgr_finding_count,0)) END cgr_finding_count,
+                   CASE WHEN s.signal_type='YEAR_END_SPIKE' THEN coalesce(co.cgr_identity_rank,0) ELSE greatest(coalesce(cp.cgr_identity_rank,0),coalesce(co.cgr_identity_rank,0)) END cgr_identity_rank
             FROM sig s
             LEFT JOIN tx_context t USING(transaction_id)
             LEFT JOIN provider_signal_stats ps USING(provider_id)
@@ -182,10 +185,18 @@ def prioritize_signals(
               END rarity_component,
               CASE WHEN provider_signal_types>=3 THEN 20 WHEN provider_signal_types=2 THEN 12 ELSE 0 END
                 + CASE WHEN organization_signal_types>=4 THEN 10 WHEN organization_signal_types>=2 THEN 5 ELSE 0 END cooccurrence_component,
-              -- CGR hoy se correlaciona principalmente por nombre. Hasta disponer de un cruce RUT-first,
-              -- se trata como contexto externo candidato de bajo peso: nunca debe dominar el ranking.
-              CASE WHEN cgr_max_confidence>=0.90 THEN 5 WHEN cgr_max_confidence>=0.82 THEN 3 ELSE 0 END
-                + CASE WHEN cgr_max_aml_score>=70 THEN 2 ELSE 0 END external_evidence_component,
+              -- El peso ahora depende del grado de identidad del enlace, no de un umbral
+              -- de confianza que un match por nombre podía alcanzar. Un RUT validado
+              -- acredita que es la misma entidad; un nombre parecido es una hipótesis
+              -- sobre dos cadenas de texto y pesa casi nada. El techo de 7 no cambia:
+              -- la CGR nunca debe dominar el ranking.
+              CASE WHEN coalesce(cgr_match_count,0)=0 THEN 0
+                   WHEN cgr_identity_rank>=3 THEN 5
+                   WHEN cgr_identity_rank=2 THEN 2
+                   ELSE 1 END
+                -- El puntaje AML de la CGR sólo suma cuando sabemos que es la misma
+                -- entidad; si no, estaríamos ponderando un hallazgo ajeno.
+                + CASE WHEN cgr_identity_rank>=3 AND coalesce(cgr_max_aml_score,0)>=70 THEN 2 ELSE 0 END external_evidence_component,
               CASE WHEN has_purchase_order OR has_bip THEN 5 ELSE 0 END actionability_component,
               -- Materialidad relativa a la mediana del grupo de pares, más la posición
               -- dentro del grupo. Los tramos absolutos en CLP quedan sólo como prior
@@ -260,8 +271,9 @@ def prioritize_signals(
             "en vez de publicar una comparación que no se pudo hacer."
         ),
         "external_evidence_policy": (
-            "Las coincidencias CGR actuales son candidatas y se basan principalmente en identidad nominal; "
-            "su aporte está acotado hasta disponer de correlación RUT-first."
+            "El aporte de la CGR depende del grado de identidad del enlace: un RUT validado acredita "
+            "que es la misma entidad y suma hasta 7 puntos; un nombre exacto suma 2 y uno aproximado 1. "
+            "El puntaje AML de la CGR sólo pondera sobre enlaces con RUT. Todo enlace permanece CANDIDATE."
         ),
         "peer_context_available": peer_context_available,
         "total_signals": int(total),
