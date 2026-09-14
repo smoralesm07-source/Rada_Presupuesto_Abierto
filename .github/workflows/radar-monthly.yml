@@ -23,9 +23,14 @@ on:
   workflow_dispatch:
     inputs:
       years:
-        description: 'Años separados por espacio; vacío = últimos 7 bulk confirmados (mínimo 5)'
+       description: 'Años separados por espacio; vacío = últimos 3 bulk disponibles'
         required: false
         default: ''
+      skip_index:
+        description: 'Omitir la reconstrucción del índice FTS (usar en series largas)'
+        required: false
+        type: boolean
+        default: false
   schedule:
     - cron: '31 9 10 * *'
 permissions:
