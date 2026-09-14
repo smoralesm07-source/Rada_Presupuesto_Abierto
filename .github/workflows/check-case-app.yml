@@ -6,7 +6,15 @@ on:
       - 'docs/index.html'
       - 'docs/assets/rigp_case_app.js'
       - 'docs/assets/rigp_case_app.css'
+      - 'docs/assets/rigp_case_repository.js'
+      - 'docs/assets/rigp_case_supabase.js'
+      - 'docs/assets/rigp_case_supabase.css'
+      - 'docs/assets/rigp_shell_v2.js'
+      - 'docs/assets/rigp_shell_v2.css'
+      - 'docs/assets/rigp_shell_case_journal.js'
+      - 'docs/assets/rigp_shell_case_journal.css'
       - 'schemas/011_cases.sql'
+      - 'schemas/012_case_workspace.sql'
       - '.github/workflows/check-case-app.yml'
   workflow_dispatch:
 permissions:
@@ -17,7 +25,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Validate JavaScript
-        run: node --check docs/assets/rigp_case_app.js
+        run: |
+          node --check docs/assets/rigp_case_repository.js
+          node --check docs/assets/rigp_case_supabase.js
+          node --check docs/assets/rigp_case_app.js
+          node --check docs/assets/rigp_shell_v2.js
+          node --check docs/assets/rigp_shell_case_journal.js
       - name: Validate five-object navigation
         run: |
           grep -q 'data-view="bandeja"' docs/index.html
@@ -27,6 +40,8 @@ jobs:
           grep -q 'data-view="informe"' docs/index.html
           test "$(grep -o 'assets/rigp_case_app.js' docs/index.html | wc -l)" -eq 1
           test "$(grep -o 'assets/rigp_case_app.css' docs/index.html | wc -l)" -eq 1
+          test "$(grep -o 'assets/rigp_case_repository.js' docs/index.html | wc -l)" -eq 1
+          test "$(grep -o 'assets/rigp_case_supabase.js' docs/index.html | wc -l)" -eq 1
       - name: Prevent frontend accretion regressions
         run: |
           ! grep -q 'spend_safe_' docs/index.html
@@ -38,6 +53,9 @@ jobs:
           grep -q 'RIGPCaseRepository' docs/assets/rigp_case_app.js
           ! grep -q 'localStorage' docs/assets/rigp_case_app.js
           ! grep -q 'rigp_cases_v1' docs/assets/rigp_case_app.js
+          grep -q 'sb_publishable_' docs/assets/rigp_case_supabase.js
+          ! grep -q 'service_role' docs/assets/rigp_case_supabase.js
+          ! grep -q 'sb_secret_' docs/assets/rigp_case_supabase.js
       - name: Validate persistent case schema contract
         run: |
           grep -q 'CREATE TABLE IF NOT EXISTS rigp_cases' schemas/011_cases.sql
@@ -45,3 +63,9 @@ jobs:
           grep -q 'CREATE TABLE IF NOT EXISTS rigp_case_evidence' schemas/011_cases.sql
           grep -q 'CREATE TABLE IF NOT EXISTS rigp_case_events' schemas/011_cases.sql
           grep -q 'CANDIDATA' schemas/011_cases.sql
+          grep -qi 'create table if not exists rigp.case_workspace_state' schemas/012_case_workspace.sql
+          grep -qi 'create table if not exists rigp.case_workspace_event' schemas/012_case_workspace.sql
+          grep -qi 'enable row level security' schemas/012_case_workspace.sql
+          grep -qi 'revoke all on table rigp.case_workspace_state from anon' schemas/012_case_workspace.sql
+          grep -qi 'revoke all on table rigp.case_workspace_event from anon' schemas/012_case_workspace.sql
+          grep -q 'pm.can_manage_cases' schemas/012_case_workspace.sql
