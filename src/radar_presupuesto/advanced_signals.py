@@ -4,6 +4,8 @@ from pathlib import Path
 
 import duckdb
 
+from .windows import DEFAULT_WINDOWS, AnalysisWindows
+
 
 def extend_signals(
     parquet_glob: str,
@@ -17,8 +19,10 @@ def extend_signals(
     payment_delay_quantile: float = 0.99,
     new_series_min_amount: float = 50_000_000,
     new_series_quantile: float = 0.99,
+    windows: AnalysisWindows | None = None,
 ) -> dict:
     """Append explainable second-generation signals to the base signal parquet."""
+    windows = windows or DEFAULT_WINDOWS
     path = Path(signals_path)
     if not path.exists():
         raise FileNotFoundError(signals_path)
@@ -107,22 +111,39 @@ def extend_signals(
           AND b.pay_days>=st.q AND (st.med<=0 OR b.pay_days>=st.med*2)
     """)
 
+    # "Nuevo" sólo significa algo contra una línea base. Antes se medía contra la
+    # serie procesada, de modo que un proveedor activo desde 2015 parecía nuevo
+    # apenas la serie empezaba en 2024. Ahora la primera aparición se busca en
+    # toda la ventana de aprendizaje, la señal se emite sólo dentro de la ventana
+    # de acción, y cada registro informa cuántos años de línea base la respaldan.
+    con.execute(f"""
+        CREATE OR REPLACE TEMP VIEW baseline_meta AS
+        SELECT count(DISTINCT periodo) FILTER (
+                 WHERE try_cast(periodo AS INTEGER) < {int(windows.action_from_year)}
+                   AND {windows.sql_learning_filter()}
+               ) AS baseline_years,
+               count(DISTINCT periodo) FILTER (WHERE {windows.sql_learning_filter()}) AS series_years
+        FROM facts
+    """)
     con.execute(f"""
         INSERT INTO merged
-        WITH meta AS (
-          SELECT count(DISTINCT periodo) AS series_years,max(periodo) max_year FROM facts
-        ), firsts AS (
-          SELECT provider_id,min(periodo) first_year FROM facts
-          WHERE is_provider=TRUE AND coalesce(provider_id,'')<>'' GROUP BY 1
+        WITH firsts AS (
+          SELECT provider_id, min(try_cast(periodo AS INTEGER)) first_year
+          FROM facts
+          WHERE is_provider=TRUE AND coalesce(provider_id,'')<>''
+            AND {windows.sql_learning_filter()}
+          GROUP BY 1
         ), cur AS (
           SELECT f.provider_id,min(f.recipient_id) recipient_id,min(f.organization_id) organization_id,
                  min(f.transaction_id) transaction_id,min(f.mes) mes,count(*) tx,
                  count(DISTINCT f.organization_id) organizations,
-                 sum(try_cast(f.monto_devengado AS DOUBLE)) amount,f.periodo
-          FROM facts f JOIN firsts x USING(provider_id),meta m
+                 sum(try_cast(f.monto_devengado AS DOUBLE)) amount,f.periodo,
+                 min(x.first_year) first_year
+          FROM facts f JOIN firsts x USING(provider_id)
           WHERE f.is_provider=TRUE AND coalesce(f.provider_id,'')<>''
             AND coalesce(f.is_aggregated,FALSE)=FALSE
-            AND x.first_year=m.max_year AND f.periodo=m.max_year
+            AND {windows.sql_action_filter('f.periodo')}
+            AND x.first_year = try_cast(f.periodo AS INTEGER)
           GROUP BY 1,9
         ), threshold AS (
           SELECT quantile_cont(amount,{float(new_series_quantile)}) q FROM cur
@@ -130,13 +151,19 @@ def extend_signals(
         SELECT 'SIG-PA-NEW_TO_SERIES_HIGH_SPEND-'||upper(substr(md5(cur.provider_id||'|'||cast(cur.periodo AS VARCHAR)),1,20)),
                'NEW_TO_SERIES_HIGH_SPEND',cur.transaction_id,cur.organization_id,cur.recipient_id,cur.provider_id,
                cur.periodo,cur.mes,cur.amount,threshold.q,cur.organizations,
-               CASE WHEN cur.organizations>=3 THEN 'HIGH' ELSE 'MEDIUM' END,
-               'MEDIUM','DERIVED_SIGNAL',
-               'Proveedor no observado en años anteriores de la serie procesada ingresa con gasto acumulado en la cola superior de sus pares nuevos.',
-               'Nuevo en la serie no significa nueva empresa ni irregularidad; puede reflejar cambio de proveedor, licitación reciente o cobertura histórica incompleta.',
-               '["Confirmar primera aparición en serie completa","Revisar adjudicación inicial y OC","Comparar monto con proveedores nuevos pares","Contrastar antigüedad societaria en fuentes externas"]'
-        FROM cur,threshold,meta
-        WHERE meta.series_years>=2 AND cur.tx>=3
+               CASE WHEN cur.organizations>=3 AND m.baseline_years>=3 THEN 'HIGH' ELSE 'MEDIUM' END,
+               CASE WHEN m.baseline_years>=3 THEN 'MEDIUM' ELSE 'LOW' END,
+               'DERIVED_SIGNAL',
+               'Primera aparición del proveedor en '||cast(cur.first_year AS VARCHAR)||
+                 ', con gasto acumulado en la cola superior de sus pares nuevos. Línea base: '||
+                 cast(m.baseline_years AS VARCHAR)||' año(s) previos a la ventana de acción.',
+               CASE WHEN m.baseline_years>=3
+                    THEN 'Nuevo contra la línea base no significa nueva empresa ni irregularidad; puede reflejar cambio de proveedor o licitación reciente.'
+                    ELSE 'La línea base disponible es corta: la novedad del proveedor no está acreditada y debe confirmarse contra la serie histórica completa antes de usarse.'
+               END,
+               '["Confirmar primera aparición contra la serie histórica completa","Revisar adjudicación inicial y OC","Comparar monto con proveedores nuevos pares","Contrastar antigüedad societaria en fuentes externas"]'
+        FROM cur,threshold,baseline_meta m
+        WHERE m.series_years>=2 AND cur.tx>=3
           AND cur.amount>=greatest({float(new_series_min_amount)},coalesce(threshold.q,0))
     """)
 
@@ -147,6 +174,7 @@ def extend_signals(
         """
     ).df().set_index("pay_days_basis")["rows"].to_dict()
     coverage = {str(k): int(v) for k, v in coverage.items()}
+    baseline = con.execute("SELECT baseline_years, series_years FROM baseline_meta").fetchone()
 
     tmp = path.with_suffix(".v03.tmp.parquet")
     con.execute(f"""
@@ -173,6 +201,9 @@ def extend_signals(
         "distinct_signal_ids": int(row[1]),
         "by_type": by_type,
         "input_coverage": coverage,
+        "baseline_years": int(baseline[0] or 0),
+        "series_years": int(baseline[1] or 0),
+        "action_from_year": windows.action_from_year,
     }
     result["silent_detectors"] = [
         name for name in ("PROVIDER_CONCENTRATION", "PAYMENT_DELAY_OUTLIER", "NEW_TO_SERIES_HIGH_SPEND")

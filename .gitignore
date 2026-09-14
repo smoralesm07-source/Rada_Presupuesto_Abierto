@@ -7,10 +7,12 @@ data/raw/*
 data/processed/*
 data/index/*
 data/signals/*
+data/cases/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/index/.gitkeep
 !data/signals/.gitkeep
+!data/cases/.gitkeep
 *.db
 *.sqlite
 *.parquet

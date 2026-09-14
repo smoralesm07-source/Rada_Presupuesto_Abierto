@@ -5,8 +5,9 @@ import {
   CASE_STAGES, CASE_STATES, CLOSING_STATES, EVIDENCE_KINDS, STATE_LABEL, TRANSITIONS, store,
 } from '../cases.mjs';
 import {
-  ALIGNMENT_TONE, OPACITY_TONE, STATE_TONE, axes, chip, definitionList, esc,
-  evidenceCeilingNote, guardrail, money, notice, num, pct, reasoningBlocks,
+  ACTIONABILITY_LABEL, ACTIONABILITY_TONE, ALIGNMENT_TONE, OPACITY_TONE, STATE_TONE,
+  axes, chip, definitionList, esc, evidenceCeilingNote, guardrail, money, notice, num,
+  pct, reasoningBlocks,
 } from '../ui.mjs';
 import { dateTime, formatRut } from '../fmt.mjs';
 
@@ -63,6 +64,10 @@ function header(record, relation) {
       ${chip(STATE_LABEL[record.state], STATE_TONE[record.state] || 'bare')}
       ${relation ? chip(`LA/FT ${relation.laft_alignment}`, ALIGNMENT_TONE[relation.laft_alignment] || 'bare') : ''}
       ${relation ? chip(relation.opacity_level, OPACITY_TONE[relation.opacity_level] || 'bare') : ''}
+      ${relation?.actionability
+        ? chip(ACTIONABILITY_LABEL[relation.actionability] || relation.actionability,
+               ACTIONABILITY_TONE[relation.actionability] || 'bare')
+        : ''}
     </div>
     <p class="lede">
       ${esc(focus.provider_name || focus.provider_id)} · periodo ${esc(focus.periodo)}
@@ -106,6 +111,14 @@ function body(ctx, record, relation, typology) {
 function tabSummary(ctx, record, relation, typology) {
   const hypothesis = record.hypothesis || {};
   return `<div class="stack">
+    ${relation?.actionability && relation.actionability !== 'ACCIONABLE'
+      ? notice(
+          ACTIONABILITY_LABEL[relation.actionability] || relation.actionability,
+          esc(relation.actionability_why || ''),
+          relation.actionability === 'SOLO_APRENDIZAJE' ? '' : 'warn',
+        )
+      : ''}
+
     <section class="grid k2">
       <div class="card">
         <span class="eyebrow">Los dos ejes</span>

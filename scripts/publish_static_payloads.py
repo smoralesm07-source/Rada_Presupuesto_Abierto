@@ -20,6 +20,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from radar_presupuesto.calibration import GUARDRAIL as CALIBRATION_GUARDRAIL  # noqa: E402
 from radar_presupuesto.procurement import write_status  # noqa: E402
 from radar_presupuesto.relation_context import GUARDRAIL as OPACITY_GUARDRAIL  # noqa: E402
 from radar_presupuesto.typologies import (  # noqa: E402
@@ -72,6 +73,24 @@ def write_typology_catalog() -> None:
     )
 
 
+def write_windows_context() -> None:
+    """Publish the two horizons, so the interface can explain what it is not showing."""
+    import yaml
+
+    from radar_presupuesto.windows import from_config
+
+    config_path = ROOT / "config" / "analysis_windows.yaml"
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
+    payload = {
+        "schema": "RIGP-ANALYSIS-WINDOWS-v1",
+        "generated_at": now(),
+        **from_config(config).describe(),
+    }
+    (DATA / "analysis_windows.json").write_text(
+        json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8"
+    )
+
+
 def write_placeholder(name: str, schema: str, guardrail: str, body: dict) -> bool:
     path = DATA / name
     if path.exists():
@@ -96,6 +115,7 @@ def write_placeholder(name: str, schema: str, guardrail: str, body: dict) -> boo
 def main() -> None:
     DATA.mkdir(parents=True, exist_ok=True)
     write_typology_catalog()
+    write_windows_context()
     status = write_status(output_json=DATA / "procurement_status.json")
     placeholders = [
         name
@@ -104,12 +124,24 @@ def main() -> None:
              {"coverage": {}, "by_type": {}, "providers": {}}),
             ("opacity_index.json", "RIGP-OPACITY-INDEX-v1", OPACITY_GUARDRAIL,
              {"overall": {}, "services": []}),
+            # La calibración nace vacía a propósito: sin expedientes cerrados no
+            # hay nada que el modelo pueda aprender, y decirlo es más útil que
+            # un 404 silencioso.
+            ("calibration.json", "RIGP-CALIBRATION-v1", CALIBRATION_GUARDRAIL,
+             {"evidence": {"labelled_cases": 0, "verified": 0}, "by_signal_type": {},
+              "by_typology": {}, "policy": {"apply": True}}),
         )
         if write_placeholder(name, schema, guardrail, body)
     ]
+    from radar_presupuesto.windows import from_config as _wf
+    import yaml as _yaml
+
+    _cfg_path = ROOT / "config" / "analysis_windows.yaml"
+    _windows = _wf(_yaml.safe_load(_cfg_path.read_text(encoding="utf-8")) if _cfg_path.exists() else {})
     print(
         f"[RIGP Static] catálogo de tipologías: {len(TYPOLOGIES)} · "
-        f"adaptador de compras: {status['integration_state']}"
+        f"adaptador de compras: {status['integration_state']} · "
+        f"ventana de acción desde {_windows.action_from_year}"
     )
     if placeholders:
         print(f"[RIGP Static] marcadores de capa aún no calculada: {', '.join(placeholders)}")

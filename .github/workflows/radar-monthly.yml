@@ -10,6 +10,8 @@ on:
       - 'src/radar_presupuesto/typologies.py'
       - 'src/radar_presupuesto/relation_context.py'
       - 'src/radar_presupuesto/procurement.py'
+      - 'src/radar_presupuesto/windows.py'
+      - 'src/radar_presupuesto/calibration.py'
       - '.github/workflows/radar-monthly.yml'
   workflow_dispatch:
     inputs:
@@ -76,7 +78,8 @@ jobs:
                   docs/data/source_catalog.json docs/data/coverage.json docs/data/quality.json \
                   docs/data/snapshot_manifest.json docs/data/territorial_context_v1.json \
                   docs/data/entity_signals.json docs/data/opacity_index.json \
-                  docs/data/typology_context.json docs/data/procurement_status.json
+                  docs/data/typology_context.json docs/data/procurement_status.json \
+                  docs/data/calibration.json docs/data/analysis_windows.json
           if git diff --cached --quiet; then exit 0; fi
           git commit -m "radar: corrida analítica $(date -u +%F)"
           git pull --rebase origin main

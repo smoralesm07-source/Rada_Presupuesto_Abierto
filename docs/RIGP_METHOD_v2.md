@@ -16,6 +16,53 @@ era una factura de combustible.
 
 Nada de eso era un error de implementación. Era el diseño.
 
+## Los dos horizontes
+
+Un hallazgo de 2018 y uno de este año no son el mismo producto. El viejo no se
+puede perseguir; el reciente sí. Pero el viejo es exactamente lo que una línea
+base necesita, porque dice cómo se veía lo normal antes.
+
+| Ventana | Qué hace |
+|---|---|
+| **Acción** (`action_from_year`, por defecto 2023) | Lo único que puede convertirse en expediente |
+| **Aprendizaje** (`learning_from_year`, por defecto 2016) | Prevalencias, medianas de pares, primera aparición de proveedor, calibración |
+
+Consecuencias concretas:
+
+- Las **prevalencias** se miden sobre todas las relaciones de la ventana de
+  aprendizaje, incluidas las limpias y las antiguas. El denominador es el
+  universo, no lo ya marcado.
+- La **cola publicada** contiene sólo la ventana de acción. Lo anterior no se
+  descarta: ya cumplió su función dentro del score con que se puntuó lo reciente.
+- `NEW_TO_SERIES_HIGH_SPEND` deja de confundir "nuevo" con "ausente de la serie
+  procesada", y declara cuántos años de línea base respaldan la afirmación. Con
+  cero años de base la señal baja su confianza y dice que la novedad no está
+  acreditada.
+- Cada relación reporta su **accionabilidad**: dentro de la ventana, pero con la
+  última actividad cerca del horizonte de evidencia, la interfaz advierte antes
+  de que alguien comprometa trabajo. Ese horizonte es operativo, no jurídico.
+
+## El ciclo de aprendizaje
+
+Los cierres del analista son la única supervisión disponible, y hasta ahora se
+escribían en `localStorage` y se tiraban.
+
+`calibration.py` lee expedientes sellados, descarta los que no verifican su
+hash, y calcula por patrón la precisión observada: cuántas revisiones cerradas
+terminaron en escalamiento. De ahí sale un multiplicador acotado sobre la
+prioridad de revisión.
+
+| Regla | Por qué |
+|---|---|
+| Sólo casos cerrados son etiquetas | Un expediente abierto es trabajo inconcluso; contarlo enseñaría que trabajar despacio es trabajar mal |
+| Mínimo de cierres antes de ajustar | Tres descartes son una anécdota, no una medición |
+| Multiplicador acotado | Una mala semana de triage no puede enterrar una familia de patrones |
+| Siempre explicado y desactivable | El ajuste viaja en `priority_explanation` de cada señal |
+
+La calibración mide **utilidad de revisión observada, no verdad**. Un patrón con
+baja precisión puede reflejar que el equipo aún no sabe revisarlo, que la
+evidencia no estaba disponible, o que la muestra es pequeña.
+
 ## Los dos ejes
 
 La causa de fondo era mezclar dos preguntas distintas en un solo número:
@@ -173,5 +220,7 @@ acreditado**, no de dónde hizo clic el usuario.
 - No atribuye beneficio final: la etapa 4 está declarada como no determinada.
 - No integra propiedad ni control societario.
 - No observa el proceso de compra hasta que se conecte Mercado Público.
-- La serie procesada cubre 2024–2026; las señales que dependen de línea base
-  histórica deben leerse con esa limitación a la vista.
+- La serie procesada cubre 2024–2026. La ventana de aprendizaje está declarada
+  desde 2016, pero mientras esos años no se ingesten la línea base es de cero
+  años y las señales que dependen de ella lo informan explícitamente en vez de
+  afirmar novedad sin respaldo.

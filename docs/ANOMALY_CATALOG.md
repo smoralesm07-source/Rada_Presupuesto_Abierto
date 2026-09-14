@@ -127,3 +127,23 @@ un campo opcional del bulk; ahora reconstruye el plazo desde
 `fecha_recepcion_conforme` o `fecha_documento` hacia `fecha_pago`, e informa la
 base usada en cada señal. Un detector que no puede disparar debe decirlo, no
 desaparecer en silencio.
+
+## Ventanas de análisis
+
+Todas las señales se detectan sobre la **ventana de aprendizaje** completa, pero
+sólo las de la **ventana de acción** se publican como cola de trabajo. La
+configuración está en `config/analysis_windows.yaml`.
+
+Esto cambia el significado de dos señales:
+
+- `NEW_TO_SERIES_HIGH_SPEND` busca la primera aparición del proveedor en toda la
+  ventana de aprendizaje y se emite sólo dentro de la ventana de acción. Cada
+  registro informa cuántos años de línea base respaldan la afirmación; con cero
+  años baja su confianza a `LOW` y declara que la novedad no está acreditada.
+- Toda relación publicada trae `analysis_window` y `actionability`. Una relación
+  dentro de la ventana pero con la última actividad cerca del horizonte de
+  evidencia se marca `EVIDENCIA_EN_RIESGO`, para no comprometer trabajo en algo
+  cuyo respaldo quizá ya no pueda pedirse.
+
+Una señal fuera de la ventana de acción no es menos relevante: es menos
+accionable, y por eso alimenta la línea base en vez de la bandeja.

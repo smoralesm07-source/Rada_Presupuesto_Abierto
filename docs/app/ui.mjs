@@ -7,6 +7,16 @@ import { esc, money, num, pct } from './fmt.mjs';
 
 export const ALIGNMENT_TONE = { ALTO: 'crit', MEDIO: 'warn', BAJO: 'info', NULO: 'bare' };
 export const OPACITY_TONE = { OPACA: 'warn', PARCIAL: 'info', TRAZABLE: 'good' };
+export const ACTIONABILITY_TONE = {
+  ACCIONABLE: 'good',
+  EVIDENCIA_EN_RIESGO: 'warn',
+  SOLO_APRENDIZAJE: 'bare',
+};
+export const ACTIONABILITY_LABEL = {
+  ACCIONABLE: 'Accionable',
+  EVIDENCIA_EN_RIESGO: 'Evidencia en riesgo',
+  SOLO_APRENDIZAJE: 'Sólo aprendizaje',
+};
 export const STATE_TONE = {
   ABIERTO: 'info',
   EN_REVISION: 'accent',

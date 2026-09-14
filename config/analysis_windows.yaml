@@ -1,0 +1,32 @@
+# Dos horizontes, no uno.
+#
+# La información histórica ya no permite actuar: los contratos cerraron, las
+# autoridades cambiaron y el respaldo documental puede no ser recuperable. Pero
+# sí es lo que dice cómo se veía lo normal, y sin eso "atípico" no significa nada.
+#
+# Por eso el radar mantiene dos ventanas separadas:
+#
+#   ventana de acción      -> lo único que puede convertirse en expediente
+#   ventana de aprendizaje -> alimenta prevalencias, medianas de pares, primera
+#                             aparición de proveedor y calibración del score.
+#                             Nunca llega a la bandeja.
+#
+# Mover `action_from_year` cambia qué se publica, no qué se analiza.
+
+analysis_windows:
+  # Sólo lo ocurrido desde este año puede trabajarse como caso.
+  # Subir a 2024 acota más la bandeja sin perder nada de la línea base.
+  action_from_year: 2023
+
+  # Primer año que alimenta líneas base. Conviene que sea el primero disponible
+  # en la fuente: mientras más historia, más sólida la noción de "atípico".
+  learning_from_year: 2016
+
+  # Supuesto OPERATIVO sobre hasta cuándo es razonable esperar obtener respaldo
+  # documental de una contratación. No es un plazo de prescripción ni de
+  # conservación legal: esos dependen de la norma aplicable y deben fijarse
+  # contra ella antes de usarse para decidir.
+  evidence_horizon_months: 60
+
+  # Aviso anticipado, para no comprometer trabajo en algo que está por vencer.
+  evidence_warning_months: 42

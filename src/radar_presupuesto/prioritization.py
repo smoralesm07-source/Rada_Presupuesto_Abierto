@@ -24,6 +24,9 @@ from pathlib import Path
 
 import duckdb
 
+from .calibration import load_multipliers
+from .windows import DEFAULT_WINDOWS, AnalysisWindows
+
 DEFAULT_TOP_N = 5000
 PREVALENCE_FLOOR = 0.0005
 FAMILY_MIN_SHARE = 0.08
@@ -59,13 +62,20 @@ def _family_case_sql(column: str = "signal_type") -> str:
     return f"CASE {column} {whens} ELSE 'OTRA_SENAL' END"
 
 
-def _register_peer_context(con: duckdb.DuckDBPyConnection, parquet_glob: str) -> None:
+def _register_peer_context(
+    con: duckdb.DuckDBPyConnection, parquet_glob: str, windows: AnalysisWindows
+) -> None:
     """Build the peer group every comparison in this module is made against.
 
     A peer group is a budget line (subtítulo) crossed with the spending scale of
     the public body. Comparing a ministry's fuel purchases against a small
     municipal office's consultancy contracts is what produced false positives
     before; comparing like with like is what fixes them.
+
+    The statistics come from the **whole learning window**, not from what is
+    publishable. History no longer supports acting, but it is what says what
+    normal looked like — and a baseline built only on recent years compares the
+    present against itself.
     """
     con.execute(
         f"""
@@ -85,6 +95,7 @@ def _register_peer_context(con: duckdb.DuckDBPyConnection, parquet_glob: str) ->
         WHERE coalesce(provider_id,'') <> ''
           AND coalesce(is_aggregated, FALSE) = FALSE
           AND try_cast(monto_devengado AS DOUBLE) > 0
+          AND """ + windows.sql_learning_filter() + """
         """
     )
     con.execute(
@@ -351,18 +362,50 @@ def prioritize_signals(
     signals_path: str = "data/signals/risk_signals.parquet",
     cgr_links_path: str = "data/evidence/cgr_evidence_links.parquet",
     entity_signals_path: str = "data/signals/entity_signals.parquet",
+    calibration_path: str = "docs/data/calibration.json",
     output_parquet: str = "data/signals/prioritized_signals.parquet",
     output_json: str = "docs/data/investigation_queue.json",
     top_n: int = DEFAULT_TOP_N,
     family_min_share: float = FAMILY_MIN_SHARE,
+    windows: AnalysisWindows | None = None,
 ) -> dict:
+    windows = windows or DEFAULT_WINDOWS
     con = duckdb.connect()
     con.execute(f"CREATE OR REPLACE VIEW sig AS SELECT * FROM read_parquet('{signals_path}')")
-    _register_peer_context(con, parquet_glob)
+    _register_peer_context(con, parquet_glob, windows)
     _register_rarity(con)
     _register_external_evidence(con, cgr_links_path)
     _register_entity_risk(con, entity_signals_path)
 
+    # Lo que el analista cerró y por qué. Sin casos cerrados suficientes esto
+    # queda vacío y ningún score se mueve.
+    multipliers = load_multipliers(calibration_path)
+    con.execute("CREATE OR REPLACE TEMP TABLE calibration(signal_type VARCHAR, multiplier DOUBLE)")
+    for signal_type, multiplier in multipliers.items():
+        con.execute("INSERT INTO calibration VALUES (?, ?)", [signal_type, float(multiplier)])
+
+    # La fecha de última actividad mide accionabilidad. Un parquet parcial o de
+    # una corrida anterior puede no traer las fechas; en ese caso la columna
+    # queda nula y la interfaz lo dice, en vez de romper la construcción.
+    fact_columns = {row[1] for row in con.execute("PRAGMA table_info('facts')").fetchall()}
+    date_parts = [c for c in ("fecha_pago", "fecha_documento") if c in fact_columns]
+    activity_expr = (
+        f"max(try_cast(coalesce({', '.join(date_parts)}) AS DATE))"
+        if date_parts
+        else "cast(NULL AS DATE)"
+    )
+    con.execute(
+        f"""
+        CREATE OR REPLACE TEMP VIEW relation_activity AS
+        SELECT organization_id,
+               coalesce(provider_id,'') AS provider_id,
+               periodo,
+               {activity_expr} AS last_activity
+        FROM facts
+        WHERE coalesce(is_aggregated, FALSE) = FALSE
+        GROUP BY 1,2,3
+        """
+    )
     con.execute(
         """
         CREATE OR REPLACE TEMP VIEW tx_context AS
@@ -414,6 +457,7 @@ def prioritize_signals(
                      AS peer_median_relation_amount,
                    coalesce(ps.relations_in_peer, ops.orgs_in_peer) AS relations_in_peer,
                    coalesce(r.prevalence, orr.prevalence, 0.5) AS pattern_prevalence,
+                   ra.last_activity,
                    coalesce(pss.signal_count,0) provider_signal_count,
                    coalesce(pss.signal_types,0) provider_signal_types,
                    coalesce(pss.signal_families,0) provider_signal_families,
@@ -445,6 +489,10 @@ def prioritize_signals(
             LEFT JOIN org_peer_stats ops ON ops.org_peer_group = ou.org_peer_group
             LEFT JOIN org_rarity orr
               ON orr.org_peer_group = ou.org_peer_group AND orr.signal_type = s.signal_type
+            LEFT JOIN relation_activity ra
+              ON ra.organization_id = s.organization_id
+             AND ra.provider_id = coalesce(s.provider_id,'')
+             AND ra.periodo = s.periodo
             LEFT JOIN provider_signal_stats pss ON pss.provider_id = s.provider_id
             LEFT JOIN org_signal_stats oss ON oss.organization_id = s.organization_id
             LEFT JOIN entity_risk er ON er.provider_id = s.provider_id
@@ -485,13 +533,25 @@ def prioritize_signals(
               least(10, entity_signal_count * 3) AS entity_context_component
             FROM enriched e
           ), scored AS (
-            SELECT *,
-              least(100, rarity_component + convergence_component + relative_materiality_component
-                    + external_evidence_component + entity_context_component) AS review_priority_score
-            FROM components
+            SELECT c.*,
+              coalesce(cal.multiplier, 1.0) AS calibration_multiplier,
+              least(100, c.rarity_component + c.convergence_component + c.relative_materiality_component
+                    + c.external_evidence_component + c.entity_context_component)
+                AS review_priority_score_raw,
+              -- El ajuste es acotado y viaja explicado: nunca mueve el score en silencio.
+              least(100, round(
+                least(100, c.rarity_component + c.convergence_component + c.relative_materiality_component
+                      + c.external_evidence_component + c.entity_context_component)
+                * coalesce(cal.multiplier, 1.0)
+              )) AS review_priority_score
+            FROM components c
+            LEFT JOIN calibration cal ON cal.signal_type = c.signal_type
           )
           SELECT *,
              review_priority_score AS investigation_priority_score,
+             CASE WHEN try_cast(periodo AS INTEGER) >= {int(windows.action_from_year)} THEN 'ACCION'
+                  WHEN try_cast(periodo AS INTEGER) >= {int(windows.learning_from_year)} THEN 'APRENDIZAJE'
+                  ELSE 'FUERA_DE_SERIE' END AS analysis_window,
              CASE WHEN review_priority_score>=70 THEN 'P1'
                   WHEN review_priority_score>=50 THEN 'P2' ELSE 'P3' END AS priority_tier,
              concat_ws(' | ',
@@ -501,15 +561,22 @@ def prioritize_signals(
                'materialidad_relativa=' || cast(relative_materiality_component AS VARCHAR),
                'evidencia_externa=' || cast(external_evidence_component AS VARCHAR)
                  || ' (' || cgr_match_grade || ')',
-               'contexto_entidad=' || cast(entity_context_component AS VARCHAR)) AS priority_explanation
+               'contexto_entidad=' || cast(entity_context_component AS VARCHAR),
+               CASE WHEN calibration_multiplier = 1.0 THEN 'calibración=sin ajuste'
+                    ELSE 'calibración=x' || cast(round(calibration_multiplier, 2) AS VARCHAR)
+                         || ' sobre ' || cast(review_priority_score_raw AS VARCHAR)
+               END) AS priority_explanation
           FROM scored
         ) TO '{out.as_posix()}' (FORMAT PARQUET, COMPRESSION ZSTD)
         """
     )
 
+    # Sólo la ventana de acción llega a la bandeja. Lo anterior ya se usó: está
+    # dentro de las prevalencias y las medianas contra las que se puntuó esto.
     ranked = con.execute(
         f"""
         SELECT * FROM read_parquet('{out.as_posix()}')
+        WHERE analysis_window = 'ACCION'
         ORDER BY review_priority_score DESC,
                  CASE severity WHEN 'HIGH' THEN 1 WHEN 'MEDIUM' THEN 2 ELSE 3 END,
                  coalesce(deviation,0) DESC
@@ -518,13 +585,31 @@ def prioritize_signals(
     ).df()
     tiers = dict(
         con.execute(
-            f"SELECT priority_tier, count(*) FROM read_parquet('{out.as_posix()}') GROUP BY 1"
+            f"""
+            SELECT priority_tier, count(*) FROM read_parquet('{out.as_posix()}')
+            WHERE analysis_window = 'ACCION' GROUP BY 1
+            """
+        ).fetchall()
+    )
+    by_window = dict(
+        con.execute(
+            f"SELECT analysis_window, count(*) FROM read_parquet('{out.as_posix()}') GROUP BY 1"
         ).fetchall()
     )
     total = con.execute(
         f"SELECT count(*) FROM read_parquet('{out.as_posix()}')"
     ).fetchone()[0]
+    actionable_total = int(by_window.get("ACCION", 0))
     peer_groups = con.execute("SELECT count(*) FROM peer_stats").fetchone()[0]
+    baseline = con.execute(
+        f"""
+        SELECT count(DISTINCT periodo) FILTER (
+                 WHERE try_cast(periodo AS INTEGER) < {int(windows.action_from_year)}
+               ) AS baseline_years,
+               count(*) AS baseline_relations
+        FROM relation_universe
+        """
+    ).fetchone()
     con.close()
 
     candidates = ranked.where(ranked.notna(), None).to_dict("records")
@@ -543,6 +628,15 @@ def prioritize_signals(
             "review_priority_score": "Cuánto conviene mirar esto primero (0-100).",
             "laft_compatibility_score": "Calculado aparte en la capa de tipologías; no forma parte de este score.",
         },
+        "calibration": {
+            "multipliers_applied": len(multipliers),
+            "signal_types_adjusted": sorted(multipliers),
+            "source": calibration_path,
+            "note": (
+                "Los ajustes provienen de expedientes cerrados por analistas, verificados por hash. "
+                "Sin casos cerrados suficientes no se mueve ningún score."
+            ),
+        },
         "score_components": {
             "rarity_component": "0-30 · -ln(prevalencia del patrón en su grupo de pares)",
             "convergence_component": "0-25 · familias independientes que coinciden en la contraparte",
@@ -555,7 +649,19 @@ def prioritize_signals(
             "organismo en el año. Señal sin proveedor (nivel organismo): quintil de escala de gasto."
         ),
         "peer_groups": int(peer_groups),
+        "analysis_windows": windows.describe(),
+        "window_policy": (
+            "Sólo la ventana de acción se publica como cola de trabajo. La ventana de aprendizaje "
+            "no se descarta: es la base sobre la que se calcularon prevalencias, medianas de pares "
+            "y primeras apariciones de proveedor."
+        ),
+        "signals_by_window": {str(k): int(v) for k, v in by_window.items()},
+        "baseline": {
+            "years_before_action_window": int(baseline[0] or 0),
+            "relations_in_learning_window": int(baseline[1] or 0),
+        },
         "total_signals": int(total),
+        "actionable_signals": actionable_total,
         "priority_tiers": tiers,
         "published_signals": len(records),
         "publication_policy": {
@@ -574,6 +680,11 @@ def prioritize_signals(
     return {
         "path": str(out),
         "signals": int(total),
+        "actionable_signals": actionable_total,
+        "signals_by_window": {str(k): int(v) for k, v in by_window.items()},
+        "baseline_years": int(baseline[0] or 0),
+        "action_from_year": windows.action_from_year,
+        "calibration_multipliers": len(multipliers),
         "priority_tiers": tiers,
         "published_signals": len(records),
         "published_families": published_families,

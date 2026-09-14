@@ -48,6 +48,8 @@ jobs:
           triage = json.loads(Path('docs/data/triage.json').read_text())
           typology = json.loads(Path('docs/data/typology_context.json').read_text())
           procurement = json.loads(Path('docs/data/procurement_status.json').read_text())
+          windows = json.loads(Path('docs/data/analysis_windows.json').read_text())
+          calibration = json.loads(Path('docs/data/calibration.json').read_text())
 
           # Identidad: una repetición documental nunca puede colisionar en la clave física.
           assert quality['transaction_id_collision_ratio'] == 0
@@ -73,6 +75,26 @@ jobs:
           for entry in typology['catalog']:
               assert entry['sustains'] and entry['discards'] and entry['documents'], entry['code']
 
+          # Dos horizontes: la historia alimenta líneas base, no la bandeja.
+          assert windows['learning_from_year'] <= windows['action_from_year']
+          assert 'no es un plazo' in windows['evidence_horizon_note'].lower()
+          assert queue['analysis_windows']['action_from_year'] == windows['action_from_year']
+          assert queue['baseline']['relations_in_learning_window'] >= 0
+          for row in queue['queue']:
+              assert row['analysis_window'] == 'ACCION', (
+                  'la cola de trabajo no puede contener periodos fuera de la ventana de acción'
+              )
+          for relation in triage['relations']:
+              assert relation['analysis_window'] == 'ACCION'
+              assert relation['actionability'] in {'ACCIONABLE', 'EVIDENCIA_EN_RIESGO'}
+
+          # El aprendizaje no puede moverse sin evidencia suficiente.
+          for pattern, entry in (calibration.get('by_signal_type') or {}).items():
+              if entry.get('applied'):
+                  policy = calibration['policy']
+                  assert entry['closed_cases'] >= policy['min_closed_cases'], pattern
+                  assert policy['multiplier_floor'] <= entry['multiplier'] <= policy['multiplier_ceiling']
+
           # Las capas no integradas se declaran en vez de desaparecer.
           assert procurement['integration_state'] in {'SNAPSHOT_PRESENT', 'ADAPTER_READY_SOURCE_PENDING'}
           assert procurement['join_key'] == 'orden_compra'
@@ -82,6 +104,9 @@ jobs:
           print('familias publicadas:', queue['published_families'])
           print('triage:', triage['coverage']['relations_published'], 'relaciones')
           print('capas pendientes:', triage['coverage']['pending_layers'])
+          print('ventana de acción desde:', windows['action_from_year'])
+          print('señales por ventana:', queue['signals_by_window'])
+          print('línea base:', queue['baseline'])
           PY
 
       - name: Official source smoke test

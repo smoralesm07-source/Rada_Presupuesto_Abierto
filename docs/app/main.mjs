@@ -242,7 +242,8 @@ document.addEventListener('click', async (event) => {
 
   if (target.hasAttribute('data-clear-filters')) {
     Object.assign(triage.filters, {
-      query: '', typology: '', alignment: '', opacity: '', year: '', hideOpened: false,
+      query: '', typology: '', alignment: '', opacity: '', year: '',
+      actionability: '', hideOpened: false,
     });
     paint();
   }
@@ -269,6 +270,7 @@ document.addEventListener('change', async (event) => {
     triageAlignment: 'alignment',
     triageOpacity: 'opacity',
     triageYear: 'year',
+    triageActionability: 'actionability',
     triageSort: 'sort',
   };
   if (map[target.id]) {

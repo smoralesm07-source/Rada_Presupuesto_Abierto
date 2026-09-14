@@ -23,6 +23,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from radar_presupuesto.windows import (  # noqa: E402
+    WINDOW_ACTION,
+    from_config as windows_from_config,
+)
 from radar_presupuesto.typologies import (  # noqa: E402
     GUARDRAIL as TYPOLOGY_GUARDRAIL,
     OBSERVABLE_LAYERS,
@@ -34,6 +38,8 @@ from radar_presupuesto.typologies import (  # noqa: E402
 )
 
 QUEUE = ROOT / "docs" / "data" / "investigation_queue.json"
+WINDOWS_CONFIG = ROOT / "config" / "analysis_windows.yaml"
+CALIBRATION = ROOT / "docs" / "data" / "calibration.json"
 ENTITY_SIGNALS = ROOT / "docs" / "data" / "entity_signals.json"
 EXPLORE = ROOT / "docs" / "data" / "explore_context.json"
 OPACITY = ROOT / "docs" / "data" / "opacity_index.json"
@@ -60,6 +66,15 @@ def load(path: Path, default):
         return default
 
 
+def load_windows():
+    """Read the windows from config, so even a stale queue gets classified."""
+    if not WINDOWS_CONFIG.exists():
+        return windows_from_config(None)
+    import yaml
+
+    return windows_from_config(yaml.safe_load(WINDOWS_CONFIG.read_text(encoding="utf-8")))
+
+
 def queue_rows(payload: dict) -> tuple[list[dict], str]:
     """Read either queue schema; the publication must survive a stale input."""
     rows = payload.get("queue") or []
@@ -83,6 +98,8 @@ def build() -> dict:
     explore = load(EXPLORE, {})
     opacity = load(OPACITY, {})
     procurement = load(PROCUREMENT, {})
+    calibration = load(CALIBRATION, {})
+    windows = load_windows()
 
     opacity_by_service = {
         str(s.get("organization_id")): s for s in (opacity.get("services") or [])
@@ -119,6 +136,7 @@ def build() -> dict:
                 "cgr_match_count": 0,
                 "priority_explanation": row.get("priority_explanation") or "",
                 "region": row.get("region") or "",
+                "last_activity": str(row.get("last_activity") or ""),
             },
         )
         signal = str(row.get("signal_type") or "")
@@ -134,6 +152,9 @@ def build() -> dict:
         entry["cgr_match_count"] = max(
             entry["cgr_match_count"], int(row.get("cgr_match_count") or 0)
         )
+        activity = str(row.get("last_activity") or "")
+        if activity > entry["last_activity"]:
+            entry["last_activity"] = activity
         if row.get("priority_explanation") and not entry["priority_explanation"]:
             entry["priority_explanation"] = row["priority_explanation"]
 
@@ -163,6 +184,7 @@ def build() -> dict:
         laft = float(best["score"]) if best else 0.0
 
         families = sorted({PATTERN_LAYER.get(p, "TRANSACCION") for p in patterns})
+        actionability = windows.actionability(year, entry["last_activity"] or None)
         entry.update(
             {
                 "signal_labels": [SIGNAL_LABEL.get(s, s) for s in entry["signals"]],
@@ -183,6 +205,14 @@ def build() -> dict:
                 ),
                 "provider_rut": provider_ctx.get("rut")
                 or (provider.split("RUT-", 1)[1] if "RUT-" in provider else ""),
+                "analysis_window": actionability["window"],
+                "actionability": actionability["state"],
+                "actionability_why": actionability["why"],
+                "months_since_activity": (
+                    round(actionability["months_since_activity"], 1)
+                    if actionability["months_since_activity"] is not None
+                    else None
+                ),
                 "guardrail": GUARDRAIL,
             }
         )
@@ -197,7 +227,11 @@ def build() -> dict:
             -r["max_transaction_amount"],
         )
     )
-    published = relations[:MAX_RELATIONS]
+    # Lo anterior a la ventana de acción no llega a la bandeja: ya cumplió su
+    # función dentro de las líneas base contra las que se puntuó esto.
+    actionable = [r for r in relations if r["analysis_window"] == WINDOW_ACTION]
+    learning_only = len(relations) - len(actionable)
+    published = actionable[:MAX_RELATIONS]
 
     facets = {
         "typologies": defaultdict(int),
@@ -205,12 +239,14 @@ def build() -> dict:
         "opacity": defaultdict(int),
         "years": defaultdict(int),
         "layers": defaultdict(int),
+        "actionability": defaultdict(int),
     }
     for relation in published:
         facets["typologies"][relation["top_typology"] or "SIN_TIPOLOGIA"] += 1
         facets["alignments"][relation["laft_alignment"]] += 1
         facets["opacity"][relation["opacity_level"]] += 1
         facets["years"][str(relation["periodo"])] += 1
+        facets["actionability"][relation["actionability"]] += 1
         for layer in relation["layers_present"]:
             facets["layers"][layer] += 1
 
@@ -236,9 +272,20 @@ def build() -> dict:
             "publication_policy": queue_payload.get("publication_policy") or {},
             "peer_group_definition": queue_payload.get("peer_group_definition") or "",
         },
+        "analysis_windows": windows.describe(),
+        "calibration": {
+            "available": bool(calibration),
+            "multipliers_applied": sum(
+                1 for e in (calibration.get("by_signal_type") or {}).values() if e.get("applied")
+            ),
+            "labelled_cases": (calibration.get("evidence") or {}).get("labelled_cases", 0),
+            "guardrail": calibration.get("guardrail", ""),
+            "by_signal_type": calibration.get("by_signal_type") or {},
+        },
         "coverage": {
             "relations": len(relations),
             "relations_published": len(published),
+            "relations_learning_only": learning_only,
             "services": len({r["organization_id"] for r in published}),
             "providers": len({r["provider_id"] for r in published}),
             "relations_with_typology": sum(1 for r in published if r["top_typology"]),
@@ -280,6 +327,10 @@ def main() -> None:
         f"({coverage['services']} servicios, {coverage['providers']} proveedores) "
         f"desde {source['signals_published']} señales publicadas de {source['signals_total']} totales "
         f"· esquema {source['queue_schema']} · {OUT.stat().st_size / 1024:.1f} KiB"
+    )
+    print(
+        f"[RIGP Triage] ventana de acción desde {payload['analysis_windows']['action_from_year']} · "
+        f"{coverage['relations_learning_only']} relación(es) quedan sólo como línea base"
     )
     if coverage["pending_layers"]:
         print(f"[RIGP Triage] capas pendientes de integración: {', '.join(coverage['pending_layers'])}")

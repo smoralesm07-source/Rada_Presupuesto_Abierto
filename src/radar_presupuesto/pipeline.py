@@ -10,6 +10,7 @@ import yaml
 
 from .advanced_signals import extend_signals
 from .analytics import build_signals
+from .calibration import build_calibration, summarize as summarize_calibration
 from .case_model import GUARDRAIL as CASE_GUARDRAIL  # noqa: F401  (contrato compartido)
 from .cgr_correlation import correlate_with_cgr
 from .coverage import write_coverage
@@ -25,6 +26,7 @@ from .procurement import (
 )
 from .relation_context import build_opacity_index
 from .typologies import build_typologies
+from .windows import AnalysisWindows, from_config as windows_from_config
 from .normalize import normalize_frame, normalize_to_parquet
 from .prioritization import prioritize_signals
 from .quality import audit_quality
@@ -45,6 +47,13 @@ def load_config(path: str = "config/anomaly_thresholds.yaml") -> dict:
 def load_procurement_config(path: str = "config/procurement_thresholds.yaml") -> dict:
     p = Path(path)
     return yaml.safe_load(p.read_text(encoding="utf-8")) if p.exists() else {}
+
+
+def load_windows(path: str = "config/analysis_windows.yaml") -> AnalysisWindows:
+    """Where the action window starts and how far back the baseline reaches."""
+    p = Path(path)
+    cfg = yaml.safe_load(p.read_text(encoding="utf-8")) if p.exists() else {}
+    return windows_from_config(cfg)
 
 
 def _procurement_thresholds(cfg: dict) -> ProcurementThresholds:
@@ -94,7 +103,7 @@ def _build_base_signals(parquet_glob: str, cfg: dict) -> dict:
     )
 
 
-def _extend_from_config(parquet_glob: str, cfg: dict) -> dict:
+def _extend_from_config(parquet_glob: str, cfg: dict, windows: AnalysisWindows) -> dict:
     concentration = cfg.get("provider_concentration", {})
     delay = cfg.get("payment_delay_outlier", {})
     new_series = cfg.get("new_to_series_high_spend", {})
@@ -109,11 +118,25 @@ def _extend_from_config(parquet_glob: str, cfg: dict) -> dict:
         payment_delay_quantile=delay.get("quantile_floor", 0.99),
         new_series_min_amount=new_series.get("min_amount", 50_000_000),
         new_series_quantile=new_series.get("quantile_floor", 0.99),
+        windows=windows,
     )
 
 
 def _print_layer_summary(result: dict) -> None:
     """Say what each layer produced, including what it could not produce."""
+    windows = result["windows"]
+    queue = result["queue"]
+    print(
+        f"[OK] ventanas: acción desde {windows.action_from_year} · aprendizaje desde "
+        f"{windows.learning_from_year} · línea base {queue['baseline_years']} año(s) previos"
+    )
+    by_window = queue.get("signals_by_window") or {}
+    learning_only = sum(v for k, v in by_window.items() if k != "ACCION")
+    if learning_only:
+        print(
+            f"[OK] {learning_only:,} señales quedan fuera de la bandeja por ventana y "
+            "alimentan la línea base, no se descartan"
+        )
     print(f"[OK] capa entidad: {summarize_entity_signals(result['entity'])}")
     silent = result["extended"].get("silent_detectors") or []
     if silent:
@@ -139,6 +162,13 @@ def _print_layer_summary(result: dict) -> None:
             "[AVISO] tipologías aún no alcanzables: "
             + ", ".join(typology["blocked_until_integration"])
         )
+    calibration = result["calibration"]
+    print(f"[OK] calibración: {summarize_calibration(calibration)}")
+    rejected = (calibration.get("evidence") or {}).get("rejected", 0)
+    if rejected:
+        print(
+            f"[AVISO] {rejected} expediente(s) rechazados por integridad; no alimentan el modelo"
+        )
     overall = result["opacity"].get("overall") or {}
     if overall:
         print(
@@ -152,9 +182,10 @@ def _run_cgr_correlation(parquet_glob: str, cgr_dir: str) -> dict:
 
 
 def _run_analytics(parquet_glob: str, cfg: dict, cgr_dir: str) -> dict:
+    windows = load_windows()
     build_profiles(parquet_glob)
     base = _build_base_signals(parquet_glob, cfg)
-    extended = _extend_from_config(parquet_glob, cfg)
+    extended = _extend_from_config(parquet_glob, cfg, windows)
 
     # Capa 3: contraparte. Usa el enriquecimiento SII ya publicado.
     entity = build_entity_signals(parquet_glob, config=cfg.get("entity_signals", {}))
@@ -169,11 +200,21 @@ def _run_analytics(parquet_glob: str, cfg: dict, cgr_dir: str) -> dict:
 
     cgr = _run_cgr_correlation(parquet_glob, cgr_dir)
 
+    # Lo que el analista cerró y por qué, de vuelta al ranking. `data/cases` son
+    # expedientes locales; `docs/data/case_outcomes.json` es el paquete que el
+    # equipo comparte y versiona para que el aprendizaje no se quede en una
+    # máquina.
+    calibration = build_calibration(
+        ["data/cases", "docs/data/case_outcomes.json"],
+        policy=cfg.get("calibration", {}) or {},
+    )
+
     publication = cfg.get("publication", {}) or {}
     queue = prioritize_signals(
         parquet_glob,
         top_n=int(publication.get("top_n", 5000)),
         family_min_share=float(publication.get("family_min_share", 0.08)),
+        windows=windows,
     )
 
     # Capa 4: el eje LA/FT, separado de la prioridad de revisión.
@@ -193,6 +234,8 @@ def _run_analytics(parquet_glob: str, cfg: dict, cgr_dir: str) -> dict:
     )
     sii_document_candidates = build_sii_document_candidates(parquet_glob)
     return {
+        "windows": windows,
+        "calibration": calibration,
         "base": base,
         "extended": extended,
         "entity": entity,

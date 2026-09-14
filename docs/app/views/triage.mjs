@@ -3,7 +3,8 @@
 
 import { store } from '../cases.mjs';
 import {
-  ALIGNMENT_TONE, OPACITY_TONE, axes, chip, emptyState, esc, guardrail, money, notice, num, pct,
+  ACTIONABILITY_LABEL, ACTIONABILITY_TONE, ALIGNMENT_TONE, OPACITY_TONE, axes, chip,
+  emptyState, esc, guardrail, money, notice, num, pct,
 } from '../ui.mjs';
 
 export const filters = {
@@ -12,6 +13,7 @@ export const filters = {
   alignment: '',
   opacity: '',
   year: '',
+  actionability: '',
   sort: 'review',
   hideOpened: false,
 };
@@ -23,6 +25,7 @@ export function matching(ctx) {
     if (filters.alignment && r.laft_alignment !== filters.alignment) return false;
     if (filters.opacity && r.opacity_level !== filters.opacity) return false;
     if (filters.year && String(r.periodo) !== filters.year) return false;
+    if (filters.actionability && r.actionability !== filters.actionability) return false;
     if (filters.hideOpened && store.byFocus(r.organization_id, r.provider_id, r.periodo)) return false;
     if (!q) return true;
     return [
@@ -65,9 +68,15 @@ export function render(ctx) {
         y <b>compatibilidad LA/FT</b> (cuántos patrones de una tipología están presentes).
         Un monto grande y ordinario sube el primero y no el segundo.
       </p>
+      <p class="lede">
+        Esta cola contiene sólo la <b>ventana de acción</b>, desde
+        ${esc(ctx.triage.analysis_windows?.action_from_year ?? '—')}. Lo anterior no se descarta:
+        es la línea base contra la que se midió lo que aparece aquí.
+      </p>
     </div>
 
     ${coverageNotice(coverage, source)}
+    ${calibrationNotice(ctx.triage.calibration)}
 
     <section class="filters">
       <input type="search" id="triageQuery" placeholder="Buscar servicio, proveedor, RUT o patrón…"
@@ -91,6 +100,13 @@ export function render(ctx) {
         ${['OPACA', 'PARCIAL', 'TRAZABLE']
           .filter((o) => (facets.opacity || {})[o])
           .map((o) => option(o, `Identidad ${o.toLowerCase()} · ${facets.opacity[o]}`, filters.opacity))
+          .join('')}
+      </select>
+      <select id="triageActionability" aria-label="Accionabilidad">
+        ${option('', 'Toda accionabilidad', filters.actionability)}
+        ${['ACCIONABLE', 'EVIDENCIA_EN_RIESGO']
+          .filter((a) => (facets.actionability || {})[a])
+          .map((a) => option(a, `${ACTIONABILITY_LABEL[a]} · ${facets.actionability[a]}`, filters.actionability))
           .join('')}
       </select>
       <select id="triageYear" aria-label="Año">
@@ -160,6 +176,12 @@ function coverageNotice(coverage, source) {
       'por relación. Es una limitación de la cola, no un resultado negativo.',
     );
   }
+  if (coverage.relations_learning_only) {
+    parts.push(
+      `<b>${num(coverage.relations_learning_only)}</b> relación(es) quedaron fuera de la bandeja ` +
+      'por ser anteriores a la ventana de acción. No se descartaron: alimentan las líneas base.',
+    );
+  }
   if ((coverage.pending_layers || []).length) {
     const layers = coverage.pending_layers.join(', ').toLowerCase().replace(/_/g, ' ');
     parts.push(
@@ -169,6 +191,28 @@ function coverageNotice(coverage, source) {
   }
   if (!parts.length) return '';
   return notice('Cobertura de esta cola', parts.join(' '), 'warn');
+}
+
+function calibrationNotice(calibration) {
+  if (!calibration?.available) return '';
+  const labelled = Number(calibration.labelled_cases || 0);
+  if (!labelled) {
+    return notice(
+      'El modelo todavía no aprende de tus cierres',
+      'Cada expediente que cierras con motivo mide si el patrón valía la pena. ' +
+      'Con suficientes cierres, los patrones que no llevan a nada bajan en la cola por sí solos.',
+    );
+  }
+  const applied = Number(calibration.multipliers_applied || 0);
+  const adjusted = Object.entries(calibration.by_signal_type || {})
+    .filter(([, e]) => e.applied)
+    .map(([k, e]) => `${k} ×${Number(e.multiplier).toFixed(2)} (precisión ${Math.round(e.observed_precision * 100)}%)`);
+  return notice(
+    `Calibrado con ${labelled} expediente(s) cerrado(s)`,
+    applied
+      ? `Patrones ajustados: ${esc(adjusted.join(' · '))}. El ajuste es acotado y siempre viaja explicado en cada fila.`
+      : 'Todavía ningún patrón reúne los cierres mínimos para mover el score.',
+  );
 }
 
 function row(relation, ctx) {
@@ -181,6 +225,12 @@ function row(relation, ctx) {
       <b>${esc(relation.organization_name)}</b>
       <small>${esc(relation.provider_name)} · ${esc(relation.periodo)}</small>
       ${relation.provider_rut ? `<small class="mono">${esc(relation.provider_rut)}</small>` : ''}
+      ${relation.actionability && relation.actionability !== 'ACCIONABLE'
+        ? `<small title="${esc(relation.actionability_why || '')}">
+             ${chip(ACTIONABILITY_LABEL[relation.actionability] || relation.actionability,
+                    ACTIONABILITY_TONE[relation.actionability] || 'bare')}
+           </small>`
+        : ''}
     </div></td>
     <td><div class="cellmain">
       ${relation.top_typology

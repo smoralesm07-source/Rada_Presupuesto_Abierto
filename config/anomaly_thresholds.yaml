@@ -51,3 +51,15 @@ publication:
   top_n: 5000
   # Cuota mínima por familia para que ninguna desaparezca por score.
   family_min_share: 0.08
+
+# --- Calibración con los cierres del analista ---
+calibration:
+  # Si se apaga, la calibración se sigue calculando y publicando pero no mueve
+  # ningún score.
+  apply: true
+  # Por debajo de este número de casos cerrados, un patrón no se ajusta.
+  min_closed_cases: 10
+  multiplier_floor: 0.70
+  multiplier_ceiling: 1.30
+  # Precisión de referencia: por encima sube la prioridad, por debajo la baja.
+  neutral_precision: 0.35

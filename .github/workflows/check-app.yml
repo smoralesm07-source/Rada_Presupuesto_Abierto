@@ -87,6 +87,34 @@ jobs:
           print('[OK] garantías del expediente')
           PY
 
+      - name: The two horizons stay visible and separate
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          triage = Path('docs/app/views/triage.mjs').read_text(encoding='utf-8')
+          builder = Path('scripts/build_triage_for_pages.py').read_text(encoding='utf-8')
+
+          # La bandeja sólo puede contener lo accionable...
+          assert 'WINDOW_ACTION' in builder
+          assert "r['analysis_window'] == WINDOW_ACTION" in builder
+          # ...y la interfaz tiene que decir que lo anterior no se descartó.
+          assert 'ventana de acción' in triage
+          assert 'no se descarta' in triage
+          assert 'línea base' in triage
+          # La accionabilidad por antigüedad de la evidencia es filtrable.
+          assert 'triageActionability' in triage
+          assert 'ACTIONABILITY_LABEL' in triage
+          print('[OK] ventana de acción y ventana de aprendizaje')
+          PY
+
+      - name: Learning loop reports itself instead of moving scores silently
+        run: |
+          grep -q 'calibrationNotice' docs/app/views/triage.mjs
+          grep -q 'acotado y siempre viaja explicado' docs/app/views/triage.mjs
+          grep -q 'min_closed_cases' src/radar_presupuesto/calibration.py
+          grep -q 'multiplier_floor' src/radar_presupuesto/calibration.py
+          echo "[OK] ciclo de aprendizaje explicado"
+
       - name: Guardrails are present in every published payload path
         run: |
           grep -q 'No acredita irregularidad' docs/app/cases.mjs
