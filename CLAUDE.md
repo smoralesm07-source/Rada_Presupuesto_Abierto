@@ -29,7 +29,7 @@ nunca si ambas son «mejora el sistema».
 | Sesión | Misión | Zonas | Desde |
 |---|---|---|---|
 | Claude · motor RIGP | Portar el motor analítico del PR #6 a `main`, una pieza por PR: scoring relativo a pares, dos ejes de score, ventanas de acción y aprendizaje, tipologías, cruce CGR por RUT. | `src/radar_presupuesto/**`; `config/**`; `scripts/**`; `tests/**` de motor; `.github/workflows/ci.yml` sólo donde el contrato de pruebas sigue al motor. | 2026-09-14 |
-| ChatGPT · RIGP case-first | Consolidar la experiencia de trabajo por expediente: `Inicio → Bandeja → Hallazgos → Explorar`, mantener `Expediente / Entidad / Informe` como vistas contextuales y preparar la evolución del caso hacia persistencia durable sin alterar el motor analítico ni los desarrollos paralelos. | `docs/index.html`; `docs/assets/rigp_case_app.*`; `docs/assets/rigp_case_explain.*`; `docs/assets/rigp_shell_*`; `.github/workflows/check-case-app.yml` sólo para que el contrato de validación siga la arquitectura case-first; pruebas estrictamente necesarias para estas superficies. | 2026-09-14 |
+| ChatGPT · RIGP case-first | Consolidar la experiencia por expediente y llevarla a un piloto operativo multiusuario: sesión persistente, bandeja compartida, toma y edición de expediente, trazabilidad y reanudación desde otro navegador, sin alterar el motor analítico. | `docs/index.html`; `docs/assets/rigp_case_app.*`; `docs/assets/rigp_case_explain.*`; `docs/assets/rigp_shell_*`; `docs/assets/rigp_case_repository.js`; `docs/assets/rigp_case_supabase.*`; `.github/workflows/check-case-app.yml` sólo para que el contrato siga la arquitectura case-first; `schemas/012_case_workspace.sql`; pruebas estrictamente necesarias. En Supabase: proyecto `ldmtlwzqaqmegedktlxr`, esquema `rigp`, exclusivamente objetos `case_workspace_state`, `case_workspace_event` y sus políticas/grants. | 2026-09-14 |
 
 ### Límites explícitos de la misión Claude · motor RIGP
 
@@ -67,16 +67,24 @@ las siguientes fronteras:
   **salvo `.github/workflows/check-case-app.yml`** cuando sea estrictamente
   necesario alinear su contrato con la arquitectura case-first vigente. Esta
   excepción no otorga control sobre ningún otro workflow ni sobre CI del motor.
-- **No mutar esquemas ni contenido de `docs/data/**`**; se consumen como contrato de
-  lectura. Si una futura persistencia durable exige un nuevo contrato, debe
-  declararse aquí y coordinarse antes de escribirlo.
+- **No mutar esquemas ni contenido de `docs/data/**`**; se consumen como contrato de lectura.
+- La persistencia multiusuario queda autorizada únicamente en el proyecto Supabase
+  `ldmtlwzqaqmegedktlxr`, esquema `rigp`, mediante los objetos nuevos
+  `case_workspace_state` y `case_workspace_event`, sus índices, RLS y grants mínimos.
+  **No modificar `candidate_case`, `candidate_evidence`, `case_assignment`,
+  `case_review_event`, `pilot_member` ni otros objetos preexistentes**: se leen sólo
+  para comprender el contrato y evitar duplicaciones.
+- El frontend puede usar únicamente la **publishable key**. **Nunca** se expone ni
+  versiona una secret key, `service_role`, contraseña, token de usuario o connection string.
+- Antes de cualquier grant al rol `authenticated`, el objeto correspondiente debe
+  tener RLS habilitado y una política explícita. `anon` no recibe acceso a la
+  persistencia de expedientes.
+- `case_workspace_state` es estado de trabajo de la interfaz, no reemplaza ni
+  recalcula el `candidate_case` analítico. Un expediente de interfaz sin
+  `candidate_id` debe conservar esa distinción de forma explícita.
 - **No reemplazar, borrar ni renombrar módulos del otro desarrollo**, aunque parezcan
   redundantes. Primero se revisa la misión declarada y se resuelve el solapamiento.
 - **No portar en bloque el PR #6** ni recrear módulos que ya existan bajo otro nombre.
-- La siguiente evolución prevista —persistencia durable del expediente— se limita,
-  por ahora, a diseño de modelo e integración desde la capa case-first. Cualquier
-  backend, tabla, servicio o módulo nuevo queda fuera de alcance hasta que se
-  declare su zona exacta en este archivo.
 - Todo cambio de esta sesión debe salir desde ramas `chatgpt/rigp-*` y entrar a
   `main` por pull request. Antes de fusionar, se compara con `main`; ante conflicto
   con trabajo ajeno, se detiene la fusión y se coordina en vez de forzarla.
@@ -116,7 +124,8 @@ Mismo concepto, dos nombres. Antes de escribir uno nuevo, revisa esta tabla.
 | Calibración con cierres del analista | `calibration.py` ✅ portado | `calibration.py` |
 | Contexto de compras | `procurement_context.py` | `relation_context.py` |
 | Mercado Público | `mercado_publico_bridge.py` ✅ operativo | `procurement.py` (sin cliente) |
-| Expediente | `schemas/011_cases.sql` + `docs/assets/rigp_case_repository.js` | `case_model.py` |
+| Expediente analítico | `rigp.candidate_case` + `schemas/011_cases.sql` | `case_model.py` |
+| Estado de trabajo case-first | `rigp.case_workspace_state` (misión ChatGPT) | — |
 | Señales de contraparte SII | `entity_signals.py` ✅ portado | `entity_signals.py` |
 
 ---
@@ -144,6 +153,7 @@ produce; la app los consume; nadie más los toca.
 | `docs/index.html`, `docs/assets/**` | Interfaz |
 | `.github/workflows/**` | Operación. Valida el YAML antes de commitear |
 | `tests/**` | Cobertura de ambos lados |
+| Supabase `rigp` | Persistencia y trazabilidad; cada misión declara objetos exactos antes de mutarlos |
 
 ---
 
@@ -167,6 +177,8 @@ supervisor. No las revierta ninguna misión sin decisión explícita del usuario
   defendible.
 - **Una capa que no puede calcularse lo declara**, en vez de publicar cero y
   parecer un resultado negativo.
+- **Estado de trabajo ≠ candidato analítico.** Persistir notas, evidencia o
+  avance de un expediente no crea ni valida por sí mismo un `candidate_case`.
 
 ## Antes de entregar
 
