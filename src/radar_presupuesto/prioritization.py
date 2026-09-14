@@ -6,6 +6,8 @@ from pathlib import Path
 
 import duckdb
 
+from .calibration import load_multipliers
+
 # Anclaje de la escala de rareza: un patrón que aparece en 1 de cada 100 proveedores
 # del mismo grupo de pares satura el componente. Mover este número cambia el ranking.
 RARITY_SATURATION = 100.0
@@ -19,6 +21,7 @@ MATERIALITY_SATURATION = 100.0
 def prioritize_signals(
     parquet_glob: str,
     signals_path: str = "data/signals/risk_signals.parquet",
+    calibration_path: str = "docs/data/calibration.json",
     cgr_links_path: str = "data/evidence/cgr_evidence_links.parquet",
     peer_context_path: str = "data/processed/provider_peer_context.parquet",
     output_parquet: str = "data/signals/prioritized_signals.parquet",
@@ -81,6 +84,17 @@ def prioritize_signals(
     else:
         con.execute("CREATE OR REPLACE TEMP VIEW cgr_provider AS SELECT NULL::VARCHAR provider_id,0 cgr_match_count,0.0 cgr_max_confidence,NULL::DOUBLE cgr_max_aml_score,0 cgr_finding_count,0 cgr_identity_rank WHERE FALSE")
         con.execute("CREATE OR REPLACE TEMP VIEW cgr_org AS SELECT NULL::VARCHAR organization_id,0 cgr_match_count,0.0 cgr_max_confidence,NULL::DOUBLE cgr_max_aml_score,0 cgr_finding_count,0 cgr_identity_rank WHERE FALSE")
+
+    # Lo que el analista cerró, devuelto al ranking. Sin cierres suficientes la
+    # tabla viene vacía y el score queda exactamente como estaba.
+    calibration = load_multipliers(calibration_path)
+    if calibration:
+        cases = ",".join(
+            f"WHEN '{signal}' THEN {float(mult)}" for signal, mult in sorted(calibration.items())
+        )
+        calibration_sql = f"CASE signal_type {cases} ELSE 1.0 END"
+    else:
+        calibration_sql = "1.0"
 
     peer_context_available = bool(peer_context_path) and Path(peer_context_path).exists()
     if peer_context_available:
@@ -214,8 +228,11 @@ def prioritize_signals(
               END relative_materiality_component
             FROM based
           ), scored AS (
-            SELECT *,least(100,severity_component+rarity_component+cooccurrence_component+
-                external_evidence_component+actionability_component+relative_materiality_component) investigation_priority_score
+            SELECT *,
+              {calibration_sql} calibration_multiplier,
+              least(100,round((severity_component+rarity_component+cooccurrence_component+
+                external_evidence_component+actionability_component+relative_materiality_component)
+                * {calibration_sql})) investigation_priority_score
             FROM components
           )
           SELECT *,
@@ -231,6 +248,9 @@ def prioritize_signals(
                'coocurrencia='||cast(cooccurrence_component AS VARCHAR),
                'contexto_CGR_candidato='||cast(external_evidence_component AS VARCHAR),
                'accionabilidad='||cast(actionability_component AS VARCHAR),
+               CASE WHEN calibration_multiplier<>1.0
+                    THEN 'calibracion=x'||cast(round(calibration_multiplier,2) AS VARCHAR)||' (cierres del analista)'
+                    ELSE 'calibracion=sin ajuste' END,
                CASE WHEN scoring_basis='PARES'
                     THEN 'materialidad_relativa='||cast(relative_materiality_component AS VARCHAR)||' ('
                          ||cast(round(coalesce(amount_to_peer_median_ratio,0),1) AS VARCHAR)
@@ -276,6 +296,11 @@ def prioritize_signals(
             "El puntaje AML de la CGR sólo pondera sobre enlaces con RUT. Todo enlace permanece CANDIDATE."
         ),
         "peer_context_available": peer_context_available,
+        "calibration_applied": {k: v for k, v in sorted(calibration.items())},
+        "calibration_policy": (
+            "El multiplicador viene de expedientes cerrados por el analista; sin cierres "
+            "suficientes queda en 1.0 y el score no cambia. Ver docs/data/calibration.json."
+        ),
         "total_signals": int(total),
         "priority_tiers": tiers,
         "scoring_basis": bases,
@@ -290,4 +315,5 @@ def prioritize_signals(
         "priority_tiers": tiers,
         "scoring_basis": bases,
         "peer_context_available": peer_context_available,
+        "calibration_applied": len(calibration),
     }

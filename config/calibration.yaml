@@ -1,0 +1,22 @@
+# Calibración del radar con los cierres del analista
+#
+# La única supervisión honesta que este sistema puede tener son los expedientes
+# que un analista cerró. Estos valores deciden cuánto se le permite a esa
+# supervisión mover el ranking.
+calibration:
+  # Interruptor general. En false, todos los multiplicadores quedan en 1.0 y el
+  # payload lo declara.
+  apply: true
+
+  # Cierres mínimos por tipo de señal antes de ajustar nada. Tres descartes son
+  # una anécdota; bajar este número convierte ruido de triage en política.
+  min_closed_cases: 10
+
+  # Banda del ajuste. Debe contener 1.0. Una banda ancha deja que una mala
+  # semana de triage entierre una familia entera de patrones.
+  multiplier_floor: 0.70
+  multiplier_ceiling: 1.30
+
+  # Precisión de referencia: proporción de revisiones que terminan escalando y
+  # que se considera "normal". Por encima el patrón sube, por debajo baja.
+  neutral_precision: 0.35
