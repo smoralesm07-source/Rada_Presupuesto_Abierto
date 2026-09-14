@@ -20,6 +20,11 @@ def _compact_pattern(value: object, *, include_question: bool = True) -> dict | 
         "pattern_label": label,
         "compatibility_score": score,
         "matched_signals": list(value.get("matched_signals") or []),
+        # Barato de llevar y decisivo de leer: dice si la hipótesis se sostiene en
+        # patrones concurrentes o en uno solo. El texto de descartes no viaja por
+        # fila; está en `pattern_profiles`, a nivel de payload.
+        "corroborated": bool(value.get("corroborated")),
+        "evidence_status": value.get("evidence_status") or "SIN_CORROBORAR",
     }
     if include_question and value.get("review_question"):
         out["review_question"] = value.get("review_question")
