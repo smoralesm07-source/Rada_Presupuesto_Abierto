@@ -23,7 +23,7 @@ on:
   workflow_dispatch:
     inputs:
       years:
-       description: 'Años separados por espacio; vacío = últimos 3 bulk disponibles'
+        description: 'Años separados por espacio; vacío = ventana histórica por defecto'
         required: false
         default: ''
       skip_index:
@@ -84,7 +84,6 @@ jobs:
 
       - name: Run integrated operational radar
         run: |
-                   PYTHONPATH=src python -m radar_presupuesto.pipeline --years ${{ steps.years.outputs.years }}
           EXTRA=""
           if [ "${{ inputs.skip_index }}" = "true" ]; then EXTRA="--skip-index"; fi
           PYTHONPATH=src python -m radar_presupuesto.pipeline --years ${{ steps.years.outputs.years }} $EXTRA
@@ -178,5 +177,10 @@ jobs:
           done
           if git diff --cached --quiet; then exit 0; fi
           git commit -m "radar: corrida operacional integrada $(date -u +%F)"
+          # El pipeline deja modificados otros payloads que esta corrida no
+          # publica a propósito (spend_view_v2, spend_years_v1). El rebase se
+          # niega a avanzar con cambios sin registrar y la corrida entera se
+          # perdía aquí, después de haber hecho todo el trabajo.
+          git stash push --include-untracked --quiet || true
           git pull --rebase origin main
           git push origin main
