@@ -34,7 +34,7 @@ function activeCase(){
 }
 function saveCase(next){
   const rows=readCases();
-  const i=rows.findIndex(c=>c.case_id===next.case_id||(!c.case_id&&c.case_ref===next.case_ref));
+  const i=rows.findIndex(c=>c.case_id===next.case_id||c.case_ref===next.case_ref);
   if(i<0)return false;
   rows[i]=next;
   return writeCases(rows);
@@ -64,11 +64,11 @@ function validCase(c){
 }
 function mergeImported(imported){
   const current=readCases(),byKey=new Map();
-  current.forEach((c,i)=>{byKey.set(c.case_id||c.case_ref,i);if(c.case_ref)byKey.set('ref:'+c.case_ref,i)});
+  current.forEach((c,i)=>{if(c.case_id)byKey.set(c.case_id,i);if(c.case_ref)byKey.set('ref:'+c.case_ref,i)});
   let added=0,updated=0,skipped=0;
   for(const raw of imported){
     if(!validCase(raw)){skipped++;continue}
-    const c=structuredClone?structuredClone(raw):JSON.parse(JSON.stringify(raw));
+    const c=typeof structuredClone==='function'?structuredClone(raw):JSON.parse(JSON.stringify(raw));
     c.case_notes=Array.isArray(c.case_notes)?c.case_notes:[];
     c.events=Array.isArray(c.events)?c.events:[];
     const idx=byKey.get(c.case_id)??byKey.get('ref:'+c.case_ref);
@@ -112,6 +112,12 @@ function journalPanel(c){
   panel.innerHTML=`<div class="case-journal-head"><div class="panel-head"><h3>Bitácora del expediente</h3><span>Notas y decisiones con marca temporal</span></div><div class="case-journal-state">Persistencia local · preparada para migración</div></div><div class="case-journal-editor"><label>Tipo<select id="caseJournalType">${Object.entries(NOTE_TYPES).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select></label><label>Registro<textarea id="caseJournalBody" rows="2" placeholder="Registra un argumento, pendiente o decisión que deba quedar en la historia del expediente."></textarea></label><button data-case-note-save>Registrar</button></div>${c.notes?`<div class="case-journal-legacy"><b>Notas de trabajo actuales:</b> ${esc(c.notes)}</div>`:''}<div class="case-journal-list">${items.length?items.map(x=>`<div class="case-journal-item"><span class="case-journal-kind">${esc(x.kind)}</span><p>${esc(x.text)}</p><time>${esc(dateLabel(x.at))}</time></div>`).join(''):'<div class="case-journal-empty">El expediente aún no tiene hitos registrados fuera de su creación.</div>'}</div>`;
   return panel;
 }
+function reportJournal(c){
+  const notes=(Array.isArray(c.case_notes)?c.case_notes:[]).slice(0,8);if(!notes.length)return null;
+  const section=document.createElement('section');section.dataset.rigpJournalReport='1';
+  section.innerHTML=`<h4>Bitácora analítica</h4>${notes.map(n=>`<p><b>${esc(NOTE_TYPES[n.note_type]||n.note_type||'Nota')} · ${esc(dateLabel(n.created_at))}</b><br>${esc(n.body||'')}</p>`).join('')}`;
+  return section;
+}
 function saveStructuredNote(){
   const c=activeCase(),body=$('caseJournalBody')?.value?.trim(),type=$('caseJournalType')?.value||'ANALISIS';
   if(!c){toast('No se pudo resolver el expediente activo.',true);return}
@@ -122,7 +128,7 @@ function saveStructuredNote(){
   c.updated_at=at;c.local_contract_version='RIGP-CASE-LOCAL-v2';
   if(!saveCase(c)){toast('No fue posible guardar la nota en este navegador.',true);return}
   toast('Nota incorporada a la bitácora.');
-  refresh();
+  document.querySelector('[data-rigp-case-journal]')?.remove();refresh();
 }
 function enhanceCase(){
   const workspace=$('workspace');if(!workspace||!workspace.querySelector('.case-head'))return;
@@ -134,6 +140,13 @@ function enhanceCase(){
     const route=workspace.querySelector('.route-card');if(route?.parentNode)route.parentNode.insertBefore(journalPanel(c),route);
   }
 }
+function enhanceReport(){
+  const report=$('reportText');if(!report||report.querySelector('[data-rigp-journal-report]'))return;
+  const c=activeCase();if(!c)return;
+  const journal=reportJournal(c);if(!journal)return;
+  const conclusion=[...report.querySelectorAll('section')].find(s=>s.querySelector('h4')?.textContent?.trim()==='Conclusión');
+  if(conclusion)report.insertBefore(journal,conclusion);else report.appendChild(journal);
+}
 function enhanceInbox(){
   const workspace=$('workspace');if(!workspace||workspace.querySelector('[data-rigp-case-portable]'))return;
   const eyebrow=[...workspace.querySelectorAll('.eyebrow')].find(x=>x.textContent.trim().toLowerCase()==='mi bandeja');if(!eyebrow)return;
@@ -141,7 +154,7 @@ function enhanceInbox(){
 }
 let queued=false;
 function refresh(){
-  if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;enhanceCase();enhanceInbox()});
+  if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;enhanceCase();enhanceReport();enhanceInbox()});
 }
 const workspace=$('workspace');if(workspace)new MutationObserver(refresh).observe(workspace,{childList:true,subtree:true});
 
