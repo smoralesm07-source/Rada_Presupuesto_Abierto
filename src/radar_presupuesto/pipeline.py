@@ -20,6 +20,7 @@ from .features import build_profiles
 from .investigative_findings import build_investigative_findings
 from .normalize import normalize_frame, normalize_to_parquet
 from .operational_bundle import build_operational_bundle
+from .peer_groups import build_provider_peer_context
 from .prioritization import prioritize_signals
 from .quality import audit_quality
 from .search import build_fts, build_fts_from_parquet
@@ -123,8 +124,13 @@ def _run_analytics(
 
     cgr = _run_cgr_correlation(parquet_glob, cgr_dir)
 
+    # El contexto de pares se construye antes de priorizar: la rareza empírica y la
+    # materialidad relativa del score se miden contra él. Antes se armaba dentro del
+    # bundle operacional, es decir después del scoring, y el score no lo veía.
+    peer = build_provider_peer_context(parquet_glob)
+
     # La cola JSON permanece como producto de auditoría; no define el universo visible.
-    queue = prioritize_signals(parquet_glob, top_n=5000)
+    queue = prioritize_signals(parquet_glob, peer_context_path=peer["path"], top_n=5000)
 
     # Los hallazgos se generan completos en parquet y luego el bundle operacional
     # publica un lote acotado con reserva de diversidad, contexto de pares y patrones.
@@ -134,6 +140,7 @@ def _run_analytics(
         years=years,
         max_published_findings=600,
         reserve_per_signal=20,
+        peer_context=peer,
     )
 
     dashboard = build_dashboard_json(
@@ -164,6 +171,7 @@ def _run_analytics(
         "extended": extended,
         "entity": entity,
         "cgr": cgr,
+        "peer": peer,
         "queue": queue,
         "findings": findings,
         "operational": operational,
@@ -187,7 +195,8 @@ def run_sample(sample: str, cgr_dir: str = DEFAULT_CGR_DIR) -> None:
     result = _run_analytics(parquet, load_config(), cgr_dir, years=years)
     print(
         f"[OK] muestra: {len(df):,} filas | señales={result['extended']['signals']:,} | "
-        f"prioridad={result['queue']['priority_tiers']} | hallazgos={result['findings']['relations']:,} | "
+        f"prioridad={result['queue']['priority_tiers']} | base={result['queue']['scoring_basis']} | "
+        f"hallazgos={result['findings']['relations']:,} | "
         f"publicados={result['operational']['publication']['relations_published']:,} | "
         f"candidatos SII={result['sii_document_candidates']['rows']:,}"
     )
@@ -264,7 +273,16 @@ def run_years(
         f"[OK] CGR: {result['cgr']['status']} | enlaces candidatos={result['cgr']['links']:,} | "
         f"con hallazgos={result['cgr']['links_with_findings']:,}"
     )
-    print(f"[OK] cola investigativa: {result['queue']['priority_tiers']}")
+    print(
+        f"[OK] grupos de pares: {result['peer']['peer_groups']:,} | "
+        f"relaciones={result['peer']['rows']:,} | sin pares suficientes={result['peer']['insufficient_peer_rows']:,}"
+    )
+    # Si el scoring cae al prior por tipo en masa, el ranking dejó de ser relativo a
+    # pares sin que nadie lo note. Se reporta para que se vea en el log de la corrida.
+    print(
+        f"[OK] cola investigativa: {result['queue']['priority_tiers']} | "
+        f"base del score={result['queue']['scoring_basis']}"
+    )
     print(
         f"[OK] hallazgos RIGP: {result['findings']['relations']:,} relaciones analíticas | "
         f"publicados={result['operational']['publication']['relations_published']:,} | "

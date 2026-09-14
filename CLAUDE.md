@@ -40,15 +40,19 @@ Es la contraparte de la frontera de abajo: la otra misión no entra al motor, y
   entero y esa es una decisión de producto del usuario, no de una sesión.
 - **No mutar en silencio la forma de `docs/data/**`.** Si una pieza portada
   cambia un payload, el mismo PR sube la versión del esquema y lo declara.
+  Renombrar una columna que nadie lee se verifica antes con una búsqueda, no con
+  una suposición.
 - **`.github/workflows/ci.yml` se toca sólo por dos motivos**: cuando el
   contrato de pruebas sigue al motor —por ejemplo, una aserción que fijaba el
   número de señales— y cuando el CI no está cubriendo algo que debería, como un
   PR apilado que no corría por el filtro de rama base. Siempre validando el YAML
   antes de commitear. Ningún otro workflow.
-- **No fusionar el PR #6 en bloque.** Se porta de a una pieza, cada una con su
-  prueba.
-- **No borrar ni renombrar módulos del otro desarrollo.** Portar significa hacer
-  que el módulo que ya existe en `main` haga el trabajo.
+- **No fusionar el PR #6 en bloque.** Se conserva abierto como referencia y se
+  porta de a una pieza, cada una con su prueba.
+- **No borrar ni renombrar módulos del otro desarrollo** aunque el mapa de
+  duplicados los liste como equivalentes. Portar significa hacer que el módulo
+  que ya existe en `main` haga el trabajo, no reemplazarlo por el homónimo del
+  PR #6.
 - Todo cambio sale desde ramas `claude/*` y entra a `main` por pull request.
 
 ### Límites explícitos de la misión ChatGPT · RIGP case-first
