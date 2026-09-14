@@ -29,7 +29,7 @@ nunca si ambas son «mejora el sistema».
 | Sesión | Misión | Zonas | Desde |
 |---|---|---|---|
 | Claude · motor RIGP | Portar el motor analítico del PR #6 a `main`, una pieza por PR: scoring relativo a pares, dos ejes de score, ventanas de acción y aprendizaje, tipologías, cruce CGR por RUT. | `src/radar_presupuesto/**`; `config/**`; `scripts/**`; `tests/**` de motor; `.github/workflows/ci.yml` sólo donde el contrato de pruebas sigue al motor. | 2026-09-14 |
-| ChatGPT · RIGP case-first | Consolidar la experiencia de trabajo por expediente: `Inicio → Bandeja → Hallazgos → Explorar`, mantener `Expediente / Entidad / Informe` como vistas contextuales y preparar la evolución del caso hacia persistencia durable sin alterar el motor analítico ni los desarrollos paralelos. | `docs/index.html`; `docs/assets/rigp_case_app.*`; `docs/assets/rigp_case_explain.*`; `docs/assets/rigp_shell_*`; pruebas estrictamente necesarias para estas superficies. | 2026-09-14 |
+| ChatGPT · RIGP case-first | Consolidar la experiencia de trabajo por expediente: `Inicio → Bandeja → Hallazgos → Explorar`, mantener `Expediente / Entidad / Informe` como vistas contextuales y preparar la evolución del caso hacia persistencia durable sin alterar el motor analítico ni los desarrollos paralelos. | `docs/index.html`; `docs/assets/rigp_case_app.*`; `docs/assets/rigp_case_explain.*`; `docs/assets/rigp_shell_*`; `.github/workflows/check-case-app.yml` sólo para que el contrato de validación siga la arquitectura case-first; pruebas estrictamente necesarias para estas superficies. | 2026-09-14 |
 
 ### Límites explícitos de la misión Claude · motor RIGP
 
@@ -63,7 +63,10 @@ las siguientes fronteras:
 - **No tocar `src/radar_presupuesto/**`**, salvo que el usuario amplíe explícitamente
   la misión y se actualice antes esta sección.
 - **No tocar `config/**` ni umbrales analíticos.**
-- **No tocar `.github/workflows/**`** como parte de esta misión de producto/UX.
+- **No tocar `.github/workflows/**`** como parte de esta misión de producto/UX,
+  **salvo `.github/workflows/check-case-app.yml`** cuando sea estrictamente
+  necesario alinear su contrato con la arquitectura case-first vigente. Esta
+  excepción no otorga control sobre ningún otro workflow ni sobre CI del motor.
 - **No mutar esquemas ni contenido de `docs/data/**`**; se consumen como contrato de
   lectura. Si una futura persistencia durable exige un nuevo contrato, debe
   declararse aquí y coordinarse antes de escribirlo.
