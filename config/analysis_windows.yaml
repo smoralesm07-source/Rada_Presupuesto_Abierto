@@ -12,6 +12,11 @@ windows:
   # Desde qué año se acumula línea base: prevalencia, medianas de pares y
   # primera aparición de proveedores. Nunca llega a la bandeja. Cuanto más
   # atrás, más sólida es la afirmación de que un proveedor es "nuevo".
+  #
+  # OJO: este valor también decide cuántos bulks descarga la corrida mensual.
+  # `resolve_analysis_years` procesa todo lo confirmado desde aquí, así que
+  # moverlo hacia atrás alarga la corrida en un bulk por año. Para una corrida
+  # corta puntual, el operador pasa `window_years` sin tocar esto.
   learning_from_year: 2016
 
   # Supuesto OPERATIVO sobre hasta cuándo es razonable esperar obtener respaldo

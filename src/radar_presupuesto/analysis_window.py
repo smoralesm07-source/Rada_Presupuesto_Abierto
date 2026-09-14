@@ -70,15 +70,21 @@ WINDOW_GUARDRAIL = (
 def resolve_analysis_years(
     catalog_path: str = "docs/data/source_catalog.json",
     requested: str | None = None,
-    window_years: int = 7,
+    window_years: int | None = None,
     min_years: int = 5,
+    windows: "AnalysisWindows | None" = None,
 ) -> list[int]:
-    """Resolve a stable historical window for RIGP analytics.
+    """Resuelve la serie de años a procesar.
 
-    Three years are insufficient for labels such as ``NEW_TO_SERIES_HIGH_SPEND``
-    and make historical concentration comparisons fragile. The default therefore
-    uses the latest seven confirmed bulk years, while refusing to silently operate
-    with fewer than five unless years were explicitly requested by an operator.
+    Por defecto procesa **todo lo confirmado desde `learning_from_year`**, para
+    que el corte de la serie y la ventana de aprendizaje no puedan contradecirse:
+    antes el corte era un 7 escrito a mano y la línea base efectiva quedaba en
+    tres años aunque la configuración declarara que empezaba en 2016.
+
+    `window_years` sigue disponible para forzar «los últimos N años» —lo usa el
+    operador cuando quiere una corrida corta— y una petición explícita de años
+    manda por sobre todo. Se niega a operar en silencio con menos de `min_years`
+    años confirmados, salvo petición explícita.
     """
     if requested and requested.strip():
         years = sorted({int(x) for x in requested.replace(",", " ").split() if x.strip()})
@@ -98,9 +104,14 @@ def resolve_analysis_years(
         raise RuntimeError(
             f"RIGP requires at least {min_years} confirmed years for its default historical window; found {len(years)}"
         )
-    if window_years <= 0:
-        return years
-    return years[-window_years:]
+    if window_years is not None:
+        return years if window_years <= 0 else years[-window_years:]
+
+    w = windows or load_windows()
+    from_learning = [y for y in years if y >= w.learning_from_year]
+    # Si el catálogo no alcanza la ventana de aprendizaje configurada, se procesa
+    # lo que haya en vez de fallar: la profundidad real la declara `describe`.
+    return from_learning or years
 
 
 def describe_window(years: list[int]) -> dict:

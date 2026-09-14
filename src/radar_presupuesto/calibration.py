@@ -34,6 +34,29 @@ import yaml
 SCHEMA = "RIGP-CALIBRATION-v1"
 BACKUP_SCHEMA = "RIGP-CASE-BACKUP-v1"
 
+# Los casos sintéticos existen para ejercitar el mecanismo sin analistas, y no
+# deben poder mover el ranking real ni por descuido. Tres barreras
+# independientes lo impiden, y ninguna depende de recordar una convención:
+#
+#   1. Declaran otro esquema, así que el cargador de producción los rechaza
+#      igual que rechazaría cualquier archivo ajeno.
+#   2. Aceptarlos exige un `allow_synthetic=True` explícito en la llamada.
+#   3. Cada caso lleva su propia marca `synthetic`, y basta una para que el
+#      payload resultante quede marcado y `load_multipliers` lo rechace.
+#
+# La tercera barrera es la que importa, porque no depende del archivo. Las dos
+# primeras se rompen juntas con sólo reescribir el esquema del respaldo; la
+# marca por caso sobrevive a eso. Para contaminar el score habría que además
+# despojar a cada caso de su marca, que ya no es un descuido sino una
+# falsificación deliberada.
+SYNTHETIC_BACKUP_SCHEMA = "RIGP-CASE-BACKUP-SYNTHETIC-v1"
+
+SYNTHETIC_WARNING = (
+    "CASO SINTÉTICO DE PRUEBA. No corresponde a ninguna revisión real ni a ninguna "
+    "decisión de un analista. Existe sólo para ejercitar el mecanismo de calibración "
+    "y nunca debe alimentar el multiplicador que se aplica al ranking."
+)
+
 # Los estados de cierre del expediente, según schemas/011_cases.sql y la app
 # case-first. Un expediente escalado significa que valió la pena mirarlo.
 STATE_ESCALATED = "ESCALADO"
@@ -76,7 +99,9 @@ def load_policy(path: str = "config/calibration.yaml") -> dict:
     return policy
 
 
-def load_closed_cases(source: str = "data/calibration/cases") -> tuple[list[dict], dict]:
+def load_closed_cases(
+    source: str = "data/calibration/cases", allow_synthetic: bool = False
+) -> tuple[list[dict], dict]:
     """Lee respaldos exportados y separa los cerrados de los que siguen abiertos.
 
     Acepta un archivo o un directorio. Un respaldo que no declara el esquema
@@ -90,8 +115,13 @@ def load_closed_cases(source: str = "data/calibration/cases") -> tuple[list[dict
     elif path.is_file():
         files = [path]
 
+    accepted = {BACKUP_SCHEMA} | ({SYNTHETIC_BACKUP_SCHEMA} if allow_synthetic else set())
     closed: list[dict] = []
-    stats = {"files_read": 0, "files_rejected": 0, "cases_seen": 0, "cases_open": 0, "cases_closed": 0}
+    stats = {
+        "files_read": 0, "files_rejected": 0, "cases_seen": 0,
+        "cases_open": 0, "cases_closed": 0, "synthetic_files": 0,
+        "synthetic_rejected": 0, "synthetic_cases": 0,
+    }
     seen: set[str] = set()
     for f in files:
         try:
@@ -99,10 +129,15 @@ def load_closed_cases(source: str = "data/calibration/cases") -> tuple[list[dict
         except (json.JSONDecodeError, OSError):
             stats["files_rejected"] += 1
             continue
-        if payload.get("schema") != BACKUP_SCHEMA or not isinstance(payload.get("cases"), list):
+        schema = payload.get("schema")
+        if schema not in accepted or not isinstance(payload.get("cases"), list):
             stats["files_rejected"] += 1
+            if schema == SYNTHETIC_BACKUP_SCHEMA:
+                stats["synthetic_rejected"] += 1
             continue
         stats["files_read"] += 1
+        if schema == SYNTHETIC_BACKUP_SCHEMA:
+            stats["synthetic_files"] += 1
         for case in payload["cases"]:
             if not isinstance(case, dict):
                 continue
@@ -111,6 +146,10 @@ def load_closed_cases(source: str = "data/calibration/cases") -> tuple[list[dict
                 continue
             seen.add(key)
             stats["cases_seen"] += 1
+            if case.get("synthetic"):
+                # La marca viaja con el caso, no con el archivo: reescribir el
+                # esquema del respaldo no basta para hacerlo pasar por real.
+                stats["synthetic_cases"] += 1
             state = str(case.get("state") or "").upper()
             if state in CLOSING_STATES:
                 stats["cases_closed"] += 1
@@ -209,9 +248,10 @@ def build_calibration(
     findings_json: str = "docs/data/investigative_findings.json",
     output_json: str = "docs/data/calibration.json",
     policy_path: str = "config/calibration.yaml",
+    allow_synthetic: bool = False,
 ) -> dict:
     policy = load_policy(policy_path)
-    closed, stats = load_closed_cases(cases_source)
+    closed, stats = load_closed_cases(cases_source, allow_synthetic=allow_synthetic)
     findings = {}
     fp = Path(findings_json)
     if fp.exists():
@@ -221,9 +261,18 @@ def build_calibration(
     adjustments = multipliers(measurements, policy)
     applied = [a for a in adjustments.values() if a["applied"]]
 
+    # Basta un caso marcado para que todo el resultado sea simulación: mezclar
+    # casos sintéticos con reales no produce una calibración a medias, produce
+    # una que no se puede aplicar.
+    synthetic = bool(stats.get("synthetic_files") or stats.get("synthetic_cases"))
     payload = {
         "schema": SCHEMA,
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        # Tercera barrera: la marca viaja con el resultado, no con el archivo de
+        # entrada. Un payload marcado no puede alimentar el score aunque alguien
+        # lo copie sobre docs/data/calibration.json.
+        "synthetic": synthetic,
+        "synthetic_warning": SYNTHETIC_WARNING if synthetic else None,
         "guardrail": GUARDRAIL,
         "precision_note": PRECISION_NOTE,
         "policy": policy,
@@ -234,9 +283,17 @@ def build_calibration(
         },
         # Si no hay cierres, la capa lo dice en vez de publicar multiplicadores
         # de 1.0 que parezcan una calibración que ocurrió.
-        "status": "SIN_CIERRES" if not closed else ("SIN_AJUSTES" if not applied else "CALIBRADO"),
+        "status": (
+            "SIMULACION" if synthetic
+            else "SIN_CIERRES" if not closed
+            else "SIN_AJUSTES" if not applied
+            else "CALIBRADO"
+        ),
         "status_note": (
-            "Ningún expediente cerrado alcanzó el motor. La calibración no se ha ejecutado: "
+            f"Simulación sobre {len(closed)} caso(s) sintético(s). Ningún multiplicador de este "
+            "payload se aplica al ranking: sirve para ver cómo respondería el mecanismo."
+            if synthetic
+            else "Ningún expediente cerrado alcanzó el motor. La calibración no se ha ejecutado: "
             f"exporta los respaldos desde la app y déjalos en {cases_source}."
             if not closed
             else (
@@ -263,6 +320,10 @@ def load_multipliers(path: str = "docs/data/calibration.json") -> dict[str, floa
     except json.JSONDecodeError:
         return {}
     if payload.get("schema") != SCHEMA:
+        return {}
+    if payload.get("synthetic"):
+        # Un payload de simulación nunca alimenta el ranking, sin importar de
+        # dónde venga ni quién lo haya dejado aquí.
         return {}
     return {
         str(k): float(v.get("multiplier") or 1.0)
