@@ -2,13 +2,12 @@
 
 const PROJECT_URL='https://ldmtlwzqaqmegedktlxr.supabase.co';
 const PUBLISHABLE_KEY='sb_publishable_Nu21dZFBM3NwtIvOwIM8ag_9tyfDJyR';
-const PILOT_RUN='RIGP-PILOT-001';
 const REPOSITORY=window.RIGPCaseRepository;
-const state={client:null,session:null,profile:null,attached:false,error:null,busy:false};
+const state={client:null,session:null,profile:null,attached:false,error:null};
 const remoteHash=new Map();
-const remoteOwner=new Map();
 
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const clone=v=>typeof structuredClone==='function'?structuredClone(v):JSON.parse(JSON.stringify(v));
 function stable(value){
   if(Array.isArray(value))return '['+value.map(stable).join(',')+']';
   if(value&&typeof value==='object')return '{'+Object.keys(value).sort().map(k=>JSON.stringify(k)+':'+stable(value[k])).join(',')+'}';
@@ -19,10 +18,7 @@ function userLabel(){return state.profile?.display_name||state.session?.user?.em
 function roleLabel(){const r=String(state.profile?.role||state.profile?.pilot_role||'').toUpperCase();return r==='ADMIN'?'Administrador':r==='ANALYST'?'Analista':r==='VIEWER'?'Viewer':r||'Piloto'}
 function pilotUi(){
   let host=document.getElementById('rigpPilotSession');
-  if(!host){
-    host=document.createElement('section');host.id='rigpPilotSession';host.className='rigp-pilot-session';
-    const top=document.querySelector('.top');top?.insertAdjacentElement('afterend',host);
-  }
+  if(!host){host=document.createElement('section');host.id='rigpPilotSession';host.className='rigp-pilot-session';document.querySelector('.top')?.insertAdjacentElement('afterend',host)}
   return host;
 }
 function gateUi(){
@@ -30,9 +26,7 @@ function gateUi(){
   if(!gate){gate=document.createElement('div');gate.id='rigpAuthGate';gate.className='rigp-auth-gate';document.body.appendChild(gate)}
   return gate;
 }
-function message(text,error=false){
-  const el=document.getElementById('rigpAuthMessage');if(!el)return;el.textContent=text||'';el.classList.toggle('error',!!error);
-}
+function message(text,error=false){const el=document.getElementById('rigpAuthMessage');if(!el)return;el.textContent=text||'';el.classList.toggle('error',!!error)}
 function render(){
   const host=pilotUi(),gate=gateUi();
   if(state.session){
@@ -53,54 +47,41 @@ async function loadProfile(){
   state.profile=data||{};
 }
 function remoteAdapter(){
-  let signature='';
   return {
-    get signature(){return signature},
     async load(){
-      const {data,error}=await state.client.schema('rigp').from('case_workspace_state').select('case_id,case_ref,owner_user_id,payload,updated_at').order('updated_at',{ascending:false});
+      const {data,error}=await state.client.rpc('rigp_case_workspace_load');
       if(error)throw error;
-      remoteHash.clear();remoteOwner.clear();
-      const rows=(data||[]).map(row=>{
-        const payload=row.payload&&typeof row.payload==='object'?structuredClone(row.payload):{};
-        payload.case_id=row.case_id;payload.case_ref=payload.case_ref||row.case_ref;
+      remoteHash.clear();
+      const source=Array.isArray(data)?data:[];
+      return source.map(row=>{
+        const payload=row?.payload&&typeof row.payload==='object'?clone(row.payload):{};
+        payload.case_id=row.case_id||payload.case_id;payload.case_ref=payload.case_ref||row.case_ref;
         const remoteTs=Date.parse(row.updated_at||0)||0,localTs=Date.parse(payload.updated_at||0)||0;
         if(remoteTs>localTs)payload.updated_at=row.updated_at;
-        remoteHash.set(row.case_id,stable(payload));remoteOwner.set(row.case_id,row.owner_user_id||null);
+        remoteHash.set(payload.case_id,stable(payload));
         return payload;
-      });
-      signature=(data||[]).map(r=>`${r.case_id}:${r.updated_at}`).join('|');
-      return rows;
+      }).filter(c=>c.case_id&&c.case_ref);
     },
     async persist(cases,context={}){
-      if(!state.session?.user)return;
-      if(!canManage())return;
+      if(!state.session?.user||!canManage())return;
       const changed=(cases||[]).filter(c=>c?.case_id&&c?.case_ref&&remoteHash.get(c.case_id)!==stable(c));
       if(!changed.length)return;
-      const at=new Date().toISOString(),uid=state.session.user.id;
-      const rows=changed.map(c=>({
-        case_id:String(c.case_id),case_ref:String(c.case_ref),candidate_id:c?.source_context?.candidate_id||null,
-        owner_user_id:remoteOwner.get(c.case_id)||uid,workspace_status:String(c.status||'TRIAGE'),title:c.title||null,
-        organization_id:c.organization_id||null,provider_id:c.provider_id||null,
-        period_year:Number.isFinite(Number(c.period_year))?Number(c.period_year):null,attention_level:c.attention_level||null,
-        priority_score:Number.isFinite(Number(c.priority_score))?Number(c.priority_score):null,payload:c,updated_by:uid,updated_at:at
-      }));
-      const {error}=await state.client.schema('rigp').from('case_workspace_state').upsert(rows,{onConflict:'case_id'});
-      if(error)throw error;
       const reason=String(context.reason||'SYNC').replace(/[^A-Z0-9_-]/gi,'_').slice(0,80).toUpperCase();
-      const events=changed.map(c=>({case_id:String(c.case_id),actor_user_id:uid,event_type:reason,detail:{case_ref:c.case_ref,status:c.status||null,repository_version:context.repository_version||null}}));
-      const eventResult=await state.client.schema('rigp').from('case_workspace_event').insert(events);
-      if(eventResult.error)throw eventResult.error;
-      changed.forEach(c=>{remoteHash.set(c.case_id,stable(c));remoteOwner.set(c.case_id,remoteOwner.get(c.case_id)||uid)});
-      signature='write:'+at+':'+changed.length;
+      const {error}=await state.client.rpc('rigp_case_workspace_sync',{
+        p_cases:changed,
+        p_reason:reason,
+        p_repository_version:context.repository_version||null
+      });
+      if(error)throw error;
+      changed.forEach(c=>remoteHash.set(c.case_id,stable(c)));
     }
   };
 }
 async function attachWorkspace(){
   if(!REPOSITORY||state.attached||!state.session)return;
-  const adapter=remoteAdapter();
   try{
     await loadProfile();
-    await REPOSITORY.attachRemote(adapter,{merge:true});
+    await REPOSITORY.attachRemote(remoteAdapter(),{merge:true});
     state.attached=true;state.error=null;render();
     window.dispatchEvent(new CustomEvent('rigp-pilot-ready',{detail:{profile:state.profile,repository:REPOSITORY.describe()}}));
     const hydrationKey='rigp_remote_hydrated_v1';
@@ -127,8 +108,8 @@ async function init(){
   await setSession(data?.session||null);
   state.client.auth.onAuthStateChange((event,session)=>{
     if(event==='TOKEN_REFRESHED'){state.session=session;render();return}
-    if(event==='SIGNED_IN'&&session&&!state.attached){setSession(session)}
-    if(event==='SIGNED_OUT')setSession(null);
+    if(event==='SIGNED_IN'&&session&&!state.attached){setTimeout(()=>setSession(session),0);return}
+    if(event==='SIGNED_OUT')setTimeout(()=>setSession(null),0);
   });
 }
 async function signInPassword(){
