@@ -28,7 +28,13 @@ nunca si ambas son «mejora el sistema».
 
 | Sesión | Misión | Zonas | Desde |
 |---|---|---|---|
+| `wonderful-faraday` | Portar el motor analítico del PR #6 a `main`, una pieza por PR | `src/radar_presupuesto/**`, `config/**`, `tests/**` | 2026-09-14 |
 | _(declara aquí antes de empezar)_ | | | |
+
+Esta misión **no toca** `docs/index.html`, `docs/assets/**` ni los payloads que ya
+consume la app: el PR #6 los reescribe entero y esa decisión es del usuario, no de
+una sesión. Se portan piezas de motor, y cuando una cambia la forma de un payload,
+se sube la versión del esquema en vez de mutarlo.
 
 ### Reglas operativas
 
