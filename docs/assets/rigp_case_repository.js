@@ -159,6 +159,10 @@ async function attachRemote(adapter,{merge=true}={}){
     cache=merge?mergeRows(cache,remoteRows):remoteRows;
     persistLocal();
     remoteState='ready';emit('remote-hydrated');
+    // Al conectar un backend por primera vez, el conjunto fusionado se publica de inmediato.
+    // Esto evita dejar expedientes históricos sólo en la caché local hasta la próxima edición.
+    queueRemote('remote-bootstrap');
+    await flush();
     return describe();
   }catch(err){
     remoteState='error';remoteError=String(err?.message||err||'Error remoto');emit('remote-error');throw err;
