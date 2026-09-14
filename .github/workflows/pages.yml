@@ -6,6 +6,7 @@ on:
       - 'docs/index.html'
       - 'docs/assets/rigp_case_app.js'
       - 'docs/assets/rigp_case_app.css'
+      - 'docs/assets/rigp_case_explain.css'
       - 'docs/data/investigative_findings.json'
       - 'docs/data/entity_enrichment_v1.json'
       - 'docs/data/procurement_context.json'
@@ -105,6 +106,7 @@ jobs:
           PY
           test "$(grep -o 'assets/rigp_case_app.js' docs/index.html | wc -l)" -eq 1
           test "$(grep -o 'assets/rigp_case_app.css' docs/index.html | wc -l)" -eq 1
+          test "$(grep -o 'assets/rigp_case_explain.css' docs/index.html | wc -l)" -eq 1
           ! grep -q 'spend_safe_' docs/index.html
           ! grep -q 'spend_v[0-9]' docs/index.html
           ! grep -q 'MutationObserver' docs/assets/rigp_case_app.js
@@ -118,6 +120,7 @@ jobs:
           cp docs/index.html public/index.html
           cp docs/assets/rigp_case_app.js public/assets/rigp_case_app.js
           cp docs/assets/rigp_case_app.css public/assets/rigp_case_app.css
+          cp docs/assets/rigp_case_explain.css public/assets/rigp_case_explain.css
           cp docs/data/investigative_findings.json public/data/investigative_findings.json
           cp docs/data/case_entity_context.json public/data/case_entity_context.json
           if [ -f docs/data/procurement_context.json ]; then
