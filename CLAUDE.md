@@ -1,0 +1,128 @@
+# RIGP · Radar de Integridad del Gasto Público
+
+Radar sobre datos de Presupuesto Abierto (DIPRES) con enfoque de integridad del
+gasto e inteligencia financiera. Publica payloads JSON estáticos a GitHub Pages;
+la app los lee desde el navegador. Método vigente: `docs/RIGP_METHOD_v2.md`.
+
+---
+
+## Coordinación entre sesiones
+
+**Este repositorio ha tenido más de una sesión de Claude trabajando en paralelo,
+y el resultado fue una implementación duplicada del mismo diagnóstico.** Lo que
+sigue existe para que no vuelva a pasar.
+
+### Regla primera: una misión activa a la vez
+
+El choque no fue por compartir carpetas. Fue porque dos sesiones recibieron la
+**misma misión** —«mejora el radar»— sin saber una de la otra, y ambas tocaron
+casi todas las zonas del repositorio.
+
+Antes de empezar trabajo de alcance amplio, declara tu misión abajo. Si ya hay
+una declarada y se solapa con la tuya, **pregunta al usuario antes de escribir
+código**. Dos sesiones pueden convivir sólo si sus misiones son genuinamente
+disjuntas (por ejemplo «arregla el cruce CGR» y «añade la pantalla de informe»),
+nunca si ambas son «mejora el sistema».
+
+### Misión activa
+
+| Sesión | Misión | Zonas | Desde |
+|---|---|---|---|
+| _(declara aquí antes de empezar)_ | | | |
+
+### Reglas operativas
+
+1. **Nadie escribe a `main` directo.** Todo por pull request. Si el choque de
+   septiembre hubiera pasado por PR, se habría visto el primer día en vez de a
+   los 89 commits.
+2. **Ramas cortas.** Una rama que vive más de un día contra un `main` activo ya
+   es deuda de fusión. Integra temprano y seguido.
+3. **No borres zonas ajenas.** Si tu cambio elimina archivos que otra misión
+   está usando, no es un cambio: es una decisión de producto. Pregunta primero.
+4. **Antes de crear un módulo, busca si ya existe con otro nombre.** Ver el mapa
+   de duplicados más abajo.
+
+---
+
+## Estado: dos implementaciones del mismo diagnóstico
+
+`main` es la base vigente. El PR #6 (`claude/wonderful-faraday-nmv7dc`) contiene
+una implementación paralela y completa de las mismas ideas. **No fusionarlo tal
+cual**: borra 67 archivos que `main` usa y choca en 8. Se conserva abierto como
+referencia mientras se portan sus piezas de a una.
+
+### Mapa de duplicados
+
+Mismo concepto, dos nombres. Antes de escribir uno nuevo, revisa esta tabla.
+
+| Concepto | En `main` | En PR #6 |
+|---|---|---|
+| Ventana de años | `analysis_window.py` | `windows.py` |
+| Grupos de pares | `peer_groups.py` | dentro de `prioritization.py` |
+| Selección para publicar | `publication_selection.py` | dentro de `prioritization.py` |
+| Tipologías / patrones | `pattern_compatibility.py` | `typologies.py` |
+| Calibración con cierres | `calibration_review.py` | `calibration.py` |
+| Contexto de compras | `procurement_context.py` | `relation_context.py` |
+| Mercado Público | `mercado_publico_bridge.py` ✅ operativo | `procurement.py` (sin cliente) |
+| Expediente | — | `case_model.py` |
+| Señales de contraparte SII | — | `entity_signals.py` |
+
+---
+
+## El contrato entre motor e interfaz
+
+La costura del sistema son los payloads de `docs/data/*.json`. El motor los
+produce; la app los consume; nadie más los toca.
+
+- **Cambiar la forma de un payload rompe la app.** Si cambias un esquema, el
+  mismo PR actualiza a los dos lados, o no va.
+- Cada payload declara su `schema`. Si cambia la forma, sube la versión del
+  esquema en vez de mutar la existente en silencio.
+- Los payloads pesados (`spend_years_v1.json`, `spend_view_v2.json`) son insumos
+  de construcción, no activos web: se quedan en el repositorio y salen del
+  artefacto publicado.
+
+## Zonas
+
+| Zona | Qué es |
+|---|---|
+| `src/radar_presupuesto/**` | Motor analítico |
+| `config/**` | Umbrales y ventanas. Cambiar un valor cambia resultados: documenta por qué |
+| `docs/data/**` | El contrato. Producido por el motor |
+| `docs/index.html`, `docs/assets/**` | Interfaz |
+| `.github/workflows/**` | Operación. Valida el YAML antes de commitear |
+| `tests/**` | Cobertura de ambos lados |
+
+---
+
+## Invariantes que no se tocan
+
+Estas decisiones son lo que hace defendible el producto frente a un fiscal o un
+supervisor. No las revierta ninguna misión sin decisión explícita del usuario.
+
+- **Los guardrails viajan en cada payload.** Ninguna señal acredita
+  irregularidad, delito funcionario, fraude, corrupción ni lavado de activos.
+- **`transaction_id` ≠ `transaction_fingerprint`.** La fila física y el hecho
+  documental son cosas distintas; una repetición documental no puede colisionar
+  en la clave primaria.
+- **RUT sólo con dígito verificador validado.** Un SHA1 nunca se convierte en
+  RUT.
+- **SHA-256 del bulk en el manifiesto de snapshots.**
+- **Todo enlace externo nace `CANDIDATE`.** Una coincidencia de entidad no
+  atribuye un hallazgo a una transacción.
+- **La cadena de verificación declara lo que no se sabe:** propiedad y control
+  `POR_INTEGRAR`, beneficio final `NO_DETERMINADO`. Decirlo es lo que la hace
+  defendible.
+- **Una capa que no puede calcularse lo declara**, en vez de publicar cero y
+  parecer un resultado negativo.
+
+## Antes de entregar
+
+```bash
+PYTHONPATH=src pytest -q
+python3 -c "import yaml,glob;[yaml.safe_load(open(f)) for f in glob.glob('.github/workflows/*.yml')]"
+```
+
+Editar YAML de workflows a mano es la causa más frecuente de caída en este
+repositorio: una clave desalineada deja de parsear el archivo entero y GitHub
+deja de mostrar el workflow por su nombre.
