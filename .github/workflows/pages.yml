@@ -7,6 +7,13 @@ on:
       - 'docs/assets/rigp_case_app.js'
       - 'docs/assets/rigp_case_app.css'
       - 'docs/assets/rigp_case_explain.css'
+      - 'docs/assets/rigp_case_repository.js'
+      - 'docs/assets/rigp_case_supabase.js'
+      - 'docs/assets/rigp_case_supabase.css'
+      - 'docs/assets/rigp_shell_v2.js'
+      - 'docs/assets/rigp_shell_v2.css'
+      - 'docs/assets/rigp_shell_case_journal.js'
+      - 'docs/assets/rigp_shell_case_journal.css'
       - 'docs/data/investigative_findings.json'
       - 'docs/data/entity_enrichment_v1.json'
       - 'docs/data/procurement_context.json'
@@ -72,7 +79,11 @@ jobs:
         run: python3 scripts/build_case_entity_context.py
       - name: Validate case-first web contract
         run: |
+          node --check docs/assets/rigp_case_repository.js
+          node --check docs/assets/rigp_case_supabase.js
           node --check docs/assets/rigp_case_app.js
+          node --check docs/assets/rigp_shell_v2.js
+          node --check docs/assets/rigp_shell_case_journal.js
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -107,6 +118,10 @@ jobs:
           test "$(grep -o 'assets/rigp_case_app.js' docs/index.html | wc -l)" -eq 1
           test "$(grep -o 'assets/rigp_case_app.css' docs/index.html | wc -l)" -eq 1
           test "$(grep -o 'assets/rigp_case_explain.css' docs/index.html | wc -l)" -eq 1
+          test "$(grep -o 'assets/rigp_case_repository.js' docs/index.html | wc -l)" -eq 1
+          test "$(grep -o 'assets/rigp_case_supabase.js' docs/index.html | wc -l)" -eq 1
+          ! grep -q 'service_role' docs/assets/rigp_case_supabase.js
+          ! grep -q 'sb_secret_' docs/assets/rigp_case_supabase.js
           ! grep -q 'spend_safe_' docs/index.html
           ! grep -q 'spend_v[0-9]' docs/index.html
           ! grep -q 'MutationObserver' docs/assets/rigp_case_app.js
@@ -121,6 +136,13 @@ jobs:
           cp docs/assets/rigp_case_app.js public/assets/rigp_case_app.js
           cp docs/assets/rigp_case_app.css public/assets/rigp_case_app.css
           cp docs/assets/rigp_case_explain.css public/assets/rigp_case_explain.css
+          cp docs/assets/rigp_case_repository.js public/assets/rigp_case_repository.js
+          cp docs/assets/rigp_case_supabase.js public/assets/rigp_case_supabase.js
+          cp docs/assets/rigp_case_supabase.css public/assets/rigp_case_supabase.css
+          cp docs/assets/rigp_shell_v2.js public/assets/rigp_shell_v2.js
+          cp docs/assets/rigp_shell_v2.css public/assets/rigp_shell_v2.css
+          cp docs/assets/rigp_shell_case_journal.js public/assets/rigp_shell_case_journal.js
+          cp docs/assets/rigp_shell_case_journal.css public/assets/rigp_shell_case_journal.css
           cp docs/data/investigative_findings.json public/data/investigative_findings.json
           cp docs/data/case_entity_context.json public/data/case_entity_context.json
           if [ -f docs/data/procurement_context.json ]; then
