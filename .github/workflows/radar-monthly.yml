@@ -68,10 +68,12 @@ jobs:
           import os
           from radar_presupuesto.analysis_window import resolve_analysis_years, describe_window
           requested=os.environ.get('REQUESTED','').strip()
+          # Sin `window_years` el corte sigue a `learning_from_year` de
+          # config/analysis_windows.yaml. Fijarlo aquí a mano era lo que dejaba
+          # la línea base en tres años con la ventana declarada desde 2016.
           years=resolve_analysis_years(
               catalog_path='docs/data/source_catalog.json',
               requested=requested or None,
-              window_years=7,
               min_years=5,
           )
           print(' '.join(map(str,years)))

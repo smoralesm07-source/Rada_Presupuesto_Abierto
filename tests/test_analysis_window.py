@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from radar_presupuesto.analysis_window import describe_window, resolve_analysis_years
+from radar_presupuesto.analysis_window import describe_window, load_windows, resolve_analysis_years
 
 
 def _catalog(tmp_path: Path, years):
@@ -22,11 +22,30 @@ def _catalog(tmp_path: Path, years):
     return path
 
 
-def test_default_uses_latest_seven_confirmed_years(tmp_path: Path):
+def test_default_processes_everything_from_the_learning_window(tmp_path: Path):
+    """El corte de la serie sigue a la configuración, no a un número escrito a mano.
+
+    Antes eran «los últimos 7 años» fijos, y la línea base efectiva quedaba en
+    tres aunque la configuración declarara que el aprendizaje empieza en 2016.
+    """
     path = _catalog(tmp_path, range(2016, 2027))
     years = resolve_analysis_years(str(path))
+    assert years == list(range(2016, 2027))
+    assert load_windows().baseline_years(years) == 7
+
+
+def test_an_operator_can_still_force_a_short_run(tmp_path: Path):
+    path = _catalog(tmp_path, range(2016, 2027))
+    years = resolve_analysis_years(str(path), window_years=7)
     assert years == [2020, 2021, 2022, 2023, 2024, 2025, 2026]
     assert describe_window(years)["historical_depth_years"] == 7
+
+
+def test_a_catalog_shorter_than_the_learning_window_uses_what_it_has(tmp_path: Path):
+    """Sin la historia configurada se procesa lo disponible; la profundidad se declara."""
+    path = _catalog(tmp_path, range(2021, 2027))
+    years = resolve_analysis_years(str(path))
+    assert years == list(range(2021, 2027))
 
 
 def test_default_refuses_shallow_history(tmp_path: Path):
