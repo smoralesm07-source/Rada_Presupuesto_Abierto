@@ -35,7 +35,9 @@ jobs:
           ! grep -q 'setInterval' docs/assets/rigp_case_app.js
           ! grep -q 'investigation_queue.json' docs/assets/rigp_case_app.js
           ! grep -q 'spend_years_v1.json' docs/assets/rigp_case_app.js
-          grep -q "const CASE_KEY='rigp_cases_v1'" docs/assets/rigp_case_app.js
+          grep -q 'RIGPCaseRepository' docs/assets/rigp_case_app.js
+          ! grep -q 'localStorage' docs/assets/rigp_case_app.js
+          ! grep -q 'rigp_cases_v1' docs/assets/rigp_case_app.js
       - name: Validate persistent case schema contract
         run: |
           grep -q 'CREATE TABLE IF NOT EXISTS rigp_cases' schemas/011_cases.sql
