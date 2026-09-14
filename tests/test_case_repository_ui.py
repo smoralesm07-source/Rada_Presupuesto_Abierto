@@ -6,14 +6,17 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = ROOT / "docs" / "index.html"
 REPOSITORY_JS = ROOT / "docs" / "assets" / "rigp_case_repository.js"
+SHELL_JS = ROOT / "docs" / "assets" / "rigp_shell_v2.js"
+JOURNAL_JS = ROOT / "docs" / "assets" / "rigp_shell_case_journal.js"
 
 
 def test_case_repository_is_loaded_before_case_app():
     html = INDEX.read_text(encoding="utf-8")
     repo_pos = html.index("assets/rigp_case_repository.js")
     app_pos = html.index("assets/rigp_case_app.js")
+    shell_pos = html.index("assets/rigp_shell_v2.js")
     journal_pos = html.index("assets/rigp_shell_case_journal.js")
-    assert repo_pos < app_pos < journal_pos
+    assert repo_pos < app_pos < shell_pos < journal_pos
     assert html.count("assets/rigp_case_repository.js") == 1
 
 
@@ -29,10 +32,21 @@ def test_case_repository_declares_remote_ready_contract_without_backend_dependen
     assert "data/investigative_findings.json" not in js
 
 
+def test_shell_and_journal_use_repository_without_direct_localstorage_access():
+    for path in (SHELL_JS, JOURNAL_JS):
+        js = path.read_text(encoding="utf-8")
+        assert "RIGPCaseRepository" in js
+        assert "localStorage" not in js
+        assert "rigp_cases_v1" not in js
+    assert "caseRepo?.subscribe" in SHELL_JS.read_text(encoding="utf-8")
+    assert "caseRepo?.subscribe" in JOURNAL_JS.read_text(encoding="utf-8")
+
+
 def test_case_repository_javascript_syntax():
     node = shutil.which("node")
     assert node, "Node.js is required to validate browser JavaScript syntax"
-    subprocess.run([node, "--check", str(REPOSITORY_JS)], check=True)
+    for path in (REPOSITORY_JS, SHELL_JS, JOURNAL_JS):
+        subprocess.run([node, "--check", str(path)], check=True)
 
 
 def test_case_repository_preserves_legacy_ui_and_can_attach_remote_adapter():
@@ -62,7 +76,7 @@ vm.runInThisContext(source,{filename:process.argv[1]});
   assert.equal(repo.list().length,1);
   assert.equal(repo.findByFinding('f1').case_id,'local-1');
 
-  // Código legado sigue escribiendo por la misma clave, pero ya pasa por el repositorio.
+  // El núcleo legado aún puede escribir por la clave histórica durante la transición.
   localStorage.setItem('rigp_cases_v1',JSON.stringify([
     {case_id:'local-1',case_ref:'RIGP-L1',status:'TRIAGE',finding_ids:['f1'],evidence:[],updated_at:'2026-09-14T10:00:00Z'},
     {case_id:'local-2',case_ref:'RIGP-L2',status:'EN_REVISION',finding_ids:['f2'],evidence:[],updated_at:'2026-09-14T11:00:00Z'}
