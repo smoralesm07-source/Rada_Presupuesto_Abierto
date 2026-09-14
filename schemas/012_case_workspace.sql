@@ -53,31 +53,23 @@ grant select, insert, update on table rigp.case_workspace_state to authenticated
 grant select, insert on table rigp.case_workspace_event to authenticated;
 grant usage, select on sequence rigp.case_workspace_event_event_id_seq to authenticated;
 
--- All active pilot members may read the shared workspace.
+-- Membership stays encapsulated behind the pre-existing authenticated-only session
+-- function. authenticated has no direct SELECT on rigp.pilot_member by design.
 drop policy if exists case_workspace_active_read on rigp.case_workspace_state;
 create policy case_workspace_active_read
 on rigp.case_workspace_state for select
 to authenticated
 using (
-  exists (
-    select 1 from rigp.pilot_member pm
-    where pm.user_id = (select auth.uid()) and pm.active
-  )
+  (select public.rigp_ops_get_session()->>'user_id') = (select auth.uid())::text
 );
 
--- Only active members explicitly allowed to manage cases may write.
 drop policy if exists case_workspace_manage_insert on rigp.case_workspace_state;
 create policy case_workspace_manage_insert
 on rigp.case_workspace_state for insert
 to authenticated
 with check (
   updated_by = (select auth.uid())
-  and exists (
-    select 1 from rigp.pilot_member pm
-    where pm.user_id = (select auth.uid())
-      and pm.active
-      and pm.can_manage_cases
-  )
+  and (select public.rigp_ops_get_session()->>'role') in ('ADMIN','ANALYST')
 );
 
 drop policy if exists case_workspace_manage_update on rigp.case_workspace_state;
@@ -85,21 +77,11 @@ create policy case_workspace_manage_update
 on rigp.case_workspace_state for update
 to authenticated
 using (
-  exists (
-    select 1 from rigp.pilot_member pm
-    where pm.user_id = (select auth.uid())
-      and pm.active
-      and pm.can_manage_cases
-  )
+  (select public.rigp_ops_get_session()->>'role') in ('ADMIN','ANALYST')
 )
 with check (
   updated_by = (select auth.uid())
-  and exists (
-    select 1 from rigp.pilot_member pm
-    where pm.user_id = (select auth.uid())
-      and pm.active
-      and pm.can_manage_cases
-  )
+  and (select public.rigp_ops_get_session()->>'role') in ('ADMIN','ANALYST')
 );
 
 drop policy if exists case_workspace_event_active_read on rigp.case_workspace_event;
@@ -107,10 +89,7 @@ create policy case_workspace_event_active_read
 on rigp.case_workspace_event for select
 to authenticated
 using (
-  exists (
-    select 1 from rigp.pilot_member pm
-    where pm.user_id = (select auth.uid()) and pm.active
-  )
+  (select public.rigp_ops_get_session()->>'user_id') = (select auth.uid())::text
 );
 
 drop policy if exists case_workspace_event_manage_insert on rigp.case_workspace_event;
@@ -119,15 +98,139 @@ on rigp.case_workspace_event for insert
 to authenticated
 with check (
   actor_user_id = (select auth.uid())
-  and exists (
-    select 1 from rigp.pilot_member pm
-    where pm.user_id = (select auth.uid())
-      and pm.active
-      and pm.can_manage_cases
-  )
+  and (select public.rigp_ops_get_session()->>'role') in ('ADMIN','ANALYST')
 );
+
+-- Public-schema facades keep the private rigp schema out of the browser Data API.
+-- They run as the caller, so table grants and RLS remain effective.
+create or replace function public.rigp_case_workspace_load()
+returns jsonb
+language sql
+security invoker
+set search_path = public, rigp, auth, pg_temp
+as $$
+  select coalesce(
+    jsonb_agg(
+      jsonb_build_object(
+        'case_id', s.case_id,
+        'case_ref', s.case_ref,
+        'owner_user_id', s.owner_user_id,
+        'payload', s.payload,
+        'updated_at', s.updated_at
+      ) order by s.updated_at desc
+    ),
+    '[]'::jsonb
+  )
+  from rigp.case_workspace_state s;
+$$;
+
+revoke all on function public.rigp_case_workspace_load() from public;
+revoke all on function public.rigp_case_workspace_load() from anon;
+grant execute on function public.rigp_case_workspace_load() to authenticated;
+
+create or replace function public.rigp_case_workspace_sync(
+  p_cases jsonb,
+  p_reason text default 'SYNC',
+  p_repository_version text default null
+)
+returns jsonb
+language plpgsql
+security invoker
+set search_path = public, rigp, auth, pg_temp
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_item jsonb;
+  v_count integer := 0;
+  v_case_id text;
+  v_case_ref text;
+  v_event_type text;
+begin
+  if v_uid is null then
+    raise exception 'authentication required' using errcode='28000';
+  end if;
+
+  perform public.rigp_ops_get_session();
+
+  if jsonb_typeof(coalesce(p_cases,'[]'::jsonb)) <> 'array' then
+    raise exception 'p_cases must be a JSON array' using errcode='22023';
+  end if;
+
+  v_event_type := left(
+    upper(regexp_replace(coalesce(nullif(p_reason,''),'SYNC'),'[^A-Za-z0-9_-]+','_','g')),
+    80
+  );
+
+  for v_item in select value from jsonb_array_elements(coalesce(p_cases,'[]'::jsonb))
+  loop
+    v_case_id := nullif(v_item->>'case_id','');
+    v_case_ref := nullif(v_item->>'case_ref','');
+    if v_case_id is null or v_case_ref is null then
+      raise exception 'case_id and case_ref are required' using errcode='22023';
+    end if;
+
+    insert into rigp.case_workspace_state(
+      case_id,case_ref,candidate_id,owner_user_id,workspace_status,title,
+      organization_id,provider_id,period_year,attention_level,priority_score,
+      payload,updated_by,updated_at
+    ) values (
+      v_case_id,
+      v_case_ref,
+      nullif(v_item#>>'{source_context,candidate_id}',''),
+      v_uid,
+      coalesce(nullif(v_item->>'status',''),'TRIAGE'),
+      nullif(v_item->>'title',''),
+      nullif(v_item->>'organization_id',''),
+      nullif(v_item->>'provider_id',''),
+      case when (v_item->>'period_year') ~ '^[0-9]{4}$' then (v_item->>'period_year')::integer else null end,
+      nullif(v_item->>'attention_level',''),
+      case when (v_item->>'priority_score') ~ '^-?[0-9]+([.][0-9]+)?$' then (v_item->>'priority_score')::numeric else null end,
+      v_item,
+      v_uid,
+      now()
+    )
+    on conflict (case_id) do update set
+      case_ref = excluded.case_ref,
+      candidate_id = coalesce(excluded.candidate_id, rigp.case_workspace_state.candidate_id),
+      workspace_status = excluded.workspace_status,
+      title = excluded.title,
+      organization_id = excluded.organization_id,
+      provider_id = excluded.provider_id,
+      period_year = excluded.period_year,
+      attention_level = excluded.attention_level,
+      priority_score = excluded.priority_score,
+      payload = excluded.payload,
+      updated_by = v_uid,
+      updated_at = now();
+
+    insert into rigp.case_workspace_event(case_id,actor_user_id,event_type,detail)
+    values (
+      v_case_id,
+      v_uid,
+      v_event_type,
+      jsonb_build_object(
+        'case_ref',v_case_ref,
+        'status',v_item->>'status',
+        'repository_version',p_repository_version
+      )
+    );
+
+    v_count := v_count + 1;
+  end loop;
+
+  return jsonb_build_object('synced',v_count,'synced_at',now());
+end;
+$$;
+
+revoke all on function public.rigp_case_workspace_sync(jsonb,text,text) from public;
+revoke all on function public.rigp_case_workspace_sync(jsonb,text,text) from anon;
+grant execute on function public.rigp_case_workspace_sync(jsonb,text,text) to authenticated;
 
 comment on table rigp.case_workspace_state is
   'Shared case-first analyst workspace. Working state only; it does not establish an analytical candidate or wrongdoing.';
 comment on table rigp.case_workspace_event is
   'Append-only analyst workspace audit trail written by authenticated case managers.';
+comment on function public.rigp_case_workspace_load() is
+  'Authenticated SECURITY INVOKER facade for reading the RIGP case-first workspace under RLS.';
+comment on function public.rigp_case_workspace_sync(jsonb,text,text) is
+  'Authenticated SECURITY INVOKER facade for atomic case workspace state + audit events under RLS.';
