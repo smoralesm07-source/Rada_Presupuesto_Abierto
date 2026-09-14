@@ -3,7 +3,10 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    # `branches` filtra la rama BASE. Sin las ramas de trabajo, un PR apilado
+    # sobre otro no corre CI hasta que el de abajo se fusiona, que es justo
+    # cuando ya no sirve enterarse.
+    branches: [main, 'claude/**', 'chatgpt/**']
 permissions:
   contents: read
 jobs:
