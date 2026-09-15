@@ -1,13 +1,13 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RIGP · Gestión de casos</title><meta name="description" content="RIGP organiza hallazgos y evidencia en expedientes de revisión del gasto público."><link rel="stylesheet" href="assets/rigp_case_app.css?v=1"><link rel="stylesheet" href="assets/rigp_case_explain.css?v=1"><link rel="stylesheet" href="assets/rigp_shell_v2.css?v=2"><link rel="stylesheet" href="assets/rigp_shell_case_journal.css?v=1"><link rel="stylesheet" href="assets/rigp_case_supabase.css?v=1"></head><body>
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RIGP · Radar de Integridad del Gasto Público</title><meta name="description" content="RIGP orienta la revisión del gasto público mediante situaciones investigables, evidencia trazable y expedientes compartidos."><link rel="stylesheet" href="assets/rigp_case_app.css?v=1"><link rel="stylesheet" href="assets/rigp_case_explain.css?v=1"><link rel="stylesheet" href="assets/rigp_shell_v2.css?v=4"><link rel="stylesheet" href="assets/rigp_shell_case_journal.css?v=1"><link rel="stylesheet" href="assets/rigp_case_supabase.css?v=1"></head><body>
 <main class="app">
-<header class="top"><div><div class="eyebrow">RIGP · gestión de casos</div><h1>Del hallazgo al expediente, con evidencia trazable</h1><p>RIGP usa señales para decidir dónde mirar, pero el trabajo analítico ocurre en un expediente: hipótesis, documentos, actores, evidencia, revisión humana y conclusión.</p></div><span class="pilot-pill">Piloto operativo · espacio compartido</span></header>
-<div class="status" id="status">Cargando producto analítico…</div>
-<nav class="nav nav-primary" id="primaryNav" aria-label="Navegación principal"><button class="on" data-view="inicio">Inicio</button><button data-view="bandeja">Bandeja</button><button data-view="triage">Hallazgos</button><button data-view="explorar">Explorar</button></nav>
+<header class="top"><div><div class="eyebrow">RIGP · Radar de Integridad del Gasto Público</div><h1>Entender qué está pasando antes de abrir un caso</h1><p>El radar organiza relaciones accionables en situaciones investigables y propone qué comprobar. Las señales técnicas quedan como sustento, no como punto de partida.</p></div><span class="pilot-pill">Piloto operativo · espacio compartido</span></header>
+<div class="status" id="status">Cargando radar analítico…</div>
+<nav class="nav nav-primary" id="primaryNav" aria-label="Navegación principal"><button class="on" data-view="inicio">Radar</button><button data-view="bandeja">Casos</button><button data-view="explorar">Explorar</button><button class="nav-internal" data-view="triage" aria-hidden="true" tabindex="-1">Situaciones</button></nav>
 <div class="case-banner" id="caseBanner" hidden></div>
-<nav class="case-subnav" id="caseNav" aria-label="Navegación del expediente" hidden><span class="case-subnav-label">Expediente activo</span><button data-view="caso">Expediente</button><button data-view="entidad">Entidad</button><button data-view="informe">Informe</button></nav>
+<nav class="case-subnav" id="caseNav" aria-label="Navegación del expediente" hidden><span class="case-subnav-label">Caso activo</span><button data-view="caso">Análisis</button><button data-view="entidad">Entidad</button><button data-view="informe">Decisión / informe</button></nav>
 <section class="kpis" id="kpis"></section>
-<section class="interpretation-strip" aria-label="Cómo leer un hallazgo RIGP"><article><span>1 · ORDEN DE TRABAJO</span><b>Prioridad de revisión</b><small>Indica qué conviene mirar primero. No estima culpabilidad ni probabilidad de delito.</small></article><article><span>2 · HIPÓTESIS ANALÍTICA</span><b>Patrón compatible</b><small>Describe qué tipo de explicación conviene contrastar con documentos y antecedentes.</small></article><article><span>3 · CONTEXTO COMPARABLE</span><b>Posición frente a pares</b><small>Muestra materialidad dentro de un grupo comparable. No constituye una conclusión de integridad.</small></article></section>
-<section class="toolbar" id="filters" hidden><input id="search" type="search" autocomplete="off" placeholder="Buscar servicio, proveedor, hallazgo, señal o año…"><div class="filters"><button class="on" data-level="ACTIVE">Prioritarios</button><button data-level="ATENCION_INMEDIATA">Atención inmediata</button><button data-level="REVISION_PRIORITARIA">Revisión prioritaria</button><button data-level="ALL">Todos</button></div></section>
+<section class="interpretation-strip" aria-hidden="true"></section>
+<section class="toolbar" id="filters" hidden><input id="search" type="search" autocomplete="off" placeholder="Buscar servicio o proveedor…"><div class="filters"><button class="on" data-level="ACTIVE">Prioritarios</button><button data-level="ATENCION_INMEDIATA">Atención inmediata</button><button data-level="REVISION_PRIORITARIA">Revisión prioritaria</button><button data-level="ALL">Todos</button></div></section>
 <section id="workspace"></section>
 <p class="guardline" id="guardrail"></p>
 </main>
@@ -15,6 +15,6 @@
 <script src="assets/rigp_case_repository.js?v=2"></script>
 <script src="assets/rigp_case_supabase.js?v=1"></script>
 <script src="assets/rigp_case_app.js?v=2"></script>
-<script src="assets/rigp_shell_v2.js?v=3"></script>
+<script src="assets/rigp_shell_v2.js?v=4"></script>
 <script src="assets/rigp_shell_case_journal.js?v=2"></script>
 </body></html>
