@@ -1,0 +1,19 @@
+{
+  "status": "OK",
+  "schema": "PRESUPUESTO_ABIERTO_SII_DOCUMENT_CANDIDATES_V1",
+  "output": "data/interop/sii_document_candidates_latest.parquet",
+  "rows": 405693,
+  "entities": 405693,
+  "min_document_date": "2004-12-31",
+  "max_document_date": "2048-06-19",
+  "document_type_labels": 59,
+  "semantic": "CANDIDATES_ONLY_NOT_SII_AUTHORIZATION",
+  "next_stage": "RADAR_SII_CMSP_BRIDGE",
+  "guardrails": [
+    "one_latest_observed_spend_document_per_resolved_provider",
+    "provider_only",
+    "exclude_intra_state",
+    "exclude_natural_person_flag",
+    "SII_response_is_authority"
+  ]
+}
