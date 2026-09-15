@@ -78,6 +78,39 @@ SALES_BAND_UPPER_UF: dict[int, float | None] = {
 DEFAULT_UF_CLP = 39_000.0
 
 
+ACTIVITY_BREADTH_PERCENTILE = 0.90
+ACTIVITY_BREADTH_FLOOR = 4
+ACTIVITY_BREADTH_MIN_PEERS = 12
+ACTIVITY_BREADTH_FALLBACK = 6
+
+
+def activity_breadth_thresholds(counts_by_band: dict[int, list[int]]) -> dict[int, int]:
+    """Umbral de amplitud de giros medido dentro del propio tramo de ventas.
+
+    Un umbral absoluto —«seis actividades o más»— no mide rareza sino tamaño:
+    sobre las 848 entidades con tramo publicado dispara en el 21% de los tramos
+    11 a 13 y en el 12% de los tramos 1 a 8. Nueve giros son corrientes en un
+    conglomerado y llamativos en una sociedad pequeña, y el umbral no puede ser
+    el mismo para los dos. Se usa el percentil 90 del propio tramo, con un piso
+    para que un tramo homogéneo no marque a cualquiera, y con el umbral fijo de
+    respaldo cuando el tramo tiene pocos pares para medir.
+    """
+    thresholds: dict[int, int] = {}
+    for band, counts in counts_by_band.items():
+        if len(counts) < ACTIVITY_BREADTH_MIN_PEERS:
+            thresholds[band] = ACTIVITY_BREADTH_FALLBACK
+            continue
+        ordered = sorted(counts)
+        index = min(len(ordered) - 1, int(ACTIVITY_BREADTH_PERCENTILE * len(ordered)))
+        thresholds[band] = max(ACTIVITY_BREADTH_FLOOR, ordered[index])
+    return thresholds
+
+
+def band_median(counts: list[int]) -> int:
+    ordered = sorted(counts)
+    return ordered[len(ordered) // 2] if ordered else 0
+
+
 def is_placeholder_rut(rut: str) -> bool:
     """Los RUT comodín agregan receptores sin RUT propio: son cubos contables.
 
