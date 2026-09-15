@@ -35,6 +35,9 @@ on:
     - cron: '31 9 10 * *'
 permissions:
   contents: write
+  # La corrida ya no empuja a `main`: abre un pull request con sus payloads, y
+  # para eso necesita poder crearlo y pedir su fusión automática.
+  pull-requests: write
 concurrency:
   group: rigp-operational-radar
   cancel-in-progress: true
@@ -153,6 +156,8 @@ jobs:
           PY
 
       - name: Persist operational summaries only
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           # IMPORTANTE: spend_view_v2.json y spend_years_v1.json son propiedad de
           # Corrected Spend Data v3. Esta corrida case-first no los reconstruye ni publica.
@@ -177,12 +182,66 @@ jobs:
           do
             if [ -f "$f" ]; then git add "$f"; fi
           done
-          if git diff --cached --quiet; then exit 0; fi
+          if git diff --cached --quiet; then
+            echo "Sin cambios que publicar." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # La corrida dura casi cuatro horas. Antes empujaba directo a `main` y,
+          # cuando la proteccion de rama lo rechazaba, todo ese computo moria con
+          # el runner. Ahora el trabajo se asegura en una rama ANTES de intentar
+          # publicarlo: pase lo que pase despues, los payloads quedan guardados.
+          BRANCH="radar/datos-$(date -u +%F)-${GITHUB_RUN_ID}"
           git commit -m "radar: corrida operacional integrada $(date -u +%F)"
           # El pipeline deja modificados otros payloads que esta corrida no
-          # publica a propósito (spend_view_v2, spend_years_v1). El rebase se
-          # niega a avanzar con cambios sin registrar y la corrida entera se
-          # perdía aquí, después de haber hecho todo el trabajo.
+          # publica a proposito (spend_view_v2, spend_years_v1), y el rebase se
+          # niega a avanzar con cambios sin registrar.
           git stash push --include-untracked --quiet || true
-          git pull --rebase origin main
-          git push origin main
+          git fetch origin main
+          # Poner el commit al dia sobre main es deseable, no imprescindible. Si
+          # el rebase choca, se aborta y la rama se empuja igual: perder cuatro
+          # horas de computo por un conflicto de payloads seria el mismo error
+          # que este cambio existe para no repetir.
+          if ! git rebase origin/main; then
+            git rebase --abort || true
+            echo "El rebase sobre main choco; la rama se publica sin rebasar y el pull request mostrara el conflicto." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          git push origin "HEAD:refs/heads/${BRANCH}"
+          echo "Payloads asegurados en la rama ${BRANCH}." >> "$GITHUB_STEP_SUMMARY"
+
+          # El cuerpo del PR va por archivo: escribirlo en linea dentro de este
+          # bloque YAML es como se rompe el workflow entero.
+          cat > /tmp/pr-body.md <<'BODY'
+          Payloads producidos por la corrida mensual del radar, generados por
+          `radar-presupuesto-bot` sin intervencion humana.
+
+          Esta corrida ya no empuja a `main`. La proteccion de rama exige pull
+          request y check `test`, y este PR los satisface. El trabajo quedo
+          asegurado en su rama antes de abrirlo, asi que ninguna corrida vuelve
+          a perderse por un rechazo en el ultimo paso.
+          BODY
+          sed -i 's/^          //' /tmp/pr-body.md
+          {
+            echo ""
+            echo "Corrida: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } >> /tmp/pr-body.md
+
+          # Recien con el trabajo a salvo se intenta publicarlo. Un fallo aqui ya
+          # no cuesta la corrida: cuesta un clic.
+          if PR_URL=$(gh pr create --base main --head "${BRANCH}" \
+               --title "radar: corrida operacional integrada $(date -u +%F)" \
+               --body-file /tmp/pr-body.md); then
+            echo "Pull request: ${PR_URL}" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No se pudo abrir el pull request. Los payloads estan en ${BRANCH} y pueden fusionarse a mano." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # La fusion automatica requiere estar habilitada en el repositorio. Si
+          # no lo esta, el PR queda abierto esperando un clic y la corrida sigue
+          # siendo un exito: el trabajo esta guardado y propuesto.
+          if gh pr merge --auto --squash "${PR_URL}"; then
+            echo "Fusion automatica solicitada: se publica al pasar el check." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "La fusion automatica no esta habilitada en este repositorio: el pull request queda abierto y requiere un clic para publicar." >> "$GITHUB_STEP_SUMMARY"
+          fi
