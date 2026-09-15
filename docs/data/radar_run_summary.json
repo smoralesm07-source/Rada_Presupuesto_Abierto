@@ -1,0 +1,147 @@
+{
+  "generated_at": "2026-09-15T15:26:56+00:00",
+  "schema": "RIGP-RUN-SUMMARY-v1",
+  "guardrail": "Este resumen describe cobertura y comportamiento operativo del radar. No acredita irregularidad, fraude, corrupción, delito funcionario, lavado de activos ni responsabilidad de una entidad o persona.",
+  "analysis_window": {
+    "years": [
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "year_count": 11,
+    "first_year": 2016,
+    "last_year": 2026,
+    "historical_depth_years": 11,
+    "effective_years": [
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "effective_year_count": 11,
+    "normalized_rows": 56692527
+  },
+  "signals": {
+    "total": 560307,
+    "counts": {
+      "AMOUNT_OUTLIER": 19363,
+      "POTENTIAL_FRAGMENTATION": 171968,
+      "EXACT_DUPLICATE_CANDIDATE": 236902,
+      "YEAR_END_SPIKE": 1906,
+      "PROVIDER_CONCENTRATION": 1725,
+      "PAYMENT_DELAY_OUTLIER": 118425,
+      "NEW_TO_SERIES_HIGH_SPEND": 34,
+      "NEWBORN_SUPPLIER": 371,
+      "CAPACITY_MISMATCH": 3609,
+      "ACTIVITY_MISMATCH": 5943,
+      "TERMINATION_AFTER_PAYMENT": 0,
+      "DORMANT_REACTIVATION": 61
+    },
+    "shares": {
+      "AMOUNT_OUTLIER": 0.034558,
+      "POTENTIAL_FRAGMENTATION": 0.306917,
+      "EXACT_DUPLICATE_CANDIDATE": 0.422807,
+      "YEAR_END_SPIKE": 0.003402,
+      "PROVIDER_CONCENTRATION": 0.003079,
+      "PAYMENT_DELAY_OUTLIER": 0.211357,
+      "NEW_TO_SERIES_HIGH_SPEND": 6.1e-05,
+      "NEWBORN_SUPPLIER": 0.000662,
+      "CAPACITY_MISMATCH": 0.006441,
+      "ACTIVITY_MISMATCH": 0.010607,
+      "TERMINATION_AFTER_PAYMENT": 0.0,
+      "DORMANT_REACTIVATION": 0.000109
+    },
+    "statuses": {
+      "AMOUNT_OUTLIER": "ACTIVE",
+      "POTENTIAL_FRAGMENTATION": "ACTIVE",
+      "EXACT_DUPLICATE_CANDIDATE": "ACTIVE",
+      "YEAR_END_SPIKE": "ACTIVE",
+      "PROVIDER_CONCENTRATION": "ACTIVE",
+      "PAYMENT_DELAY_OUTLIER": "ACTIVE",
+      "NEW_TO_SERIES_HIGH_SPEND": "ACTIVE",
+      "NEWBORN_SUPPLIER": "ACTIVE",
+      "CAPACITY_MISMATCH": "ACTIVE",
+      "ACTIVITY_MISMATCH": "ACTIVE",
+      "TERMINATION_AFTER_PAYMENT": "EXPERIMENTAL_ZERO",
+      "DORMANT_REACTIVATION": "ACTIVE"
+    },
+    "active_types": 11,
+    "types_needing_review": 1,
+    "dominant_signal": "EXACT_DUPLICATE_CANDIDATE",
+    "dominant_share": 0.422807
+  },
+  "findings": {
+    "relations_available": 189751,
+    "relations_published": 600,
+    "publication_ratio": 0.003162,
+    "attention_levels": {
+      "ATENCION_INMEDIATA": 372,
+      "REVISION_PRIORITARIA": 14,
+      "SEGUIMIENTO": 4
+    },
+    "published_by_signal": {
+      "POTENTIAL_FRAGMENTATION": 265,
+      "PAYMENT_DELAY_OUTLIER": 410,
+      "EXACT_DUPLICATE_CANDIDATE": 277,
+      "PROVIDER_CONCENTRATION": 78,
+      "AMOUNT_OUTLIER": 176,
+      "CAPACITY_MISMATCH": 84,
+      "ACTIVITY_MISMATCH": 9,
+      "DORMANT_REACTIVATION": 1,
+      "NEWBORN_SUPPLIER": 1,
+      "NEW_TO_SERIES_HIGH_SPEND": 20
+    },
+    "selection_method": "priority_with_signal_diversity_reserve"
+  },
+  "context": {
+    "peer_context_relations": 600,
+    "peer_context_coverage": 1.0,
+    "primary_pattern_relations": 467,
+    "primary_pattern_coverage": 0.778333,
+    "primary_pattern_distribution": {}
+  },
+  "procurement": {
+    "findings_requested": 600,
+    "findings_with_purchase_order": 462,
+    "purchase_order_coverage": 0.77,
+    "schema": "RIGP-PROCUREMENT-CONTEXT-v1"
+  },
+  "sii": {
+    "providers_requested": 290,
+    "providers_with_context": 93,
+    "context_coverage": 0.32069,
+    "coverage_state": "MEDIDO",
+    "coverage_note": null,
+    "reported_coverage": {
+      "providers_published": 290,
+      "providers_with_valid_rut": 286,
+      "providers_matched_in_sii": 93,
+      "providers_without_valid_rut": 4
+    },
+    "schema": "RIGP-CASE-ENTITY-CONTEXT-v1"
+  },
+  "warnings": [
+    {
+      "type": "SIGNAL_HEALTH",
+      "signal_type": "TERMINATION_AFTER_PAYMENT",
+      "status": "EXPERIMENTAL_ZERO",
+      "note": "La señal no produjo resultados en la corrida; no debe ocupar espacio operativo hasta revisar datos y umbrales."
+    }
+  ],
+  "interpretation": "El resumen sirve para evaluar cobertura, diversidad, salud de detectores y disponibilidad de contexto. No recalibra automáticamente pesos ni umbrales y no transforma patrones en conclusiones jurídicas."
+}

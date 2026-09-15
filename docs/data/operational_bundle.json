@@ -1,0 +1,99 @@
+{
+  "generated_at": "2026-09-15T15:00:08+00:00",
+  "schema": "RIGP-OPERATIONAL-BUNDLE-v1",
+  "analysis_window": {
+    "years": [
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "year_count": 11,
+    "first_year": 2016,
+    "last_year": 2026,
+    "historical_depth_years": 11
+  },
+  "publication": {
+    "relations_available": 189751,
+    "relations_published": 600,
+    "available_by_signal": {
+      "POTENTIAL_FRAGMENTATION": 103241,
+      "PAYMENT_DELAY_OUTLIER": 52839,
+      "EXACT_DUPLICATE_CANDIDATE": 30320,
+      "PROVIDER_CONCENTRATION": 1725,
+      "AMOUNT_OUTLIER": 7679,
+      "CAPACITY_MISMATCH": 3609,
+      "ACTIVITY_MISMATCH": 5943,
+      "DORMANT_REACTIVATION": 61,
+      "NEWBORN_SUPPLIER": 371,
+      "NEW_TO_SERIES_HIGH_SPEND": 34
+    },
+    "published_by_signal": {
+      "POTENTIAL_FRAGMENTATION": 265,
+      "PAYMENT_DELAY_OUTLIER": 410,
+      "EXACT_DUPLICATE_CANDIDATE": 277,
+      "PROVIDER_CONCENTRATION": 78,
+      "AMOUNT_OUTLIER": 176,
+      "CAPACITY_MISMATCH": 84,
+      "ACTIVITY_MISMATCH": 9,
+      "DORMANT_REACTIVATION": 1,
+      "NEWBORN_SUPPLIER": 1,
+      "NEW_TO_SERIES_HIGH_SPEND": 20
+    },
+    "published_by_pattern": {
+      "INTEGRIDAD_DOCUMENTAL": 370,
+      "CONCENTRACION_COMPETENCIA": 64,
+      "CAPACIDAD_Y_TRAYECTORIA": 3,
+      "IRRUPCION_CAMBIO_ESCALA": 30
+    }
+  },
+  "signal_health": {
+    "total_signals": 560307,
+    "active_signal_types": 11,
+    "needs_review_signal_types": 1,
+    "statuses": {
+      "AMOUNT_OUTLIER": "ACTIVE",
+      "POTENTIAL_FRAGMENTATION": "ACTIVE",
+      "EXACT_DUPLICATE_CANDIDATE": "ACTIVE",
+      "YEAR_END_SPIKE": "ACTIVE",
+      "PROVIDER_CONCENTRATION": "ACTIVE",
+      "PAYMENT_DELAY_OUTLIER": "ACTIVE",
+      "NEW_TO_SERIES_HIGH_SPEND": "ACTIVE",
+      "NEWBORN_SUPPLIER": "ACTIVE",
+      "CAPACITY_MISMATCH": "ACTIVE",
+      "ACTIVITY_MISMATCH": "ACTIVE",
+      "TERMINATION_AFTER_PAYMENT": "EXPERIMENTAL_ZERO",
+      "DORMANT_REACTIVATION": "ACTIVE"
+    }
+  },
+  "peer_context": {
+    "path": "data/processed/provider_peer_context.parquet",
+    "rows": 3524746,
+    "peer_groups": 119184,
+    "insufficient_peer_rows": 93114,
+    "extreme_peer_rows": 83054,
+    "high_peer_rows": 288806,
+    "min_peer_providers": 5
+  },
+  "finding_context_coverage": {
+    "published_relations": 600,
+    "relations_with_peer_context": 600,
+    "relations_with_primary_pattern": 467,
+    "relations_with_uncorroborated_similarity": 133,
+    "relations_in_action_window": 96,
+    "relations_learning_only": 504
+  },
+  "procurement_context": {
+    "findings_requested": 600,
+    "findings_with_rows": 600,
+    "findings_with_purchase_order": 462
+  },
+  "interpretation": "El bundle separa prioridad de revisión, compatibilidad descriptiva de patrón, materialidad frente a pares y contexto de contratación. Ninguna capa acredita irregularidad o delito."
+}
