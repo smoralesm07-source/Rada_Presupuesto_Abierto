@@ -133,6 +133,7 @@ Mismo concepto, dos nombres. Antes de escribir uno nuevo, revisa esta tabla.
 | Señales de contraparte SII | `entity_signals.py` ✅ portado | `entity_signals.py` |
 | Enlace CGR por entidad (scoring) | `cgr_correlation.py` | dentro de `typologies.py` |
 | Exposición a auditoría por servicio | `public_service_audits.py` | — |
+| Índice de opacidad por servicio | `opacity_index.py` ✅ portado | dentro de `relation_context.py` |
 
 ---
 
