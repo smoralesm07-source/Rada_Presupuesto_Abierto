@@ -46,7 +46,17 @@ Es la contraparte de la frontera de abajo: la otra misión no entra al motor, y
   contrato de pruebas sigue al motor —por ejemplo, una aserción que fijaba el
   número de señales— y cuando el CI no está cubriendo algo que debería, como un
   PR apilado que no corría por el filtro de rama base. Siempre validando el YAML
-  antes de commitear. Ningún otro workflow.
+  antes de commitear.
+- **`.github/workflows/radar-monthly.yml`, ampliación autorizada por el usuario
+  el 2026-09-15**, y sólo para que la corrida no destruya su propio resultado.
+  La corrida #32 calculó once años de serie durante 3h37m, pasó la validación y
+  murió al empujar a `main`: la protección de rama exige pull request y check
+  `test`, y el bot empujaba directo. Cuatro horas de cómputo perdidas en el
+  último paso. La corrida ahora asegura sus payloads en una rama y abre un pull
+  request. La regla «nadie escribe a `main` directo» deja de tener excepción,
+  incluso para el bot. Cualquier otro cambio a este workflow —el pipeline
+  analítico, sus disparadores, su ventana— sigue fuera de esta misión.
+- Ningún otro workflow.
 - **No fusionar el PR #6 en bloque.** Se conserva abierto como referencia y se
   porta de a una pieza, cada una con su prueba.
 - **No borrar ni renombrar módulos del otro desarrollo** aunque el mapa de
