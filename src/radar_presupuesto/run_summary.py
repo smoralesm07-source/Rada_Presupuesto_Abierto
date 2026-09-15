@@ -26,6 +26,21 @@ def _ratio(num: int | float, den: int | float) -> float:
     return round(float(num or 0) / float(den or 1), 6) if den else 0.0
 
 
+def _first_int(source: dict, keys: tuple[str, ...], default: int | None = 0) -> int | None:
+    """Primer valor presente entre `keys`, respetando el cero como valor legítimo.
+
+    Una cadena de `or` descarta el 0 igual que descarta la clave ausente, y ahí
+    se pierde la diferencia entre medir cero y no haber medido.
+    """
+    for key in keys:
+        if key in source and source[key] is not None:
+            try:
+                return int(source[key])
+            except (TypeError, ValueError):
+                continue
+    return default
+
+
 def build_run_summary(
     findings_json: str = "docs/data/investigative_findings.json",
     bundle_json: str = "docs/data/operational_bundle.json",
@@ -97,18 +112,26 @@ def build_run_summary(
     )
 
     entity_cov = entities.get("coverage") or {}
-    entity_requested = int(
-        entity_cov.get("published_providers")
-        or entity_cov.get("providers_requested")
-        or entity_cov.get("requested")
-        or len(rows)
+    # El productor de la capa de entidad escribe `providers_published` y
+    # `providers_matched_in_sii`; este resumen buscaba tres alias que nadie
+    # escribe nunca, así que caía al 0 por defecto e informaba una capa muerta
+    # cuando estaba viva. Se listan primero los nombres reales.
+    entity_requested = _first_int(
+        entity_cov,
+        ("providers_published", "published_providers", "providers_requested", "requested"),
+        default=len(rows),
     )
-    entity_matched = int(
-        entity_cov.get("providers_with_sii_context")
-        or entity_cov.get("matched_entities")
-        or entity_cov.get("matched")
-        or 0
+    entity_matched = _first_int(
+        entity_cov,
+        ("providers_matched_in_sii", "providers_with_sii_context", "matched_entities", "matched"),
+        default=None,
     )
+    # Distinto es «ningún proveedor cruzó» y «nadie midió el cruce». Lo primero
+    # es un resultado; lo segundo, una capa que no puede calcularse y que el
+    # invariante obliga a declarar en vez de publicar un cero.
+    entity_measured = entity_matched is not None
+    if not entity_measured:
+        entity_matched = 0
 
     context_cov = findings.get("context_coverage") or bundle.get("finding_context_coverage") or {}
     primary_pattern_count = int(context_cov.get("relations_with_primary_pattern") or sum(pattern_counts.values()))
@@ -184,6 +207,13 @@ def build_run_summary(
             "providers_requested": entity_requested,
             "providers_with_context": entity_matched,
             "context_coverage": _ratio(entity_matched, entity_requested),
+            "coverage_state": "MEDIDO" if entity_measured else "NO_MEDIDO",
+            "coverage_note": (
+                None if entity_measured else
+                "La capa de entidad no reportó cuántos proveedores cruzaron. El cero de "
+                "arriba es ausencia de medición, no ausencia de cruce: no debe leerse como "
+                "que ningún proveedor tiene perfil registral."
+            ),
             "reported_coverage": entity_cov,
             "schema": entities.get("schema"),
         },
