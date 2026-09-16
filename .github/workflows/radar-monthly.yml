@@ -177,6 +177,8 @@ jobs:
             docs/data/operational_bundle.json \
             docs/data/procurement_context.json \
             docs/data/case_entity_context.json \
+            docs/data/opacity_index.json \
+            docs/data/public_service_audits.json \
             docs/data/radar_run_summary.json \
             docs/data/sii_document_candidates_status.json
           do
