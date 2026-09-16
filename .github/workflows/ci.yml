@@ -92,8 +92,14 @@ jobs:
           assert len(fh['relation_findings']) <= 600
           for row in fh['relation_findings']:
               assert 'pattern_compatibility' in row
-          assert pc['schema'] == 'RIGP-PROCUREMENT-CONTEXT-v1'
+          # Este payload lo acaba de reescribir el paso anterior sobre la muestra, así
+          # que la versión que se exige aquí es la que emite el motor de este commit.
+          assert pc['schema'] == 'RIGP-PROCUREMENT-CONTEXT-v2'
           assert 'coverage' in pc and 'findings' in pc and 'guardrail' in pc
+          assert 'split_guardrail' in pc
+          assert 'findings_worth_triage' in pc['coverage']
+          for row in pc['findings']:
+              assert 'split_shape' in row and 'weekly_clusters' in row
           assert sh['schema'] == 'RIGP-SIGNAL-HEALTH-v1'
           assert len(sh['signals']) == sh['expected_signal_types']
           assert {x['layer'] for x in sh['signals']} == {'TRANSACCION','ENTIDAD'}

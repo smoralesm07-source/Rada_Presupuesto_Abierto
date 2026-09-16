@@ -89,5 +89,5 @@ def test_empty_findings_writes_valid_payload(tmp_path: Path):
     payload = json.loads(out.read_text(encoding="utf-8"))
 
     assert coverage["findings_requested"] == 0
-    assert payload["schema"] == "RIGP-PROCUREMENT-CONTEXT-v1"
+    assert payload["schema"] == "RIGP-PROCUREMENT-CONTEXT-v2"
     assert payload["findings"] == []
