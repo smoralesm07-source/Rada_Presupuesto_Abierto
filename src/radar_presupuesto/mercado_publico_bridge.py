@@ -234,6 +234,59 @@ def _identity_check(target: dict, order: dict | None) -> dict:
     return {"status": status, "expected_rut": expected or None, "observed_rut": observed or None, "note": note}
 
 
+TICKET_REJECTED = "TICKET_RECHAZADO"
+ENDPOINT_CHANGED = "ENDPOINT_NO_DISPONIBLE"
+RATE_LIMITED = "LIMITE_DE_CONSULTAS"
+NETWORK = "RED_NO_DISPONIBLE"
+UNCLASSIFIED = "NO_CLASIFICADO"
+
+FAILURE_MEANING = {
+    TICKET_REJECTED: (
+        "La API rechazó la credencial. El ticket existe pero no autoriza esta consulta: "
+        "hay que renovarlo o verificar que corresponde al endpoint de órdenes de compra. "
+        "Es acción del operador, no defecto del puente."
+    ),
+    ENDPOINT_CHANGED: (
+        "La API respondió que el recurso no existe para todas las órdenes consultadas. "
+        "O el endpoint cambió de forma, o los códigos de orden que publica Presupuesto "
+        "Abierto no son los que Mercado Público resuelve por este camino."
+    ),
+    RATE_LIMITED: (
+        "La API limitó las consultas. El puente ya se detiene solo; conviene espaciar la "
+        "corrida antes de reintentar."
+    ),
+    NETWORK: "No hubo salida de red hacia la API. No dice nada sobre la credencial ni sobre las órdenes.",
+    UNCLASSIFIED: "El error no cae en ninguna causa conocida; se conserva el texto tal cual para leerlo.",
+}
+
+
+def diagnose_api_failure(exc: Exception) -> dict:
+    """Traduce un fallo de API a una causa accionable, sin adivinar cuál es.
+
+    La diferencia importa: un ticket rechazado lo arregla el operador en un minuto,
+    un endpoint cambiado lo arregla el adaptador. Informar sólo «20 errores» obliga
+    a repetir la corrida para averiguar cuál de las dos cosas pasó.
+    """
+    text = str(exc)
+    code = getattr(exc, "code", None)
+    if code in (401, 403) or "401" in text or "403" in text:
+        cause = TICKET_REJECTED
+    elif code == 404 or "404" in text:
+        cause = ENDPOINT_CHANGED
+    elif code == 429 or "429" in text:
+        cause = RATE_LIMITED
+    elif isinstance(exc, (OSError,)) and code is None and "HTTP" not in text:
+        cause = NETWORK
+    else:
+        cause = UNCLASSIFIED
+    return {
+        "cause": cause,
+        "meaning": FAILURE_MEANING[cause],
+        "http_status": code,
+        "error": text[:300],
+    }
+
+
 def build_mercado_publico_context(
     procurement_path: str = "docs/data/procurement_context.json",
     findings_path: str = "docs/data/investigative_findings.json",
@@ -324,7 +377,13 @@ def build_mercado_publico_context(
             consecutive_errors += 1
             if consecutive_errors >= 20:
                 result["status"] = "PARTIAL_API_FAILURE"
-                result["status_note"] = "Se detuvo la corrida tras 20 errores API consecutivos para evitar solicitudes inútiles."
+                # El motivo viaja en la nota, no sólo en el conteo: una corrida que
+                # se detiene sin decir por qué obliga a repetirla para averiguarlo.
+                result["status_note"] = (
+                    "Se detuvo la corrida tras 20 errores API consecutivos para evitar solicitudes "
+                    f"inútiles. Último error, en la orden {code}: {str(exc)[:200]}"
+                )
+                result["failure_diagnosis"] = diagnose_api_failure(exc)
                 break
         if request_pause_seconds > 0:
             time.sleep(request_pause_seconds)
@@ -376,6 +435,15 @@ def main() -> None:
     result = build_mercado_publico_context()
     print("[RIGP Mercado Público]", result["status"])
     print("[RIGP Mercado Público coverage]", result["coverage"])
+    if result.get("status_note"):
+        print("[RIGP Mercado Público nota]", result["status_note"])
+    diagnosis = result.get("failure_diagnosis")
+    if diagnosis:
+        print("[RIGP Mercado Público causa]", diagnosis["cause"], "-", diagnosis["meaning"])
+    # Las primeras fallas van al log porque el payload puede no llegar a publicarse:
+    # una corrida que muere al empujar no puede llevarse consigo el diagnóstico.
+    for code, failure in list((result.get("failures") or {}).items())[:3]:
+        print(f"[RIGP Mercado Público falla] {code}: {failure.get('status')} {failure.get('message','')[:200]}")
 
 
 if __name__ == "__main__":
