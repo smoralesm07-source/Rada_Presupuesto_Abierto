@@ -38,6 +38,9 @@ permissions:
   # La corrida ya no empuja a `main`: abre un pull request con sus payloads, y
   # para eso necesita poder crearlo y pedir su fusión automática.
   pull-requests: write
+  # Y necesita pedir el check `test` sobre su rama: un PR abierto con
+  # GITHUB_TOKEN no dispara CI solo, así que sin esto queda bloqueado.
+  actions: write
 concurrency:
   group: rigp-operational-radar
   cancel-in-progress: true
@@ -210,6 +213,15 @@ jobs:
           fi
           git push origin "HEAD:refs/heads/${BRANCH}"
           echo "Payloads asegurados en la rama ${BRANCH}." >> "$GITHUB_STEP_SUMMARY"
+
+          # El PR lo abre el bot con GITHUB_TOKEN, y por eso no dispara CI solo.
+          # Se pide el check explicitamente sobre la rama: sin el, la proteccion
+          # de rama deja el pull request bloqueado indefinidamente.
+          if gh workflow run ci.yml --ref "${BRANCH}"; then
+            echo "Check \`test\` solicitado sobre ${BRANCH}." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No se pudo solicitar el check sobre ${BRANCH}: el pull request requerira un check manual." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
           # El cuerpo del PR va por archivo: escribirlo en linea dentro de este
           # bloque YAML es como se rompe el workflow entero.

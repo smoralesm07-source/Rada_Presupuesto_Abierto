@@ -8,6 +8,9 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  # Necesario para pedir el check `test` sobre la rama; sin el, el pull
+  # request del bot queda bloqueado por la proteccion de rama.
+  actions: write
 concurrency:
   group: mercado-publico-targeted-enrichment
   cancel-in-progress: true
@@ -90,6 +93,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           BRANCH: ${{ steps.secure.outputs.branch }}
         run: |
+          # El PR lo abre el bot con GITHUB_TOKEN, y por eso no dispara CI solo.
+          # Se pide el check explicitamente sobre la rama: sin el, la proteccion
+          # de rama deja el pull request bloqueado indefinidamente.
+          if gh workflow run ci.yml --ref "${BRANCH}"; then
+            echo "Check \`test\` solicitado sobre ${BRANCH}." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No se pudo solicitar el check sobre ${BRANCH}: el pull request requerira un check manual." >> "$GITHUB_STEP_SUMMARY"
+          fi
           cat > /tmp/pr-body.md <<'BODY'
           Evidencia dirigida de Mercado Público, resuelta por
           `radar-presupuesto-bot` sin intervencion humana.
