@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 import urllib.parse
 import urllib.request
@@ -51,6 +52,54 @@ def _as_list(value: object) -> list:
 
 def _clean_code(value: object) -> str:
     return str(value or "").strip().upper()
+
+
+# Forma canónica de ChileCompra: comprador-correlativo-tipo+año, p.ej. 1509-11-SE24.
+CANONICAL_ORDER_CODE = re.compile(r"^\d+-\d+-[A-Z]{1,3}\d{2}$")
+MISSING_SEPARATOR = re.compile(r"^(\d+)-(\d+)([A-Z]{1,3}\d{2})$")
+
+CANONICAL = "CANONICO"
+REPAIRED_DASH = "REPARADO_GUION_SOBRANTE"
+REPAIRED_SEPARATOR = "REPARADO_SEPARADOR_FALTANTE"
+NOT_AN_ORDER_CODE = "NO_ES_CODIGO_DE_ORDEN"
+
+NOT_A_CODE_NOTE = (
+    "El campo `orden_compra` de Presupuesto Abierto no trae aquí un código de orden. "
+    "No es una orden que Mercado Público no tenga: es una referencia que nunca fue un "
+    "código, y consultarla produciría un «no encontrado» que se leería como ausencia "
+    "de la orden."
+)
+
+
+def classify_order_code(raw: object) -> dict:
+    """Separa un código de orden de un campo usado como nota libre.
+
+    Medido sobre los 4.366 códigos distintos publicados, el 22,9% no son códigos:
+    `0`, `00000`, `C/T`, `COMISION`, `CONTRATO DE ARRASTRE`. Consultarlos gasta
+    cuota, pero el daño real es otro: quedarían publicados como órdenes que
+    Mercado Público no encontró, cuando la verdad es que nunca hubo un código que
+    buscar. Es la misma regla de siempre: una capa que no puede calcularse lo
+    declara, en vez de publicar un cero que parece un resultado negativo.
+
+    Las dos reparaciones son mecánicas y se declaran: quitar guiones sobrantes en
+    los extremos y reponer el separador que falta antes del tipo. Recuperan 23 de
+    los 4.366 —poco— y ninguna inventa un dígito. Cualquier otra forma se descarta
+    en vez de adivinarse.
+    """
+    code = _clean_code(raw)
+    if not code:
+        return {"code": None, "shape": NOT_AN_ORDER_CODE, "consultable": False, "raw": code}
+    if CANONICAL_ORDER_CODE.match(code):
+        return {"code": code, "shape": CANONICAL, "consultable": True, "raw": code}
+
+    trimmed = code.strip("-").strip()
+    if CANONICAL_ORDER_CODE.match(trimmed):
+        return {"code": trimmed, "shape": REPAIRED_DASH, "consultable": True, "raw": code}
+    match = MISSING_SEPARATOR.match(trimmed)
+    if match:
+        repaired = f"{match.group(1)}-{match.group(2)}-{match.group(3)}"
+        return {"code": repaired, "shape": REPAIRED_SEPARATOR, "consultable": True, "raw": code}
+    return {"code": None, "shape": NOT_AN_ORDER_CODE, "consultable": False, "raw": code}
 
 
 def _number(value: object) -> float | None:
@@ -183,23 +232,51 @@ def build_targets(
     max_orders_per_finding: int = 2,
     max_total_orders: int = 800,
 ) -> list[dict]:
+    return build_targets_with_discards(
+        procurement, findings,
+        max_orders_per_finding=max_orders_per_finding,
+        max_total_orders=max_total_orders,
+    )[0]
+
+
+def build_targets_with_discards(
+    procurement: dict,
+    findings: dict,
+    max_orders_per_finding: int = 2,
+    max_total_orders: int = 800,
+) -> tuple[list[dict], list[dict]]:
+    """Los objetivos a consultar y las referencias que no son códigos de orden.
+
+    Lo descartado se devuelve en vez de desaparecer: el payload tiene que poder
+    decir cuántas referencias nunca fueron un código, para que su ausencia no se
+    lea como una orden que Mercado Público no tiene.
+    """
     priority = _priority_by_finding(findings)
     rows = list(procurement.get("findings") or [])
     rows.sort(key=lambda x: priority.get(str(x.get("finding_id") or ""), (9, 0)))
     selected: list[dict] = []
+    discarded: list[dict] = []
     seen: set[str] = set()
     for row in rows:
         fid = str(row.get("finding_id") or "")
         provider_id = str(row.get("provider_id") or "")
         expected_rut = rut_from_provider_id(provider_id)
-        for code in (row.get("purchase_order_examples") or [])[: max(0, int(max_orders_per_finding))]:
-            code = _clean_code(code)
-            if not code or code in seen:
+        for raw in (row.get("purchase_order_examples") or [])[: max(0, int(max_orders_per_finding))]:
+            verdict = classify_order_code(raw)
+            if not verdict["consultable"]:
+                if verdict["raw"]:
+                    discarded.append({"finding_id": fid, "reference": verdict["raw"],
+                                      "shape": verdict["shape"], "note": NOT_A_CODE_NOTE})
+                continue
+            code = verdict["code"]
+            if code in seen:
                 continue
             seen.add(code)
             selected.append(
                 {
                     "purchase_order_code": code,
+                    "source_reference": verdict["raw"],
+                    "code_shape": verdict["shape"],
                     "finding_id": fid,
                     "organization_id": str(row.get("organization_id") or ""),
                     "provider_id": provider_id,
@@ -208,8 +285,8 @@ def build_targets(
                 }
             )
             if len(selected) >= max_total_orders:
-                return selected
-    return selected
+                return selected, discarded
+    return selected, discarded
 
 
 def _api_url(code: str, ticket: str, endpoint: str = ORDER_ENDPOINT_CANDIDATES[0]) -> str:
@@ -408,7 +485,7 @@ def build_mercado_publico_context(
 ) -> dict:
     procurement = _read(procurement_path)
     findings = _read(findings_path)
-    targets = build_targets(
+    targets, discarded = build_targets_with_discards(
         procurement,
         findings,
         max_orders_per_finding=max_orders_per_finding,
@@ -448,6 +525,8 @@ def build_mercado_publico_context(
             "identity_reviews": 0,
             "linked_tenders": 0,
             "endpoint_probe_requests": 0,
+            "non_code_references": len(discarded),
+            "repaired_codes": sum(1 for t in targets if t["code_shape"] != CANONICAL),
             "rate_limit_retries": 0,
             "rate_limit_abandoned": 0,
         },
@@ -568,6 +647,7 @@ def build_mercado_publico_context(
     if result["status"] == "RUNNING":
         result["status"] = "READY" if not failures else "READY_WITH_GAPS"
     result["failures"] = failures
+    result["non_code_references"] = discarded[:50]
     result["method_note"] = (
         "Este producto valida y contextualiza una muestra dirigida de órdenes asociadas a hallazgos RIGP. "
         "No incorpora sus diferencias al score de prioridad de forma automática."

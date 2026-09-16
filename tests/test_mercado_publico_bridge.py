@@ -75,14 +75,14 @@ def test_build_targets_is_bounded_and_priority_ordered():
                 'provider_id': 'PRV-RUT-11.111.111-1',
                 'organization_id': 'A',
                 'periodo': 2026,
-                'purchase_order_examples': ['A-1-SE26', 'A-2-SE26'],
+                'purchase_order_examples': ['1001-1-SE26', '1001-2-SE26'],
             },
             {
                 'finding_id': 'high',
                 'provider_id': 'PRV-RUT-76.415.528-9',
                 'organization_id': 'B',
                 'periodo': 2026,
-                'purchase_order_examples': ['B-1-SE26', 'B-2-SE26', 'B-3-SE26'],
+                'purchase_order_examples': ['2002-1-SE26', '2002-2-SE26', '2002-3-SE26'],
             },
         ]
     }
