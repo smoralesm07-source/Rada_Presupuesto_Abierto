@@ -7,14 +7,21 @@ on:
     # sobre otro no corre CI hasta que el de abajo se fusiona, que es justo
     # cuando ya no sirve enterarse.
     branches: [main, 'claude/**', 'chatgpt/**']
-  # Un pull request abierto por el bot con GITHUB_TOKEN no dispara workflows:
-  # GitHub lo impide a proposito para evitar recursion. El check `test` que la
-  # proteccion de rama exige nunca arranca, y el PR queda bloqueado para
-  # siempre. `workflow_dispatch` es una de las dos excepciones documentadas a
-  # esa regla, asi que la corrida puede pedir su propio check sobre la rama.
+  # Un pull request abierto por el bot con GITHUB_TOKEN si crea su corrida
+  # `pull_request`, pero GitHub la deja sin ejecutar: la corrida 553 quedo con
+  # cero jobs y por eso no nacio ningun check. La proteccion de rama pide `test`
+  # y el PR queda bloqueado para siempre.
+  #
+  # `workflow_dispatch` es una de las dos excepciones a esa regla, asi que la
+  # corrida si puede pedirse. Pero el check que produce NO satisface la regla:
+  # medido sobre el PR #45, con `test` en verde por esta via, la fusion se
+  # rechazo igual con «Required status check "test" is expected». Lo que cuenta
+  # es el estado de commit que se publica al final.
   workflow_dispatch:
 permissions:
   contents: read
+  # Para publicar el resultado real de la suite como estado de commit `test`.
+  statuses: write
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -138,3 +145,22 @@ jobs:
           print('Bulk years confirmed:', [x['year'] for x in ok])
           print('Latest confirmed year:', max(x['year'] for x in ok))
           PY
+
+      - name: Publicar el resultado como estado de commit
+        # Sólo en corridas solicitadas a mano: en un `pull_request` normal el
+        # check nativo ya existe y este estado sería una segunda copia.
+        #
+        # No es un atajo: la suite completa acaba de correr en este mismo job y
+        # lo que se publica es su conclusión real, con enlace a la corrida. Es la
+        # única forma de que un pull request abierto por el bot llegue a tener el
+        # check que la protección de rama exige.
+        if: always() && github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ESTADO: ${{ job.status == 'success' && 'success' || 'failure' }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -f state="${ESTADO}" \
+            -f context=test \
+            -f description="Suite ejecutada por solicitud sobre esta rama" \
+            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"

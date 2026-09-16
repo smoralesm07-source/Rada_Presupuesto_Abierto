@@ -214,9 +214,12 @@ jobs:
           git push origin "HEAD:refs/heads/${BRANCH}"
           echo "Payloads asegurados en la rama ${BRANCH}." >> "$GITHUB_STEP_SUMMARY"
 
-          # El PR lo abre el bot con GITHUB_TOKEN, y por eso no dispara CI solo.
-          # Se pide el check explicitamente sobre la rama: sin el, la proteccion
-          # de rama deja el pull request bloqueado indefinidamente.
+          # El PR lo abre el bot con GITHUB_TOKEN: GitHub crea su corrida
+          # `pull_request` pero la deja sin jobs, asi que no nace ningun check.
+          # Esta solicitud si ejecuta la suite, y `ci.yml` publica su resultado
+          # como estado de commit `test`, que es la forma que la proteccion de
+          # rama acepta. El check que produce la solicitud, por si solo, no basta:
+          # se midio sobre el PR #45 y la fusion se rechazo igual.
           if gh workflow run ci.yml --ref "${BRANCH}"; then
             echo "Check \`test\` solicitado sobre ${BRANCH}." >> "$GITHUB_STEP_SUMMARY"
           else
