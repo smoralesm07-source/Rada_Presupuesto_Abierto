@@ -350,6 +350,53 @@ def diagnose_api_failure(exc: Exception) -> dict:
     }
 
 
+RATE_LIMIT_STATUS = 429
+
+# ChileCompra no publica su ventana de ritmo, así que el puente no la supone: parte
+# con una pausa corta y la alarga sola cada vez que recibe un 429. La corrida #21
+# perdió 413 de 800 consultas contra un ritmo fijo de 0,05s; ceder terreno ante la
+# primera negativa cuesta segundos y recupera consultas que ya estaban pagadas con
+# el tiempo del runner.
+RATE_LIMIT_BACKOFF_SECONDS = 2.0
+RATE_LIMIT_MAX_RETRIES = 3
+PAUSE_GROWTH_ON_LIMIT = 2.0
+MAX_PAUSE_SECONDS = 2.0
+
+
+def _is_rate_limited(exc: Exception) -> bool:
+    return getattr(exc, "code", None) == RATE_LIMIT_STATUS or "429" in str(exc)
+
+
+def fetch_order_with_backoff(
+    code: str,
+    ticket: str,
+    endpoint: str,
+    timeout: int = 25,
+    max_retries: int = RATE_LIMIT_MAX_RETRIES,
+    backoff_seconds: float = RATE_LIMIT_BACKOFF_SECONDS,
+    fetch=None,
+    sleep=None,
+) -> tuple[dict | None, int]:
+    """Consulta una orden cediendo terreno ante un 429, en vez de darla por perdida.
+
+    Devuelve la orden y cuántos reintentos costó. Un 429 dice «espera», no «no
+    existe»: tratarlo como fallo definitivo fue lo que botó la mitad de la corrida
+    #21. Cualquier otro error se propaga sin reintentar, porque repetirlo no lo
+    va a cambiar.
+    """
+    fetch = fetch or fetch_order
+    sleep = sleep or time.sleep
+    retries = 0
+    while True:
+        try:
+            return fetch(code, ticket, timeout, endpoint), retries
+        except Exception as exc:
+            if not _is_rate_limited(exc) or retries >= max_retries:
+                raise
+            retries += 1
+            sleep(backoff_seconds * retries)
+
+
 def build_mercado_publico_context(
     procurement_path: str = "docs/data/procurement_context.json",
     findings_path: str = "docs/data/investigative_findings.json",
@@ -400,6 +447,9 @@ def build_mercado_publico_context(
             "identity_matches": 0,
             "identity_reviews": 0,
             "linked_tenders": 0,
+            "endpoint_probe_requests": 0,
+            "rate_limit_retries": 0,
+            "rate_limit_abandoned": 0,
         },
         "orders": {},
         "findings": [],
@@ -420,7 +470,10 @@ def build_mercado_publico_context(
     # Resolver la ruta antes de gastar la cuota: la corrida #20 quemó 20 consultas
     # contra un endpoint que no existía y no pudo decir cuál sí.
     endpoint_probe = resolve_order_endpoint(targets[0]["purchase_order_code"], ticket)
-    result["coverage"]["api_requests_attempted"] += len(endpoint_probe["attempts"])
+    # El sondeo no es una consulta de orden: sumarlo a `api_requests_attempted`
+    # empujó el contador a 801 y rompió el tope declarado de 800. Va en su propio
+    # contador, y el total se declara aparte en vez de mezclar dos cosas distintas.
+    result["coverage"]["endpoint_probe_requests"] = len(endpoint_probe["attempts"])
     endpoint = endpoint_probe["endpoint"]
     result["source"]["endpoint"] = f"{API_ROOT}/{endpoint}"
     result["source"]["endpoint_resolution"] = endpoint_probe
@@ -441,7 +494,8 @@ def build_mercado_publico_context(
         code = target["purchase_order_code"]
         result["coverage"]["api_requests_attempted"] += 1
         try:
-            order = fetch_order(code, ticket, endpoint=endpoint)
+            order, retries = fetch_order_with_backoff(code, ticket, endpoint)
+            result["coverage"]["rate_limit_retries"] += retries
             if not order:
                 failures[code] = {"status": "NOT_FOUND", "message": "La API no devolvió una orden para el código solicitado."}
                 result["coverage"]["orders_not_resolved"] += 1
@@ -459,6 +513,13 @@ def build_mercado_publico_context(
             failures[code] = {"status": "API_ERROR", "message": str(exc)[:300]}
             result["coverage"]["api_errors"] += 1
             consecutive_errors += 1
+            if _is_rate_limited(exc):
+                result["coverage"]["rate_limit_abandoned"] += 1
+                request_pause_seconds = min(
+                    MAX_PAUSE_SECONDS,
+                    max(request_pause_seconds, 0.05) * PAUSE_GROWTH_ON_LIMIT,
+                )
+                result["coverage"]["request_pause_seconds"] = round(request_pause_seconds, 4)
             if consecutive_errors >= 20:
                 result["status"] = "PARTIAL_API_FAILURE"
                 # El motivo viaja en la nota, no sólo en el conteo: una corrida que
