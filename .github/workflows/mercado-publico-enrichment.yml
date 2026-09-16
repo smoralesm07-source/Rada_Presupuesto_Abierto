@@ -7,6 +7,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
+  pull-requests: write
 concurrency:
   group: mercado-publico-targeted-enrichment
   cancel-in-progress: true
@@ -28,6 +29,42 @@ jobs:
         env:
           MERCADO_PUBLICO_TICKET: ${{ secrets.MERCADO_PUBLICO_TICKET }}
         run: PYTHONPATH=src python -m radar_presupuesto.mercado_publico_bridge
+
+      # El trabajo se asegura ANTES de validarlo y antes de intentar publicarlo.
+      # Las corridas #19, #20 y #21 murieron las tres en el ultimo paso: dos por
+      # la proteccion de rama, una por una asercion de cobertura. La #21 traia
+      # 349 ordenes resueltas y nueve minutos de API, y se perdieron enteras.
+      # Un payload invalido tambien se guarda: revisarlo exige tenerlo.
+      - name: Asegurar la evidencia en una rama
+        id: secure
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "radar-presupuesto-bot"
+          git config user.email "radar-presupuesto-bot@users.noreply.github.com"
+          if [ ! -f docs/data/mercado_publico_context.json ]; then
+            echo "El puente no produjo payload." >> "$GITHUB_STEP_SUMMARY"
+            echo "branch=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git add docs/data/mercado_publico_context.json
+          if git diff --cached --quiet; then
+            echo "Sin cambios que publicar." >> "$GITHUB_STEP_SUMMARY"
+            echo "branch=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          BRANCH="radar/mercado-publico-$(date -u +%F)-${GITHUB_RUN_ID}"
+          git commit -m "data: evidencia dirigida de Mercado Público $(date -u +%F)"
+          git stash push --include-untracked --quiet || true
+          git fetch origin main
+          if ! git rebase origin/main; then
+            git rebase --abort || true
+            echo "El rebase sobre main choco; la rama se publica sin rebasar." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          git push origin "HEAD:refs/heads/${BRANCH}"
+          echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "Evidencia asegurada en la rama ${BRANCH}." >> "$GITHUB_STEP_SUMMARY"
+
       - name: Validate bounded evidence product
         run: |
           python - <<'PY'
@@ -44,12 +81,45 @@ jobs:
           print('selection:',d['selection'])
           print('coverage:',d['coverage'])
           PY
-      - name: Publish Mercado Público context
+
+      # Recien con la evidencia a salvo y validada se propone publicarla. Un
+      # fallo aqui ya no cuesta la corrida: cuesta un clic.
+      - name: Proponer la publicación por pull request
+        if: steps.secure.outputs.branch != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.secure.outputs.branch }}
         run: |
-          git config user.name "radar-presupuesto-bot"
-          git config user.email "radar-presupuesto-bot@users.noreply.github.com"
-          git add docs/data/mercado_publico_context.json
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m "data: actualiza evidencia dirigida de Mercado Público"
-          git pull --rebase origin main
-          git push origin main
+          cat > /tmp/pr-body.md <<'BODY'
+          Evidencia dirigida de Mercado Público, resuelta por
+          `radar-presupuesto-bot` sin intervencion humana.
+
+          El puente consulta unicamente codigos de orden ya observados en los
+          hallazgos publicados. Es una muestra de evidencia, no una
+          reconstruccion exhaustiva del proceso de compra.
+
+          Ninguna diferencia de identidad, monto, estado o fecha acredita por si
+          sola irregularidad: nacen como candidatos de revision.
+
+          La evidencia quedo asegurada en su rama antes de abrirse este pull
+          request, asi que ninguna corrida vuelve a perderse por un rechazo en
+          el ultimo paso.
+          BODY
+          sed -i 's/^          //' /tmp/pr-body.md
+          {
+            echo ""
+            echo "Corrida: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } >> /tmp/pr-body.md
+          if PR_URL=$(gh pr create --base main --head "${BRANCH}" \
+               --title "data: evidencia dirigida de Mercado Público $(date -u +%F)" \
+               --body-file /tmp/pr-body.md); then
+            echo "Pull request: ${PR_URL}" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No se pudo abrir el pull request. La evidencia esta en ${BRANCH} y puede fusionarse a mano." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if gh pr merge --auto --squash "${PR_URL}"; then
+            echo "Fusion automatica solicitada: se publica al pasar el check." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "La fusion automatica no esta habilitada: el pull request queda abierto y requiere un clic." >> "$GITHUB_STEP_SUMMARY"
+          fi
