@@ -427,6 +427,80 @@ def diagnose_api_failure(exc: Exception) -> dict:
     }
 
 
+# El payload es un activo web. La corrida #22 resolvió 524 órdenes y salió a
+# 1,7 MB contra la guarda de 1,5 MB del workflow; 300 KB de esos eran sangría.
+# Se escribe compacto y, si aún no cabe, se recorta por capas declaradas.
+BYTE_BUDGET = 1_400_000
+SELF_REPORT_SLACK = 512
+
+# El presupuesto tiene que medir el archivo que realmente se escribe. Medirlo con
+# los separadores por defecto lo sobreestima en más de un 20% y hace recortar de
+# más: en la primera prueba sacrificó las listas de producto de 511 órdenes para
+# entrar a un presupuesto en el que ya cabía.
+COMPACT_JSON = {"ensure_ascii": False, "separators": (",", ":"), "default": str}
+
+# Orden de sacrificio: lo menos informativo primero. `description` va al final
+# porque es lo único que dice en palabras qué se compró.
+TRIM_LAYERS = (
+    ("products", "listas de productos"),
+    ("categories", "categorías de rubro"),
+    ("name", "nombre de la orden"),
+    ("description", "descripción de la orden"),
+)
+
+
+def _is_untouchable(order: dict) -> bool:
+    """Una discrepancia de identidad nunca se recorta.
+
+    Es el hallazgo, no el relleno: recortarlo para que quepa el relleno de otras
+    500 órdenes sería exactamente al revés. Mismo criterio que
+    `browser_publication`, donde lo accionable no se sacrifica jamás.
+    """
+    return (order.get("identity_check") or {}).get("status") == "REVIEW"
+
+
+def fit_to_budget(payload: dict, budget: int = BYTE_BUDGET) -> dict:
+    """Recorta por capas hasta caber, y declara qué se fue.
+
+    Un recorte silencioso haría que la ausencia de una descripción pareciera una
+    orden sin descripción.
+    """
+    payload.setdefault("trimming", {"applied": [], "orders_trimmed": 0,
+                                    "note": "No fue necesario recortar."})
+    orders = payload.get("orders") or {}
+
+    def size() -> int:
+        return len(json.dumps(payload, **COMPACT_JSON)) + SELF_REPORT_SLACK
+
+    applied: list[str] = []
+    trimmed_codes: set[str] = set()
+    for field, label in TRIM_LAYERS:
+        if size() <= budget:
+            break
+        touched = 0
+        for code, order in orders.items():
+            if _is_untouchable(order) or field not in order:
+                continue
+            order.pop(field, None)
+            trimmed_codes.add(code)
+            touched += 1
+        if touched:
+            applied.append(label)
+    if applied:
+        payload["trimming"] = {
+            "applied": applied,
+            "orders_trimmed": len(trimmed_codes),
+            "budget_bytes": budget,
+            "note": (
+                "El payload no cabía en el presupuesto de bytes y se recortó por capas. "
+                "Lo quitado es contexto, no evidencia: las órdenes con discrepancia de "
+                "identidad conservan todos sus campos. Un campo ausente aquí significa "
+                "recortado, no inexistente en Mercado Público."
+            ),
+        }
+    return payload
+
+
 RATE_LIMIT_STATUS = 429
 
 # ChileCompra no publica su ventana de ritmo, así que el puente no la supone: parte
@@ -648,11 +722,13 @@ def build_mercado_publico_context(
         result["status"] = "READY" if not failures else "READY_WITH_GAPS"
     result["failures"] = failures
     result["non_code_references"] = discarded[:50]
+    fit_to_budget(result)
     result["method_note"] = (
         "Este producto valida y contextualiza una muestra dirigida de órdenes asociadas a hallazgos RIGP. "
         "No incorpora sus diferencias al score de prioridad de forma automática."
     )
-    Path(output_path).write_text(json.dumps(result, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+    # Compacto, no indentado: la sangría costaba 300 KB de un payload de 1,7 MB.
+    Path(output_path).write_text(json.dumps(result, **COMPACT_JSON), encoding="utf-8")
     return result
 
 
