@@ -7,6 +7,12 @@ on:
     # sobre otro no corre CI hasta que el de abajo se fusiona, que es justo
     # cuando ya no sirve enterarse.
     branches: [main, 'claude/**', 'chatgpt/**']
+  # Un pull request abierto por el bot con GITHUB_TOKEN no dispara workflows:
+  # GitHub lo impide a proposito para evitar recursion. El check `test` que la
+  # proteccion de rama exige nunca arranca, y el PR queda bloqueado para
+  # siempre. `workflow_dispatch` es una de las dos excepciones documentadas a
+  # esa regla, asi que la corrida puede pedir su propio check sobre la rama.
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
