@@ -56,6 +56,16 @@ Es la contraparte de la frontera de abajo: la otra misión no entra al motor, y
   request. La regla «nadie escribe a `main` directo» deja de tener excepción,
   incluso para el bot. Cualquier otro cambio a este workflow —el pipeline
   analítico, sus disparadores, su ventana— sigue fuera de esta misión.
+- **`.github/workflows/mercado-publico-enrichment.yml`, ampliación autorizada por
+  el usuario el 2026-09-16**, y por el mismo motivo: que la corrida no destruya
+  su propio resultado. Tres corridas seguidas murieron en el último paso —dos
+  por la protección de rama, una por una aserción de cobertura—, y la última se
+  llevó 349 órdenes resueltas y nueve minutos de API. Ahora la evidencia se
+  asegura en una rama **antes** de validarse y antes de proponerse por pull
+  request; un payload inválido también se guarda, porque revisarlo exige
+  tenerlo, y en ese caso no se abre el PR. Cualquier otro cambio a este
+  workflow —qué se consulta, sus disparadores, sus topes— sigue fuera de esta
+  misión.
 - Ningún otro workflow.
 - **No fusionar el PR #6 en bloque.** Se conserva abierto como referencia y se
   porta de a una pieza, cada una con su prueba.
