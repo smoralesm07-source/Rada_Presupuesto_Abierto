@@ -144,6 +144,8 @@ Mismo concepto, dos nombres. Antes de escribir uno nuevo, revisa esta tabla.
 | Enlace CGR por entidad (scoring) | `cgr_correlation.py` | dentro de `typologies.py` |
 | Exposición a auditoría por servicio | `public_service_audits.py` | — |
 | Índice de opacidad por servicio | `opacity_index.py` ✅ portado | dentro de `relation_context.py` |
+| Cuotas vs. compras separadas en un grupo semanal | `split_discrimination.py` | — |
+| Fuentes de compras públicas disponibles | `procurement_discovery.py` | — |
 
 ---
 
