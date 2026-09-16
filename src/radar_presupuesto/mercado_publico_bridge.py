@@ -12,7 +12,21 @@ from .sii_targets import canon_rut, rut_from_provider_id
 
 
 SCHEMA = "RIGP-MERCADO-PUBLICO-CONTEXT-v1"
-API_BASE = "https://api.mercadopublico.cl/servicios/v1/publico/OrdenCompra.json"
+API_ROOT = "https://api.mercadopublico.cl/servicios/v1/publico"
+
+# La corrida #20 falló las 20 consultas con HTTP 404 —no 401— así que el ticket
+# es aceptado y lo que no existe es la ruta. Antes se consultaba `OrdenCompra.json`
+# a secas; ChileCompra ha cambiado los envoltorios de su API más de una vez y el
+# nombre vigente no es una cosa que convenga suponer.
+#
+# En vez de cambiar un nombre por otro a ciegas, el puente prueba los candidatos
+# en la primera orden y adopta el que resuelva, dejando dicho en el payload cuál
+# usó. Cuesta a lo más un par de consultas extra sobre un límite de 10.000.
+ORDER_ENDPOINT_CANDIDATES = (
+    "ordenesdecompra.json",
+    "OrdenCompra.json",
+)
+API_BASE = f"{API_ROOT}/{ORDER_ENDPOINT_CANDIDATES[0]}"
 GUARDRAIL = (
     "La información de Mercado Público complementa el expediente con antecedentes del proceso de compra. "
     "Diferencias de identidad, monto, estado o fechas son candidatos de revisión y no acreditan por sí solas "
@@ -198,19 +212,68 @@ def build_targets(
     return selected
 
 
-def _api_url(code: str, ticket: str) -> str:
+def _api_url(code: str, ticket: str, endpoint: str = ORDER_ENDPOINT_CANDIDATES[0]) -> str:
     query = urllib.parse.urlencode({"codigo": code, "ticket": ticket})
-    return f"{API_BASE}?{query}"
+    return f"{API_ROOT}/{endpoint}?{query}"
 
 
-def fetch_order(code: str, ticket: str, timeout: int = 25) -> dict | None:
+def fetch_order(
+    code: str,
+    ticket: str,
+    timeout: int = 25,
+    endpoint: str = ORDER_ENDPOINT_CANDIDATES[0],
+) -> dict | None:
     req = urllib.request.Request(
-        _api_url(code, ticket),
+        _api_url(code, ticket, endpoint),
         headers={"User-Agent": "RIGP/1.0 MercadoPublico targeted evidence bridge"},
     )
     with urllib.request.urlopen(req, timeout=timeout) as response:
         payload = json.loads(response.read().decode("utf-8-sig"))
     return parse_order_payload(payload, requested_code=code)
+
+
+def resolve_order_endpoint(
+    code: str,
+    ticket: str,
+    timeout: int = 25,
+    candidates: tuple[str, ...] = ORDER_ENDPOINT_CANDIDATES,
+    fetch=None,
+) -> dict:
+    """Averigua qué ruta resuelve una orden, en vez de darla por sabida.
+
+    Una ruta que responde 404 no existe; una que responde cualquier otra cosa
+    —incluso «no encontré esa orden»— existe y es la buena. La distinción es la
+    misma del inventario de fuentes: no confundir «no se pudo probar» con «no
+    está».
+    """
+    fetch = fetch or fetch_order
+    attempts: list[dict] = []
+    for endpoint in candidates:
+        try:
+            fetch(code, ticket, timeout, endpoint)
+        except Exception as exc:
+            status = getattr(exc, "code", None)
+            attempts.append({"endpoint": endpoint, "http_status": status,
+                             "error": str(exc)[:200]})
+            if status == 404:
+                continue
+            # Cualquier otro fallo —credencial, red, límite— no dice que la ruta
+            # no exista, y probar las demás sólo gastaría cuota para repetirlo.
+            return {"endpoint": endpoint, "resolved": False, "attempts": attempts,
+                    "why": "El primer candidato falló por una causa ajena a la ruta."}
+        else:
+            attempts.append({"endpoint": endpoint, "http_status": 200})
+            return {"endpoint": endpoint, "resolved": True, "attempts": attempts,
+                    "why": f"`{endpoint}` respondió; se usa para el resto de la corrida."}
+    return {
+        "endpoint": candidates[0],
+        "resolved": False,
+        "attempts": attempts,
+        "why": (
+            "Ninguna de las rutas candidatas existe: todas respondieron 404. El adaptador "
+            "necesita la ruta vigente de la API de órdenes de compra."
+        ),
+    }
 
 
 def _identity_check(target: dict, order: dict | None) -> dict:
@@ -353,11 +416,32 @@ def build_mercado_publico_context(
     orders: dict[str, dict] = {}
     failures: dict[str, dict] = {}
     consecutive_errors = 0
+
+    # Resolver la ruta antes de gastar la cuota: la corrida #20 quemó 20 consultas
+    # contra un endpoint que no existía y no pudo decir cuál sí.
+    endpoint_probe = resolve_order_endpoint(targets[0]["purchase_order_code"], ticket)
+    result["coverage"]["api_requests_attempted"] += len(endpoint_probe["attempts"])
+    endpoint = endpoint_probe["endpoint"]
+    result["source"]["endpoint"] = f"{API_ROOT}/{endpoint}"
+    result["source"]["endpoint_resolution"] = endpoint_probe
+    if not endpoint_probe["resolved"]:
+        result["status"] = "PARTIAL_API_FAILURE"
+        result["status_note"] = endpoint_probe["why"]
+        result["failure_diagnosis"] = {
+            "cause": ENDPOINT_CHANGED,
+            "meaning": FAILURE_MEANING[ENDPOINT_CHANGED],
+            "http_status": None,
+            "error": json.dumps(endpoint_probe["attempts"], ensure_ascii=False)[:300],
+        }
+        result["failures"] = {}
+        Path(output_path).write_text(json.dumps(result, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+        return result
+
     for target in targets:
         code = target["purchase_order_code"]
         result["coverage"]["api_requests_attempted"] += 1
         try:
-            order = fetch_order(code, ticket)
+            order = fetch_order(code, ticket, endpoint=endpoint)
             if not order:
                 failures[code] = {"status": "NOT_FOUND", "message": "La API no devolvió una orden para el código solicitado."}
                 result["coverage"]["orders_not_resolved"] += 1
@@ -435,6 +519,9 @@ def main() -> None:
     result = build_mercado_publico_context()
     print("[RIGP Mercado Público]", result["status"])
     print("[RIGP Mercado Público coverage]", result["coverage"])
+    probe = (result.get("source") or {}).get("endpoint_resolution")
+    if probe:
+        print("[RIGP Mercado Público ruta]", result["source"]["endpoint"], "-", probe["why"])
     if result.get("status_note"):
         print("[RIGP Mercado Público nota]", result["status_note"])
     diagnosis = result.get("failure_diagnosis")

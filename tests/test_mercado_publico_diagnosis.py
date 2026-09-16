@@ -57,3 +57,59 @@ def test_un_error_desconocido_conserva_su_texto_en_vez_de_inventar_causa():
 def test_el_texto_del_error_se_acota_para_no_inundar_el_payload():
     d = diagnose_api_failure(ValueError("x" * 2000))
     assert len(d["error"]) <= 300
+
+
+# --- averiguar la ruta en vez de darla por sabida --------------------------
+
+from urllib.error import HTTPError as _HTTPError  # noqa: E402
+
+from radar_presupuesto.mercado_publico_bridge import (  # noqa: E402
+    ORDER_ENDPOINT_CANDIDATES,
+    resolve_order_endpoint,
+)
+
+
+def _fetcher(ok_endpoint=None, status_by_endpoint=None):
+    """Un `fetch_order` falso que sólo responde a la ruta indicada."""
+    status_by_endpoint = status_by_endpoint or {}
+
+    def _fetch(code, ticket, timeout, endpoint):
+        if endpoint == ok_endpoint:
+            return {"purchase_order_code": code}
+        status = status_by_endpoint.get(endpoint, 404)
+        raise _HTTPError(f"https://x/{endpoint}", status, "err", {}, None)
+
+    return _fetch
+
+
+def test_adopta_la_primera_ruta_que_responde():
+    r = resolve_order_endpoint("1-1-SE26", "t", fetch=_fetcher(ok_endpoint=ORDER_ENDPOINT_CANDIDATES[0]))
+    assert r["resolved"] is True
+    assert r["endpoint"] == ORDER_ENDPOINT_CANDIDATES[0]
+
+
+def test_un_404_no_detiene_la_busqueda_y_se_prueba_la_siguiente():
+    """Es el caso real: la ruta antigua murió y la nueva responde."""
+    r = resolve_order_endpoint("1-1-SE26", "t", fetch=_fetcher(ok_endpoint=ORDER_ENDPOINT_CANDIDATES[1]))
+    assert r["resolved"] is True
+    assert r["endpoint"] == ORDER_ENDPOINT_CANDIDATES[1]
+    assert [a["endpoint"] for a in r["attempts"]] == list(ORDER_ENDPOINT_CANDIDATES)
+
+
+def test_si_ninguna_ruta_existe_se_declara_en_vez_de_insistir():
+    r = resolve_order_endpoint("1-1-SE26", "t", fetch=_fetcher(ok_endpoint=None))
+    assert r["resolved"] is False
+    assert len(r["attempts"]) == len(ORDER_ENDPOINT_CANDIDATES)
+    assert "404" in r["why"]
+
+
+def test_un_ticket_rechazado_no_se_lee_como_ruta_inexistente():
+    """Un 401 en el primer candidato detiene la búsqueda: probar los demás sólo
+    gastaría cuota para repetir el mismo rechazo."""
+    r = resolve_order_endpoint(
+        "1-1-SE26", "t",
+        fetch=_fetcher(ok_endpoint=None, status_by_endpoint={ORDER_ENDPOINT_CANDIDATES[0]: 401}),
+    )
+    assert r["resolved"] is False
+    assert len(r["attempts"]) == 1
+    assert "ajena a la ruta" in r["why"]
