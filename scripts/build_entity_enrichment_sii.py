@@ -11,6 +11,12 @@ from pathlib import Path
 
 import pandas as pd
 
+from radar_presupuesto.entity_signals import (
+    ACTIVITY_BREADTH_FALLBACK,
+    ACTIVITY_BREADTH_MIN_PEERS,
+    activity_breadth_thresholds,
+    band_median,
+)
 from radar_presupuesto.sii_targets import canon_rut, target_ruts_from_file
 from radar_sii.normalize import read_chunks, normalize_names, normalize_activities, normalize_company_year
 
@@ -163,6 +169,20 @@ def build(targets_path: str, catalog_path: str, output: str, workdir: str) -> di
     for rut in history:
         history[rut].sort(key=lambda x: int(x.get('commercial_year') or 0))
 
+    # Amplitud de giros: primero se mide la distribución dentro de cada tramo de
+    # ventas, y recién después se decide qué es inusual. Sin esta pasada previa
+    # el umbral sería absoluto y volvería a seleccionar tamaño.
+    counts_by_band: dict[int, list[int]] = {}
+    for rut in sorted(targets):
+        hist_pre = history.get(rut, [])
+        band_pre = hist_pre[-1].get('sales_band_code') if hist_pre else None
+        try:
+            band_key = int(band_pre)
+        except (TypeError, ValueError):
+            continue
+        counts_by_band.setdefault(band_key, []).append(len(activities.get(rut, [])))
+    breadth_thresholds = activity_breadth_thresholds(counts_by_band)
+
     entities: dict[str, dict] = {}
     mark_count = 0
     for rut in sorted(targets):
@@ -228,10 +248,27 @@ def build(targets_path: str, catalog_path: str, output: str, workdir: str) -> di
                 'REGION_CHANGE', 'LOW', y.get('commercial_year'),
                 'La región informada para la empresa cambió respecto del año comercial anterior.'
             ))
-        if len(activities.get(rut, [])) >= 6:
+        breadth = len(activities.get(rut, []))
+        try:
+            band_key = int(code)
+        except (TypeError, ValueError):
+            band_key = None
+        breadth_threshold = breadth_thresholds.get(band_key, ACTIVITY_BREADTH_FALLBACK)
+        if breadth >= breadth_threshold and breadth > 0:
+            peers = counts_by_band.get(band_key) or []
+            if len(peers) >= ACTIVITY_BREADTH_MIN_PEERS:
+                comparison = (
+                    f'La mediana de su tramo de ventas es {band_median(peers)} y el umbral '
+                    f'del tramo, {breadth_threshold}.'
+                )
+            else:
+                comparison = (
+                    'Su tramo de ventas tiene pocos pares publicados para medir, '
+                    f'así que se aplica el umbral de respaldo de {ACTIVITY_BREADTH_FALLBACK}.'
+                )
             marks.append(_mark(
                 'ACTIVITY_BREADTH', 'LOW', 'CURRENT',
-                f'Registra {len(activities[rut])} actividades económicas vigentes/publicadas.'
+                f'Registra {breadth} actividades económicas vigentes/publicadas. {comparison}'
             ))
         if n.get('tax_status') == 'ACTIVE_AS_PUBLISHED' and any(str(h.get('termination_date') or '').strip() for h in hist):
             marks.append(_mark(
@@ -239,12 +276,27 @@ def build(targets_path: str, catalog_path: str, output: str, workdir: str) -> di
                 'Existe término de giro en un registro histórico y la nómina vigente actual aparece sin término de giro.'
             ))
         neg = str(y.get('negative_equity_band') or '').strip().lower()
+        has_negative_equity = bool(neg and neg not in {'nan', '0', 'sin informacion', 'sin información'})
         try:
-            if code is not None and int(code) >= 10 and neg and neg not in {'nan', '0', 'sin informacion', 'sin información'}:
-                marks.append(_mark(
-                    'HIGH_SALES_NEGATIVE_EQUITY', 'MEDIUM', y.get('commercial_year'),
-                    'Tramo SII de gran empresa coexistiendo con tramo de capital propio tributario negativo informado.'
-                ))
+            if code is not None and has_negative_equity:
+                if int(code) >= 10:
+                    marks.append(_mark(
+                        'HIGH_SALES_NEGATIVE_EQUITY', 'MEDIUM', y.get('commercial_year'),
+                        'Tramo SII de gran empresa coexistiendo con tramo de capital propio tributario negativo informado.'
+                    ))
+                else:
+                    # La regla anterior exigía tramo 10 o superior y descartaba 68 de
+                    # las 106 entidades que publican patrimonio negativo, es decir el
+                    # 64% y justamente las pequeñas. En una empresa grande el
+                    # patrimonio negativo suele ser estructura de financiamiento; en
+                    # una pequeña que además cobra del Estado es estrés financiero, y
+                    # esa combinación es la que interesa mirar, no la contraria.
+                    marks.append(_mark(
+                        'NEGATIVE_EQUITY_SMALL_BAND', 'MEDIUM', y.get('commercial_year'),
+                        f'Capital propio tributario negativo informado en una empresa de tramo SII {int(code)}. '
+                        'En una empresa pequeña el patrimonio negativo indica estrés financiero antes que '
+                        'estructura de capital, y no acredita por sí solo ninguna irregularidad.'
+                    ))
         except Exception:
             pass
 
