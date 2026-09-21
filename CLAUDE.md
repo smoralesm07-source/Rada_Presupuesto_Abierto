@@ -157,6 +157,7 @@ Mismo concepto, dos nombres. Antes de escribir uno nuevo, revisa esta tabla.
 | Cuotas vs. compras separadas en un grupo semanal | `split_discrimination.py` | — |
 | Fuentes de compras públicas disponibles | `procurement_discovery.py` | — |
 | Modalidad de contratación y licitación vinculada | `procurement_modality.py` | — |
+| Nivel de atención calibrado contra la bandeja | `attention_level.py` | — |
 
 ---
 
