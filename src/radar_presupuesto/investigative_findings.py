@@ -7,6 +7,8 @@ from pathlib import Path
 import duckdb
 
 
+from .attention_level import assign as assign_attention
+
 GUARDRAIL = (
     "Un hallazgo RIGP prioriza revisión documental y OSINT. No acredita irregularidad, "
     "delito funcionario, fraude, corrupción, lavado de activos ni responsabilidad de una entidad o persona."
@@ -302,11 +304,21 @@ def build_investigative_findings(
     provider_records = records(provider_df)
     network_records = records(network_df)
 
-    attention_counts = {"ATENCION_INMEDIATA": 0, "REVISION_PRIORITARIA": 0, "SEGUIMIENTO": 0}
+    # El nivel se recalcula contra la bandeja que efectivamente se publica. El
+    # umbral absoluto que venía del SQL disparaba en el 95,1% de las relaciones
+    # —la selección ya había elegido las de score alto, así que volver a
+    # cortarlas por score no separaba a nadie— y dejaba al analista sin orden.
+    attention_calibration = assign_attention(relation_records)
+    _level_rank = {"ATENCION_INMEDIATA": 0, "REVISION_PRIORITARIA": 1, "SEGUIMIENTO": 2}
+    relation_records.sort(key=lambda r: (
+        _level_rank.get(str(r.get("attention_level")), 3),
+        -len(r.get("attention_marks") or []),
+        -float(r.get("max_transaction_amount") or 0),
+    ))
+
+    attention_counts = dict(attention_calibration["levels"])
     family_counts: dict[str, int] = {}
     for row in relation_records:
-        level = str(row.get("attention_level") or "SEGUIMIENTO")
-        attention_counts[level] = attention_counts.get(level, 0) + 1
         family = str(row.get("finding_family") or "PATRON_ATIPICO")
         family_counts[family] = family_counts.get(family, 0) + 1
 
@@ -319,10 +331,15 @@ def build_investigative_findings(
         ),
         "guardrail": GUARDRAIL,
         "attention_logic": {
-            "ATENCION_INMEDIATA": "Dos o más familias con prioridad alta, dos o más familias con evidencia externa candidata, o tres o más tipos de señal en la misma relación.",
-            "REVISION_PRIORITARIA": "Una señal P1, o convergencia moderada con prioridad P2/P1, o evidencia externa candidata acompañando prioridad suficiente.",
-            "SEGUIMIENTO": "Señal contextual que no reúne aún convergencia suficiente para escalar."
+            "ATENCION_INMEDIATA": "Dos o más marcas distintivas independientes, cada una rara en la bandeja publicada.",
+            "REVISION_PRIORITARIA": "Una marca distintiva rara en la bandeja publicada.",
+            "SEGUIMIENTO": "Ninguna marca la distingue del resto de la bandeja. No está descartada: está sin distinguir.",
+            "scope": (
+                "El nivel ordena el trabajo dentro de la bandeja publicada; no decide quién entra "
+                "a ella. La selección para publicar es una etapa anterior y separada."
+            ),
         },
+        "attention_calibration": attention_calibration,
         "counts": {
             "relations_returned": len(relation_records),
             "services_returned": len(service_records),
