@@ -75,7 +75,11 @@ jobs:
           from pathlib import Path
           p=Path('docs/data/mercado_publico_context.json')
           d=json.loads(p.read_text(encoding='utf-8'))
-          assert d['schema']=='RIGP-MERCADO-PUBLICO-CONTEXT-v1'
+          assert d['schema']=='RIGP-MERCADO-PUBLICO-CONTEXT-v2'
+          m=d['modality_review']
+          assert 'baseline_by_purchase_type' in m and 'guardrail' in m
+          assert m['intra_state_state'] in {'MEDIDO','NO_MEDIDO'}
+          print('modalidad:', m['states'], '· preguntar:', m['orders_worth_asking'])
           assert d['status'] in {'AWAITING_TICKET','READY','READY_WITH_GAPS','PARTIAL_API_FAILURE'}
           assert d['selection']['max_total_orders'] <= 800
           assert d['coverage']['api_requests_attempted'] <= 800

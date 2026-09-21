@@ -156,6 +156,7 @@ Mismo concepto, dos nombres. Antes de escribir uno nuevo, revisa esta tabla.
 | Índice de opacidad por servicio | `opacity_index.py` ✅ portado | dentro de `relation_context.py` |
 | Cuotas vs. compras separadas en un grupo semanal | `split_discrimination.py` | — |
 | Fuentes de compras públicas disponibles | `procurement_discovery.py` | — |
+| Modalidad de contratación y licitación vinculada | `procurement_modality.py` | — |
 
 ---
 

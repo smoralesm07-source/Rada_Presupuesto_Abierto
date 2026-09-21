@@ -94,6 +94,11 @@ def build_procurement_context(
     con = duckdb.connect()
     con.register("targets", pd.DataFrame(targets))
     con.execute(f"CREATE OR REPLACE VIEW facts AS SELECT * FROM read_parquet('{parquet_glob}', union_by_name=true)")
+    # Una vista de hechos a la que le falte una columna opcional no puede tumbar
+    # la capa entera: se mide lo que hay y lo ausente se declara.
+    fact_columns = {str(c[0]) for c in con.execute("DESCRIBE SELECT * FROM facts").fetchall()}
+    intra_expr = ("sum(CASE WHEN coalesce(f.is_intra_state,FALSE) THEN 1 ELSE 0 END)"
+                  if "is_intra_state" in fact_columns else "CAST(NULL AS BIGINT)")
     df = con.execute(
         f"""
         SELECT
@@ -110,6 +115,12 @@ def build_procurement_context(
             {int(max_orders_per_finding)}
           ) AS purchase_order_examples,
           sum(coalesce(try_cast(f.monto_devengado AS DOUBLE),0)) AS devengado_total,
+          -- Un convenio entre organismos públicos queda legítimamente fuera de
+          -- licitación. El bulk lo marca en `intraestado`, así que el hecho viaja
+          -- hasta la capa de modalidad en vez de adivinarse por el nombre del
+          -- proveedor o por el tramo de su RUT: medido, la UFRO es 87.912.900-1 y
+          -- la U. Adolfo Ibáñez, privada, es 71.543.200-5.
+          {intra_expr} AS intra_state_rows,
           min(f.fecha_documento) AS first_document_date,
           max(f.fecha_documento) AS last_document_date
         FROM targets t
@@ -148,6 +159,7 @@ def build_procurement_context(
                 "purchase_order_examples": examples,
                 "purchase_order_row_coverage": (with_oc / source_rows) if source_rows else 0.0,
                 "has_purchase_order": bool(examples),
+                **_intra_state(row.get("intra_state_rows"), source_rows),
                 "guardrail": GUARDRAIL,
                 **by_finding.get(str(row.get("finding_id") or ""), _no_clusters()),
             }
@@ -172,6 +184,23 @@ def build_procurement_context(
     }
     out.write_text(json.dumps(result, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
     return coverage
+
+
+def _intra_state(rows: object, source_rows: int) -> dict:
+    """Gasto entre organismos públicos, o la declaración de que no se midió.
+
+    `None` y `0` dicen cosas distintas: el primero es «la fuente no trae la
+    columna», el segundo «se contó y no había ninguna». Colapsarlos haría que un
+    convenio entre servicios pareciera una compra a un privado.
+    """
+    if rows is None:
+        return {"intra_state_rows": None, "intra_state_share": None,
+                "intra_state_state": "NO_MEDIDO",
+                "intra_state_note": "La fuente no trae la marca de gasto intraestado."}
+    count = int(rows)
+    return {"intra_state_rows": count,
+            "intra_state_share": (count / source_rows) if source_rows else 0.0,
+            "intra_state_state": "MEDIDO"}
 
 
 def _no_clusters() -> dict:

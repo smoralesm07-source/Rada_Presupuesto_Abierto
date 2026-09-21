@@ -9,10 +9,13 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .procurement_modality import review_orders as review_modality
 from .sii_targets import canon_rut, rut_from_provider_id
 
 
-SCHEMA = "RIGP-MERCADO-PUBLICO-CONTEXT-v1"
+# v2 agrega `modality_review`. El v1 sí llegó a publicarse, así que la versión
+# sube en vez de mutar la forma en silencio.
+SCHEMA = "RIGP-MERCADO-PUBLICO-CONTEXT-v2"
 API_ROOT = "https://api.mercadopublico.cl/servicios/v1/publico"
 
 # La corrida #20 falló las 20 consultas con HTTP 404 —no 401— así que el ticket
@@ -275,6 +278,7 @@ def build_targets_with_discards(
             selected.append(
                 {
                     "purchase_order_code": code,
+                    "intra_state_share": row.get("intra_state_share"),
                     "source_reference": verdict["raw"],
                     "code_shape": verdict["shape"],
                     "finding_id": fid,
@@ -722,6 +726,16 @@ def build_mercado_publico_context(
         result["status"] = "READY" if not failures else "READY_WITH_GAPS"
     result["failures"] = failures
     result["non_code_references"] = discarded[:50]
+
+    # La modalidad es lo que convierte una repetición de pagos en una pregunta
+    # sobre el procedimiento. Se calcula sobre las órdenes ya resueltas, así que
+    # no cuesta una sola consulta extra.
+    intra_by_order = {
+        t["purchase_order_code"]: t["intra_state_share"]
+        for t in targets
+        if t.get("intra_state_share") is not None
+    }
+    result["modality_review"] = review_modality(orders, intra_state_by_order=intra_by_order)
     fit_to_budget(result)
     result["method_note"] = (
         "Este producto valida y contextualiza una muestra dirigida de órdenes asociadas a hallazgos RIGP. "
