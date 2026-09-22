@@ -1,6 +1,6 @@
 {
   "schema": "RIGP-OPACITY-INDEX-v1",
-  "generated_at": "2026-09-22T14:03:59+00:00",
+  "generated_at": "2026-09-22T18:01:58+00:00",
   "guardrail": "La opacidad describe un límite de la fuente, no una conducta. Un receptor pseudonimizado no es más sospechoso: es menos verificable, y eso cambia qué puede afirmarse a partir del dato. La mayor parte corresponde a pagos a personas naturales, donde la pseudonimización protege datos personales.",
   "labels": {
     "TRAZABLE": "Contraparte identificada con RUT validado.",
@@ -610,7 +610,7 @@
     },
     {
       "service_id": "SRV-PA-18-36",
-      "service_name": "SERVIU REGION DE ÑUBLE",
+      "service_name": "SERVIU XVI REGION NUBLE",
       "ministry_name": "MINISTERIO DE VIVIENDA Y URBANISMO",
       "amount_clp": 874590116689.0,
       "opaque_amount_clp": 65003637143.0,
@@ -1174,7 +1174,7 @@
     },
     {
       "service_id": "SRV-PA-21-10",
-      "service_name": "SUBSECRETARÍA DE LA NIÑEZ",
+      "service_name": "SUBSECRETARIA DE LA NIÑEZ",
       "ministry_name": "MINISTERIO DE DESARROLLO SOCIAL",
       "amount_clp": 276293282899.0,
       "opaque_amount_clp": 17746269201.0,
@@ -1954,7 +1954,7 @@
     },
     {
       "service_id": "SRV-PA-08-31",
-      "service_name": "COMISIÓN PARA EL MERCADO FINANCIERO",
+      "service_name": "COMISION PARA EL MERCADO FINANCIERO",
       "ministry_name": "MINISTERIO DE HACIENDA",
       "amount_clp": 347090643822.0,
       "opaque_amount_clp": 5106271882.0,
@@ -3154,7 +3154,7 @@
     },
     {
       "service_id": "SRV-PA-12-03",
-      "service_name": "DIRECCION GENERAL DE CONCESIONES OO.PP.",
+      "service_name": "DIRECCION GENERAL DE CONCESIONES DE OBRAS PUBLICAS",
       "ministry_name": "MINISTERIO DE OBRAS PUBLICAS",
       "amount_clp": 7712535425254.0,
       "opaque_amount_clp": 0.0,

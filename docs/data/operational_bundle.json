@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-22T14:05:24+00:00",
+  "generated_at": "2026-09-22T18:03:27+00:00",
   "schema": "RIGP-OPERATIONAL-BUNDLE-v1",
   "analysis_window": {
     "years": [
@@ -21,15 +21,15 @@
     "historical_depth_years": 11
   },
   "publication": {
-    "relations_available": 189745,
+    "relations_available": 189747,
     "relations_published": 600,
     "available_by_signal": {
       "POTENTIAL_FRAGMENTATION": 103241,
       "PAYMENT_DELAY_OUTLIER": 52839,
-      "EXACT_DUPLICATE_CANDIDATE": 30313,
+      "EXACT_DUPLICATE_CANDIDATE": 30314,
       "PROVIDER_CONCENTRATION": 1725,
-      "AMOUNT_OUTLIER": 7679,
       "CAPACITY_MISMATCH": 3609,
+      "AMOUNT_OUTLIER": 7679,
       "ACTIVITY_MISMATCH": 5943,
       "DORMANT_REACTIVATION": 61,
       "NEWBORN_SUPPLIER": 371,
@@ -40,12 +40,12 @@
       "PAYMENT_DELAY_OUTLIER": 411,
       "EXACT_DUPLICATE_CANDIDATE": 277,
       "PROVIDER_CONCENTRATION": 78,
-      "AMOUNT_OUTLIER": 175,
       "CAPACITY_MISMATCH": 84,
+      "AMOUNT_OUTLIER": 175,
       "ACTIVITY_MISMATCH": 9,
-      "DORMANT_REACTIVATION": 1,
+      "NEW_TO_SERIES_HIGH_SPEND": 20,
       "NEWBORN_SUPPLIER": 1,
-      "NEW_TO_SERIES_HIGH_SPEND": 20
+      "DORMANT_REACTIVATION": 1
     },
     "published_by_pattern": {
       "INTEGRIDAD_DOCUMENTAL": 371,
