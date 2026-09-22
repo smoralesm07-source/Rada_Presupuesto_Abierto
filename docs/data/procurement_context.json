@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-22T18:03:27+00:00",
+  "generated_at": "2026-09-22T22:11:55+00:00",
   "schema": "RIGP-PROCUREMENT-CONTEXT-v2",
   "guardrail": "La presencia o ausencia de una orden de compra en Presupuesto Abierto no acredita por sí sola regularidad o irregularidad del proceso de contratación. Debe contrastarse con Mercado Público y los documentos del procedimiento correspondiente.",
   "split_guardrail": "La forma del grupo describe cómo se registraron las compras, no si fueron irregulares. Órdenes separadas no acreditan fraccionamiento: la modalidad que lo haría exigible se verifica en Mercado Público y en el expediente del procedimiento.",
@@ -410,6 +410,33 @@
       "purchase_order_row_coverage": 0.875,
       "has_purchase_order": true,
       "intra_state_share": 1.0,
+      "intra_state_state": "MEDIDO",
+      "guardrail": "La presencia o ausencia de una orden de compra en Presupuesto Abierto no acredita por sí sola regularidad o irregularidad del proceso de contratación. Debe contrastarse con Mercado Público y los documentos del procedimiento correspondiente.",
+      "weekly_cluster_count": 0,
+      "split_shape": "NO_DETERMINADO",
+      "split_worth_triage": false,
+      "weekly_clusters": []
+    },
+    {
+      "finding_id": "HAL-RIGP-C154FF053E2FE5CD6440",
+      "organization_id": "ORG-PA-05-10-001",
+      "provider_id": "PRV-RUT-97030000-7",
+      "periodo": 2026,
+      "source_rows": 3,
+      "rows_with_purchase_order": 3,
+      "purchase_order_count": 3,
+      "purchase_order_examples": [
+        "1",
+        "2",
+        "6"
+      ],
+      "devengado_total": 76153257000.0,
+      "intra_state_rows": 0,
+      "first_document_date": "2026-06-30 00:00:00",
+      "last_document_date": "2026-07-17 00:00:00",
+      "purchase_order_row_coverage": 1.0,
+      "has_purchase_order": true,
+      "intra_state_share": 0.0,
       "intra_state_state": "MEDIDO",
       "guardrail": "La presencia o ausencia de una orden de compra en Presupuesto Abierto no acredita por sí sola regularidad o irregularidad del proceso de contratación. Debe contrastarse con Mercado Público y los documentos del procedimiento correspondiente.",
       "weekly_cluster_count": 0,
@@ -9739,25 +9766,6 @@
         },
         {
           "item": "",
-          "week_start": "2019-01-14 00:00:00",
-          "documents": 14,
-          "cluster_total": 3998400.0,
-          "max_document_amount": 285600.0,
-          "amount_cv": 0.0,
-          "rows_with_order": 13,
-          "distinct_orders": 1,
-          "order_examples": [
-            "837-1930-SE17"
-          ],
-          "split_shape": "PAGOS_BAJO_UNA_ORDEN",
-          "split_shape_meaning": "Los documentos comparten una sola orden de compra: son pagos de una misma compra. Es la explicación inocente que la señal de fragmentación ya nombraba.",
-          "split_shape_why": "los documentos con orden comparten una sola",
-          "order_coverage": 0.928571,
-          "orders_per_document": 0.076923,
-          "worth_triage": false
-        },
-        {
-          "item": "",
           "week_start": "2019-08-12 00:00:00",
           "documents": 14,
           "cluster_total": 3998400.0,
@@ -9775,6 +9783,25 @@
           "order_coverage": 1.0,
           "orders_per_document": 0.142857,
           "worth_triage": true
+        },
+        {
+          "item": "",
+          "week_start": "2019-01-14 00:00:00",
+          "documents": 14,
+          "cluster_total": 3998400.0,
+          "max_document_amount": 285600.0,
+          "amount_cv": 0.0,
+          "rows_with_order": 13,
+          "distinct_orders": 1,
+          "order_examples": [
+            "837-1930-SE17"
+          ],
+          "split_shape": "PAGOS_BAJO_UNA_ORDEN",
+          "split_shape_meaning": "Los documentos comparten una sola orden de compra: son pagos de una misma compra. Es la explicación inocente que la señal de fragmentación ya nombraba.",
+          "split_shape_why": "los documentos con orden comparten una sola",
+          "order_coverage": 0.928571,
+          "orders_per_document": 0.076923,
+          "worth_triage": false
         }
       ],
       "split_shape": "PAGOS_BAJO_UNA_ORDEN",
@@ -10412,25 +10439,6 @@
       "weekly_clusters": [
         {
           "item": "",
-          "week_start": "2017-09-25 00:00:00",
-          "documents": 3,
-          "cluster_total": 855000.0,
-          "max_document_amount": 285000.0,
-          "amount_cv": 0.0,
-          "rows_with_order": 3,
-          "distinct_orders": 1,
-          "order_examples": [
-            "1671-413-se17"
-          ],
-          "split_shape": "PAGOS_BAJO_UNA_ORDEN",
-          "split_shape_meaning": "Los documentos comparten una sola orden de compra: son pagos de una misma compra. Es la explicación inocente que la señal de fragmentación ya nombraba.",
-          "split_shape_why": "los documentos con orden comparten una sola",
-          "order_coverage": 1.0,
-          "orders_per_document": 0.333333,
-          "worth_triage": false
-        },
-        {
-          "item": "",
           "week_start": "2017-10-23 00:00:00",
           "documents": 3,
           "cluster_total": 855000.0,
@@ -10449,9 +10457,28 @@
           "order_coverage": 1.0,
           "orders_per_document": 1.0,
           "worth_triage": true
+        },
+        {
+          "item": "",
+          "week_start": "2017-09-25 00:00:00",
+          "documents": 3,
+          "cluster_total": 855000.0,
+          "max_document_amount": 285000.0,
+          "amount_cv": 0.0,
+          "rows_with_order": 3,
+          "distinct_orders": 1,
+          "order_examples": [
+            "1671-413-se17"
+          ],
+          "split_shape": "PAGOS_BAJO_UNA_ORDEN",
+          "split_shape_meaning": "Los documentos comparten una sola orden de compra: son pagos de una misma compra. Es la explicación inocente que la señal de fragmentación ya nombraba.",
+          "split_shape_why": "los documentos con orden comparten una sola",
+          "order_coverage": 1.0,
+          "orders_per_document": 0.333333,
+          "worth_triage": false
         }
       ],
-      "split_shape": "PAGOS_BAJO_UNA_ORDEN",
+      "split_shape": "ORDENES_SEPARADAS",
       "split_worth_triage": true
     },
     {
@@ -11620,29 +11647,6 @@
       "weekly_clusters": []
     },
     {
-      "finding_id": "HAL-RIGP-CA3BB818CDD695A58DFC",
-      "organization_id": "ORG-PA-09-33-001",
-      "provider_id": "PRV-RUT-61980940-8",
-      "periodo": 2026,
-      "source_rows": 10,
-      "rows_with_purchase_order": 0,
-      "purchase_order_count": 0,
-      "purchase_order_examples": [],
-      "devengado_total": 1644202578.0,
-      "intra_state_rows": 0,
-      "first_document_date": "2024-04-22 00:00:00",
-      "last_document_date": "2026-01-07 00:00:00",
-      "purchase_order_row_coverage": 0.0,
-      "has_purchase_order": false,
-      "intra_state_share": 0.0,
-      "intra_state_state": "MEDIDO",
-      "guardrail": "La presencia o ausencia de una orden de compra en Presupuesto Abierto no acredita por sí sola regularidad o irregularidad del proceso de contratación. Debe contrastarse con Mercado Público y los documentos del procedimiento correspondiente.",
-      "weekly_cluster_count": 0,
-      "split_shape": "NO_DETERMINADO",
-      "split_worth_triage": false,
-      "weekly_clusters": []
-    },
-    {
       "finding_id": "HAL-RIGP-E63A4FC06C33017FE74B",
       "organization_id": "ORG-PA-18-28-001",
       "provider_id": "PRV-RUT-77091476-0",
@@ -12048,25 +12052,6 @@
       "weekly_clusters": [
         {
           "item": "",
-          "week_start": "2018-07-30 00:00:00",
-          "documents": 3,
-          "cluster_total": 2535000.0,
-          "max_document_amount": 928200.0,
-          "amount_cv": 0.086659,
-          "rows_with_order": 1,
-          "distinct_orders": 1,
-          "order_examples": [
-            "1036-63-CM18"
-          ],
-          "split_shape": "NO_DETERMINADO",
-          "split_shape_meaning": "La cobertura de orden de compra en el grupo no alcanza para distinguir cuotas de compras separadas.",
-          "split_shape_why": "sólo 1 de 3 documentos traen orden de compra, bajo el piso de 60% necesario para declarar la forma",
-          "order_coverage": 0.333333,
-          "orders_per_document": 0.0,
-          "worth_triage": false
-        },
-        {
-          "item": "",
           "week_start": "2018-08-27 00:00:00",
           "documents": 3,
           "cluster_total": 2535000.0,
@@ -12084,9 +12069,28 @@
           "order_coverage": 0.666667,
           "orders_per_document": 1.0,
           "worth_triage": true
+        },
+        {
+          "item": "",
+          "week_start": "2018-07-30 00:00:00",
+          "documents": 3,
+          "cluster_total": 2535000.0,
+          "max_document_amount": 928200.0,
+          "amount_cv": 0.086659,
+          "rows_with_order": 1,
+          "distinct_orders": 1,
+          "order_examples": [
+            "1036-63-CM18"
+          ],
+          "split_shape": "NO_DETERMINADO",
+          "split_shape_meaning": "La cobertura de orden de compra en el grupo no alcanza para distinguir cuotas de compras separadas.",
+          "split_shape_why": "sólo 1 de 3 documentos traen orden de compra, bajo el piso de 60% necesario para declarar la forma",
+          "order_coverage": 0.333333,
+          "orders_per_document": 0.0,
+          "worth_triage": false
         }
       ],
-      "split_shape": "NO_DETERMINADO",
+      "split_shape": "ORDENES_SEPARADAS",
       "split_worth_triage": true
     },
     {
@@ -21834,6 +21838,29 @@
       "weekly_clusters": []
     },
     {
+      "finding_id": "HAL-RIGP-CA3BB818CDD695A58DFC",
+      "organization_id": "ORG-PA-09-33-001",
+      "provider_id": "PRV-RUT-61980940-8",
+      "periodo": 2026,
+      "source_rows": 10,
+      "rows_with_purchase_order": 0,
+      "purchase_order_count": 0,
+      "purchase_order_examples": [],
+      "devengado_total": 1644202578.0,
+      "intra_state_rows": 0,
+      "first_document_date": "2024-04-22 00:00:00",
+      "last_document_date": "2026-01-07 00:00:00",
+      "purchase_order_row_coverage": 0.0,
+      "has_purchase_order": false,
+      "intra_state_share": 0.0,
+      "intra_state_state": "MEDIDO",
+      "guardrail": "La presencia o ausencia de una orden de compra en Presupuesto Abierto no acredita por sí sola regularidad o irregularidad del proceso de contratación. Debe contrastarse con Mercado Público y los documentos del procedimiento correspondiente.",
+      "weekly_cluster_count": 0,
+      "split_shape": "NO_DETERMINADO",
+      "split_worth_triage": false,
+      "weekly_clusters": []
+    },
+    {
       "finding_id": "HAL-RIGP-65DEBB9BCA71DA25479A",
       "organization_id": "ORG-PA-09-33-001",
       "provider_id": "PRV-RUT-61980940-8",
@@ -26386,41 +26413,6 @@
       ],
       "split_shape": "PAGOS_BAJO_UNA_ORDEN",
       "split_worth_triage": false
-    },
-    {
-      "finding_id": "HAL-RIGP-EA0A1D691CB6A19B5DC2",
-      "organization_id": "ORG-PA-08-15-001",
-      "provider_id": "PRV-RUT-76753070-6",
-      "periodo": 2018,
-      "source_rows": 38,
-      "rows_with_purchase_order": 38,
-      "purchase_order_count": 11,
-      "purchase_order_examples": [
-        "01750-1667-CM17",
-        "01750-404-CM18",
-        "1750-1135-CM18",
-        "1750-1306-CM18",
-        "1750-1382-CM17",
-        "1750-141-CM18",
-        "1750-1413-CM17",
-        "1750-1667-CM17",
-        "1750-404-CM18",
-        "1750-544-CM18",
-        "1750-563-CM18"
-      ],
-      "devengado_total": 64443655.0,
-      "intra_state_rows": 0,
-      "first_document_date": "2017-12-26 00:00:00",
-      "last_document_date": "2018-12-14 00:00:00",
-      "purchase_order_row_coverage": 1.0,
-      "has_purchase_order": true,
-      "intra_state_share": 0.0,
-      "intra_state_state": "MEDIDO",
-      "guardrail": "La presencia o ausencia de una orden de compra en Presupuesto Abierto no acredita por sí sola regularidad o irregularidad del proceso de contratación. Debe contrastarse con Mercado Público y los documentos del procedimiento correspondiente.",
-      "weekly_cluster_count": 0,
-      "split_shape": "NO_DETERMINADO",
-      "split_worth_triage": false,
-      "weekly_clusters": []
     },
     {
       "finding_id": "HAL-RIGP-A46FF1B57464519C949F",

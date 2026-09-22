@@ -1,6 +1,6 @@
 {
   "schema": "RIGP-OPACITY-INDEX-v1",
-  "generated_at": "2026-09-22T18:01:58+00:00",
+  "generated_at": "2026-09-22T22:10:29+00:00",
   "guardrail": "La opacidad describe un límite de la fuente, no una conducta. Un receptor pseudonimizado no es más sospechoso: es menos verificable, y eso cambia qué puede afirmarse a partir del dato. La mayor parte corresponde a pagos a personas naturales, donde la pseudonimización protege datos personales.",
   "labels": {
     "TRAZABLE": "Contraparte identificada con RUT validado.",
@@ -34,7 +34,7 @@
     },
     {
       "service_id": "SRV-PA-16-09",
-      "service_name": "SUBSECRETARIA DE SALUD PUBLICA",
+      "service_name": "SUBSECRETARÍA DE SALUD PÚBLICA",
       "ministry_name": "MINISTERIO DE SALUD",
       "amount_clp": 9548237522118.0,
       "opaque_amount_clp": 734256891648.0,
@@ -130,8 +130,8 @@
     },
     {
       "service_id": "SRV-PA-19-01",
-      "service_name": "SECRETARIA Y ADMINISTRACION GENERAL DE TRANSPORTES",
-      "ministry_name": "MINISTERIO DE TRANSPORTES Y TELECOMUNICACIONES",
+      "service_name": "SECRETARÍA Y ADMINISTRACIÓN GENERAL DE TRANSPORTE",
+      "ministry_name": "MINISTERIO DE TRANSPORTE Y TELECOMUNICACIONES",
       "amount_clp": 13276322530244.0,
       "opaque_amount_clp": 413523972610.0,
       "opaque_share": 0.031147,
@@ -202,7 +202,7 @@
     },
     {
       "service_id": "SRV-PA-21-02",
-      "service_name": "FONDO DE SOLIDARIDAD E INVERSION SOCIAL",
+      "service_name": "FONDO DE SOLIDARIDAD E INVERSIÓN SOCIAL",
       "ministry_name": "MINISTERIO DE DESARROLLO SOCIAL",
       "amount_clp": 942841723897.0,
       "opaque_amount_clp": 223861899750.0,
@@ -238,7 +238,7 @@
     },
     {
       "service_id": "SRV-PA-18-25",
-      "service_name": "SERVIU V REGION  VALPARAISO",
+      "service_name": "SERVIU V REGION VALPARAISO",
       "ministry_name": "MINISTERIO DE VIVIENDA Y URBANISMO",
       "amount_clp": 2328660129926.0,
       "opaque_amount_clp": 205883338402.0,
@@ -262,7 +262,7 @@
     },
     {
       "service_id": "SRV-PA-18-29",
-      "service_name": "SERVIU IX REGION  ARAUCANIA",
+      "service_name": "SERVIU IX REGION ARAUCANIA",
       "ministry_name": "MINISTERIO DE VIVIENDA Y URBANISMO",
       "amount_clp": 2320090811042.0,
       "opaque_amount_clp": 192881061971.0,
@@ -466,7 +466,7 @@
     },
     {
       "service_id": "SRV-PA-18-30",
-      "service_name": "SERVIU X REGION  LOS LAGOS",
+      "service_name": "SERVIU X REGION LOS LAGOS",
       "ministry_name": "MINISTERIO DE VIVIENDA Y URBANISMO",
       "amount_clp": 1765454015039.0,
       "opaque_amount_clp": 101971346466.0,
@@ -550,7 +550,7 @@
     },
     {
       "service_id": "SRV-PA-18-26",
-      "service_name": "SERVIU VI REGION  BERNARDO OHIGGINS",
+      "service_name": "SERVIU VI REGION BERNARDO O HIGGINS",
       "ministry_name": "MINISTERIO DE VIVIENDA Y URBANISMO",
       "amount_clp": 1316856084114.0,
       "opaque_amount_clp": 80445130898.0,
@@ -574,7 +574,7 @@
     },
     {
       "service_id": "SRV-PA-18-24",
-      "service_name": "SERVIU IV REGION  COQUIMBO",
+      "service_name": "SERVIU IV REGION COQUIMBO",
       "ministry_name": "MINISTERIO DE VIVIENDA Y URBANISMO",
       "amount_clp": 1146338812402.0,
       "opaque_amount_clp": 72226800577.0,
@@ -586,7 +586,7 @@
     },
     {
       "service_id": "SRV-PA-18-23",
-      "service_name": "SERVIU III REGION  ATACAMA",
+      "service_name": "SERVIU III REGION ATACAMA",
       "ministry_name": "MINISTERIO DE VIVIENDA Y URBANISMO",
       "amount_clp": 676894613777.0,
       "opaque_amount_clp": 67951348648.0,
@@ -634,7 +634,7 @@
     },
     {
       "service_id": "SRV-PA-18-34",
-      "service_name": "SERVIU XIV REGION DE LOS RIOS",
+      "service_name": "SERVIU XIV REGION",
       "ministry_name": "MINISTERIO DE VIVIENDA Y URBANISMO",
       "amount_clp": 701435916318.0,
       "opaque_amount_clp": 64302092464.0,
@@ -706,8 +706,8 @@
     },
     {
       "service_id": "SRV-PA-22-01",
-      "service_name": "SECRETARIA GENERAL DE LA PRESIDENCIA DE LA REPUBLICA ",
-      "ministry_name": "MINISTERIO SECRETARIA GENERAL DE LA PRESIDENCIA DE LA REPUBLICA",
+      "service_name": "SECRETARIA GENERAL DE LA PRESIDENCIA DE LA REPUBLICA",
+      "ministry_name": "MINISTERIO SECRETARIA GENERAL DE LA PRESIDENCIA",
       "amount_clp": 176872607426.0,
       "opaque_amount_clp": 50477075483.0,
       "opaque_share": 0.285387,
@@ -778,7 +778,7 @@
     },
     {
       "service_id": "SRV-PA-13-05",
-      "service_name": "CORPORACION NACIONAL FORESTAL",
+      "service_name": "CORPORACIÓN NACIONAL FORESTAL",
       "ministry_name": "MINISTERIO DE AGRICULTURA",
       "amount_clp": 1716389636757.0,
       "opaque_amount_clp": 44520192148.0,
@@ -802,7 +802,7 @@
     },
     {
       "service_id": "SRV-PA-18-21",
-      "service_name": "SERVIU I REGION  TARAPACA",
+      "service_name": "SERVIU I REGION TARAPACA",
       "ministry_name": "MINISTERIO DE VIVIENDA Y URBANISMO",
       "amount_clp": 856263837360.0,
       "opaque_amount_clp": 42246736612.0,
@@ -886,7 +886,7 @@
     },
     {
       "service_id": "SRV-PA-18-31",
-      "service_name": "SERVIU XI REGION  AYSEN",
+      "service_name": "SERVIU XI REGION AYSEN",
       "ministry_name": "MINISTERIO DE VIVIENDA Y URBANISMO",
       "amount_clp": 484718365625.0,
       "opaque_amount_clp": 37926502870.0,
@@ -923,7 +923,7 @@
     {
       "service_id": "SRV-PA-10-07",
       "service_name": "SERVICIO NACIONAL DE MENORES",
-      "ministry_name": "MINISTERIO DE JUSTICIA",
+      "ministry_name": "MINISTERIO DE JUSTICIA Y DERECHOS HUMANOS",
       "amount_clp": 2396340341135.0,
       "opaque_amount_clp": 37281874865.0,
       "opaque_share": 0.015558,
@@ -1018,8 +1018,8 @@
     },
     {
       "service_id": "SRV-PA-05-05",
-      "service_name": "SUBSECRETARIA DE DESARROLLO REGIONAL Y ADMINISTRATIVO",
-      "ministry_name": "MINISTERIO DEL INTERIOR",
+      "service_name": "SUBSECRETARÍA DE DESARROLLO REGIONAL Y ADMINISTRATIVO",
+      "ministry_name": "MINISTERIO DEL INTERIOR Y SEGURIDAD PÚBLICA",
       "amount_clp": 3278192061504.0,
       "opaque_amount_clp": 26482218905.0,
       "opaque_share": 0.008078,
@@ -1042,7 +1042,7 @@
     },
     {
       "service_id": "SRV-PA-18-22",
-      "service_name": "SERVIU II REGION  ANTOFAGASTA",
+      "service_name": "SERVIU II REGION ANTOFAGASTA",
       "ministry_name": "MINISTERIO DE VIVIENDA Y URBANISMO",
       "amount_clp": 814544921513.0,
       "opaque_amount_clp": 25461101514.0,
@@ -1391,7 +1391,7 @@
     {
       "service_id": "SRV-PA-07-09",
       "service_name": "SERVICIO NACIONAL DE TURISMO",
-      "ministry_name": "MINISTERIO DE ECONOMIA FOMENTO Y RECONSTRUCCION",
+      "ministry_name": "MINISTERIO DE ECONOMÍA FOMENTO Y RECONSTRUCCIÓN",
       "amount_clp": 299584404556.0,
       "opaque_amount_clp": 12800586249.0,
       "opaque_share": 0.042728,
@@ -1546,7 +1546,7 @@
     },
     {
       "service_id": "SRV-PA-18-32",
-      "service_name": "SERVIU XII REGION  MAGALLANES Y ANTARTICA",
+      "service_name": "SERVIU XII REGION MAGALLANES Y ANTARTICA",
       "ministry_name": "MINISTERIO DE VIVIENDA Y URBANISMO",
       "amount_clp": 606412678017.0,
       "opaque_amount_clp": 10409162841.0,
@@ -1786,7 +1786,7 @@
     },
     {
       "service_id": "SRV-PA-18-35",
-      "service_name": "SERVIU XV REGION ARICA Y PARINACOTA",
+      "service_name": "SERVIU XV REGION",
       "ministry_name": "MINISTERIO DE VIVIENDA Y URBANISMO",
       "amount_clp": 702719327055.0,
       "opaque_amount_clp": 6480347692.0,
@@ -1906,7 +1906,7 @@
     },
     {
       "service_id": "SRV-PA-15-04",
-      "service_name": "DIRECCION GENERAL DE CREDITO PRENDARIO",
+      "service_name": "DIRECCIÓN GENERAL DE CRÉDITO PRENDARIO",
       "ministry_name": "MINISTERIO DEL TRABAJO Y PREVISION SOCIAL",
       "amount_clp": 117337596803.0,
       "opaque_amount_clp": 5317089699.0,
@@ -2459,7 +2459,7 @@
     {
       "service_id": "SRV-PA-10-06",
       "service_name": "SUBSECRETARÍA DE DERECHOS HUMANOS",
-      "ministry_name": "MINISTERIO DE JUSTICIA",
+      "ministry_name": "MINISTERIO DE JUSTICIA Y DERECHOS HUMANOS",
       "amount_clp": 43003732388.0,
       "opaque_amount_clp": 1258010013.0,
       "opaque_share": 0.029254,
@@ -3107,7 +3107,7 @@
     {
       "service_id": "SRV-PA-07-06",
       "service_name": "CORPORACION DE FOMENTO DE LA PRODUCCION",
-      "ministry_name": "MINISTERIO DE ECONOMIA FOMENTO Y RECONSTRUCCION",
+      "ministry_name": "MINISTERIO DE ECONOMÍA FOMENTO Y TURISMO",
       "amount_clp": 2589238912527.0,
       "opaque_amount_clp": 0.0,
       "opaque_share": 0.0,
