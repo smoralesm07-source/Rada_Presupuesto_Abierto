@@ -27,8 +27,31 @@ Las marcas y su prevalencia observada el 2026-09-21:
     tres o más tipos de señal        17,7%
     prioridad en el decil superior   ~10%
     monto en el decil superior       ~10%
+
+---
+
+**Segunda corrección, 2026-09-22: contra quién se mide el monto.**
+
+La marca de monto era relativa a la bandeja, pero la bandeja mezcla poblaciones
+que no están en la misma escala. Medido sobre las 353 relaciones de la corrida
+#42, su decil superior tenía 25 transferencias y 5 adquisiciones: un subsidio al
+transporte son 57.103 millones y una compra de insumos clínicos, 900. Ordenadas
+juntas por monto, las compras no aparecen nunca, y la marca se había vuelto un
+detector de transferencias sin que nadie lo decidiera.
+
+El corte pasa a calcularse dentro de cada naturaleza de gasto —el subtítulo
+presupuestario, que ya viajaba en `peer_context` y que nadie usaba—. La misma
+cola pasa a 24 adquisiciones y 11 transferencias, y el nivel superior de la
+bandeja, de 25 transferencias estructurales a 31 adquisiciones y 16
+transferencias.
+
+Ninguna relación se descarta por su naturaleza: se compara con sus iguales. Una
+naturaleza con menos de `MIN_ROWS_FOR_NATURE_TAIL` filas no tiene cola propia y
+lo declara, en vez de recibir un corte calculado con cuatro observaciones.
 """
 from __future__ import annotations
+
+from .spend_nature import NATURE_LABELS, nature_of
 
 IMMEDIATE = "ATENCION_INMEDIATA"
 PRIORITY = "REVISION_PRIORITARIA"
@@ -49,6 +72,14 @@ TAIL_QUANTILE = 0.90
 # marcas de cola no se aplican, porque son relativas por definición.
 MIN_ROWS_FOR_RARITY = 20
 
+# El corte de monto se calcula dentro de cada naturaleza de gasto, no sobre la
+# bandeja entera: una transferencia corriente y una compra de insumos no están
+# en la misma escala, y ordenarlas juntas por monto convertía la marca en un
+# detector de transferencias. Una naturaleza con menos filas que este piso no
+# tiene cola propia, y entonces la marca no se le aplica en vez de inventarle un
+# corte con cuatro observaciones.
+MIN_ROWS_FOR_NATURE_TAIL = 20
+
 STRUCTURAL_MARKS = ("FAMILIAS_MULTIPLES", "TIPOS_MULTIPLES", "EVIDENCIA_EXTERNA")
 
 # Dos marcas independientes para el nivel superior. Una sola puede ser una
@@ -60,7 +91,7 @@ MARK_LABELS = {
     "TIPOS_MULTIPLES": "tres o más tipos de señal distintos",
     "EVIDENCIA_EXTERNA": "cruce candidato con una auditoría de la CGR",
     "PRIORIDAD_EN_LA_COLA": "prioridad de revisión en el decil superior de la bandeja",
-    "MONTO_EN_LA_COLA": "monto máximo en el decil superior de la bandeja",
+    "MONTO_EN_LA_COLA": "monto máximo en el decil superior de su naturaleza de gasto",
 }
 
 LEVEL_MEANING = {
@@ -109,24 +140,74 @@ def marks_for(row: dict, cuts: dict) -> set[str]:
         found.add("EVIDENCIA_EXTERNA")
     if _num(row, "max_priority_score") >= cuts.get("max_priority_score", float("inf")):
         found.add("PRIORIDAD_EN_LA_COLA")
-    if _num(row, "max_transaction_amount") >= cuts.get("max_transaction_amount", float("inf")):
+    if _num(row, "max_transaction_amount") >= _amount_cut(row, cuts):
         found.add("MONTO_EN_LA_COLA")
     return found
 
 
+def _amount_cut(row: dict, cuts: dict) -> float:
+    """El corte de monto que le corresponde a esta relación por su naturaleza.
+
+    Si la naturaleza no tiene cola propia medible, devuelve infinito: la marca
+    no se aplica. Declarar que no se puede medir es preferible a compararla con
+    una población que no es la suya.
+    """
+    by_nature = cuts.get("max_transaction_amount_by_nature")
+    if isinstance(by_nature, dict):
+        entry = by_nature.get(nature_of(row)["nature"])
+        if not isinstance(entry, dict) or entry.get("state") != "MEDIDA":
+            return float("inf")
+        return float(entry.get("cut", float("inf")))
+    # Bandejas calibradas con el corte plano anterior siguen funcionando.
+    return float(cuts.get("max_transaction_amount", float("inf")))
+
+
+def _amount_cuts_by_nature(rows: list[dict], tail_quantile: float,
+                           min_nature_rows: int) -> dict:
+    """Un corte de monto por naturaleza de gasto, declarando las que no alcanzan."""
+    grouped: dict[str, list[float]] = {}
+    for row in rows:
+        grouped.setdefault(nature_of(row)["nature"], []).append(
+            _num(row, "max_transaction_amount"))
+    out: dict[str, dict] = {}
+    for nature, values in grouped.items():
+        enough = len(values) >= int(min_nature_rows)
+        out[nature] = {
+            "label": NATURE_LABELS.get(nature, nature),
+            "rows": len(values),
+            "state": "MEDIDA" if enough else "NO_MEDIBLE_POR_TAMANO",
+            "cut": _quantile(values, tail_quantile) if enough else None,
+            "why": (
+                f"{len(values)} relaciones de esta naturaleza en la bandeja."
+                if enough else
+                f"Sólo {len(values)} {'relación' if len(values) == 1 else 'relaciones'} de esta "
+                f"naturaleza: bajo {int(min_nature_rows)} no tiene cola propia y la marca de "
+                "monto no se le aplica."
+            ),
+        }
+    return out
+
+
 def calibrate(rows: list[dict], rarity_ceiling: float = RARITY_CEILING,
               tail_quantile: float = TAIL_QUANTILE,
-              min_rows: int = MIN_ROWS_FOR_RARITY) -> dict:
+              min_rows: int = MIN_ROWS_FOR_RARITY,
+              min_nature_rows: int = MIN_ROWS_FOR_NATURE_TAIL) -> dict:
     """Mide, sobre la bandeja que se va a publicar, qué marcas siguen distinguiendo."""
     total = len(rows or [])
     if not total:
         return {"published_rows": 0, "cuts": {}, "marks": {}, "counting_marks": [],
-                "rarity_state": "SIN_BANDEJA"}
+                "amount_tail_by_nature": {}, "rarity_state": "SIN_BANDEJA"}
 
     measurable = total >= int(min_rows)
+    # Las naturalezas se miden siempre: aunque la bandeja sea demasiado chica para
+    # aplicar marcas de cola, el payload declara qué naturalezas trae y por qué
+    # ninguna llega a tener corte propio. Publicar el bloque vacío parecería que
+    # la capa no existe, en vez de que no se pudo calcular.
+    natures = _amount_cuts_by_nature(rows, tail_quantile, min_nature_rows)
     cuts = (
-        {key: _quantile([_num(r, key) for r in rows], tail_quantile)
-         for key in ("max_priority_score", "max_transaction_amount")}
+        {"max_priority_score": _quantile([_num(r, "max_priority_score") for r in rows],
+                                         tail_quantile),
+         "max_transaction_amount_by_nature": natures}
         if measurable else {}
     )
 
@@ -163,6 +244,8 @@ def calibrate(rows: list[dict], rarity_ceiling: float = RARITY_CEILING,
         "rarity_ceiling": rarity_ceiling,
         "tail_quantile": tail_quantile,
         "cuts": cuts,
+        "min_rows_for_nature_tail": int(min_nature_rows),
+        "amount_tail_by_nature": natures,
         "marks": marks,
         "counting_marks": sorted(n for n, m in marks.items() if m["counts"]),
     }
@@ -175,8 +258,10 @@ def level_for(row: dict, calibration: dict) -> dict:
     earned = sorted(present & counting)
     level = (IMMEDIATE if len(earned) >= MARKS_FOR_IMMEDIATE
              else PRIORITY if earned else FOLLOW)
+    nature = nature_of(row)
     return {
         "attention_level": level,
+        "spend_nature": nature,
         "attention_marks": earned,
         "attention_why": (
             "; ".join(MARK_LABELS[m] for m in earned) if earned
@@ -203,6 +288,8 @@ def assign(rows: list[dict], **kwargs) -> dict:
     calibration["method"] = (
         "El nivel cuenta marcas distintivas, y una marca sólo cuenta si es rara en la "
         "bandeja publicada. La prevalencia se mide en cada corrida: una marca que se "
-        "vuelve común deja de sumar sola, sin editar ningún umbral."
+        "vuelve común deja de sumar sola, sin editar ningún umbral. El corte de monto se "
+        "calcula dentro de cada naturaleza de gasto, porque una transferencia y una "
+        "adquisición no están en la misma escala."
     )
     return calibration

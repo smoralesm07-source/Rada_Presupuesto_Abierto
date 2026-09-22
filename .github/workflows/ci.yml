@@ -105,6 +105,15 @@ jobs:
           assert len(fh['relation_findings']) <= 600
           for row in fh['relation_findings']:
               assert 'pattern_compatibility' in row
+              assert row.get('spend_nature',{}).get('nature'), 'la fila no declara su naturaleza de gasto'
+          # El corte de monto se mide dentro de cada naturaleza. Si vuelve a ser uno
+          # solo para toda la bandeja, la marca de monto vuelve a ser un detector de
+          # transferencias, que es el defecto que esto corrige.
+          _tails = fh.get('attention_calibration',{}).get('amount_tail_by_nature')
+          assert isinstance(_tails, dict), 'falta el corte de monto por naturaleza'
+          for _nat,_t in _tails.items():
+              assert _t['state'] in {'MEDIDA','NO_MEDIBLE_POR_TAMANO'}, (_nat,_t)
+              assert (_t['cut'] is None) == (_t['state']=='NO_MEDIBLE_POR_TAMANO'), (_nat,_t)
           # Este payload lo acaba de reescribir el paso anterior sobre la muestra, así
           # que la versión que se exige aquí es la que emite el motor de este commit.
           assert pc['schema'] == 'RIGP-PROCUREMENT-CONTEXT-v2'
