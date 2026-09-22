@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 from collections import Counter
+
+from .attention_level import assign as assign_attention
 from pathlib import Path
 
 import duckdb
@@ -125,6 +127,14 @@ def rebalance_findings_publication(
         selected.append(row)
         selected_ids.add(fid)
 
+    # El nivel se calibra contra la bandeja que este módulo acaba de decidir, no
+    # contra la lista anterior. `investigative_findings` también lo calcula, pero
+    # su resultado lo pisa esta selección al reemplazar `relation_findings` con
+    # filas releídas del parquet: la corrida #41 publicó 582 de 600 en atención
+    # inmediata mientras el bloque de calibración, calculado sobre otra lista,
+    # decía 85/183/332. Calibrar aquí es además lo correcto: el nivel ordena la
+    # bandeja publicada, y quien la define es este paso.
+    attention_calibration = assign_attention(selected)
     selected.sort(key=_rank_key)
 
     published = Counter()
@@ -149,6 +159,7 @@ def rebalance_findings_publication(
         "SEGUIMIENTO": attention.get("SEGUIMIENTO", 0),
     }
     counts["finding_families"] = dict(families)
+    payload["attention_calibration"] = attention_calibration
     counts["pattern_compatibility"] = dict(patterns)
     payload["counts"] = counts
     payload["publication_selection"] = {
