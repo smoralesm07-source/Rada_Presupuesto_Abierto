@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 
 
+from .attention_level import assign as assign_attention
+
 SCHEMA = "RIGP-BROWSER-PUBLICATION-v1"
 
 # El navegador descarga este payload entero. La corrida mensual lo verifica
@@ -228,6 +230,18 @@ def compact_browser_publication(
 
     def refresh_metadata(size: int) -> None:
         """Deja el bloque de metadatos coherente con el recorte y el tamaño actuales."""
+        # El nivel de atención se recalibra sobre lo que queda. Su contrato es
+        # «raro en la bandeja publicada», y tras el recorte la bandeja publicada
+        # son las supervivientes: dejar los conteos de las 600 seleccionadas
+        # junto a 353 filas publicadas hacía que el payload se contradijera
+        # consigo mismo, que es lo que la corrida #42 dejó a la vista.
+        calibration = assign_attention(payload["relation_findings"])
+        payload["attention_calibration"] = calibration
+        counts = dict(payload.get("counts") or {})
+        counts["relations_returned"] = len(payload["relation_findings"])
+        counts["attention_levels"] = dict(calibration["levels"])
+        payload["counts"] = counts
+
         meta = payload["browser_publication"]
         meta["relation_count"] = len(payload["relation_findings"])
         meta["budget_truncation"] = truncation
