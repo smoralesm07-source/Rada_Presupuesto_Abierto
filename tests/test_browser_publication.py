@@ -139,3 +139,45 @@ def test_sin_recorte_la_coherencia_tambien_se_mantiene(tmp_path):
         filas[r["attention_level"]] += 1
     assert out["counts"]["attention_levels"] == filas
     assert out["attention_calibration"]["levels"] == filas
+
+
+def test_la_bandeja_queda_ordenada_por_el_nivel_que_acaba_de_recalcularse(tmp_path):
+    """La corrida #44 publicó 313 filas con el orden del nivel anterior.
+
+    Recalibrar tras el recorte —el arreglo del PR #57— cambia el nivel de
+    muchas filas, y el orden se había quedado con el que tenían antes: 13
+    puntos donde el nivel retrocedía, la última de atención inmediata en la
+    posición 171 y seguimientos desde la 78. Quien leyera de arriba hacia abajo
+    se perdía treinta y tantas filas del nivel superior.
+    """
+    rows = [_fila(i) for i in range(120)]
+    rows += [_fila(500 + i, families=3, types=3, cgr=1) for i in range(10)]
+    payload = {
+        "methodology_version": "RIGP-FINDINGS-v1",
+        "guardrail": "G" * 200,
+        "counts": {},
+        "relation_findings": rows,
+        "service_hotspots": [], "provider_hotspots": [], "network_candidates": [],
+    }
+    path = tmp_path / "findings.json"
+    path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+    compact_browser_publication(input_path=str(path), byte_budget=60_000)
+    rel = json.loads(path.read_text(encoding="utf-8"))["relation_findings"]
+
+    rank = {"ATENCION_INMEDIATA": 0, "REVISION_PRIORITARIA": 1, "SEGUIMIENTO": 2}
+    seq = [rank[r["attention_level"]] for r in rel]
+    retrocesos = [i for i, (a, b) in enumerate(zip(seq, seq[1:])) if b < a]
+    assert not retrocesos, (
+        f"el nivel retrocede en {len(retrocesos)} puntos: la bandeja no está ordenada "
+        "por el nivel que declara")
+
+
+def test_dentro_de_un_nivel_manda_la_prioridad():
+    """El orden no es sólo el nivel: dentro de cada uno, el score decide."""
+    from radar_presupuesto.attention_level import tray_rank_key
+    alto = {"attention_level": "SEGUIMIENTO", "max_priority_score": 90, "finding_id": "A"}
+    bajo = {"attention_level": "SEGUIMIENTO", "max_priority_score": 50, "finding_id": "B"}
+    inmediata = {"attention_level": "ATENCION_INMEDIATA", "max_priority_score": 10,
+                 "finding_id": "C"}
+    assert sorted([bajo, alto, inmediata], key=tray_rank_key) == [inmediata, alto, bajo]

@@ -5,6 +5,7 @@ from pathlib import Path
 
 
 from .attention_level import assign as assign_attention
+from .attention_level import tray_rank_key
 
 SCHEMA = "RIGP-BROWSER-PUBLICATION-v1"
 
@@ -236,6 +237,12 @@ def compact_browser_publication(
         # junto a 353 filas publicadas hacía que el payload se contradijera
         # consigo mismo, que es lo que la corrida #42 dejó a la vista.
         calibration = assign_attention(payload["relation_findings"])
+        # Y se reordena, porque el nivel encabeza el orden de la bandeja. La
+        # corrida #44 publicó 313 filas ordenadas por el nivel que tenían antes
+        # del recorte: la última de atención inmediata quedó en la posición 171
+        # y los seguimientos empezaban en la 78. El analista que lee de arriba
+        # hacia abajo se perdía treinta y tantas filas del nivel superior.
+        payload["relation_findings"].sort(key=tray_rank_key)
         payload["attention_calibration"] = calibration
         counts = dict(payload.get("counts") or {})
         counts["relations_returned"] = len(payload["relation_findings"])

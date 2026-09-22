@@ -4,6 +4,7 @@ import json
 from collections import Counter
 
 from .attention_level import assign as assign_attention
+from .attention_level import tray_rank_key
 from pathlib import Path
 
 import duckdb
@@ -40,18 +41,6 @@ def _decorate(row: dict) -> dict:
     pattern = best_pattern(out["signal_types"])
     out["pattern_compatibility"] = pattern
     return out
-
-
-def _rank_key(row: dict) -> tuple:
-    level = str(row.get("attention_level") or "SEGUIMIENTO")
-    level_rank = {"ATENCION_INMEDIATA": 0, "REVISION_PRIORITARIA": 1, "SEGUIMIENTO": 2}.get(level, 3)
-    return (
-        level_rank,
-        -float(row.get("max_priority_score") or 0),
-        -int(row.get("signal_family_count") or 0),
-        -float(row.get("max_transaction_amount") or 0),
-        str(row.get("finding_id") or ""),
-    )
 
 
 def rebalance_findings_publication(
@@ -135,7 +124,7 @@ def rebalance_findings_publication(
     # decía 85/183/332. Calibrar aquí es además lo correcto: el nivel ordena la
     # bandeja publicada, y quien la define es este paso.
     attention_calibration = assign_attention(selected)
-    selected.sort(key=_rank_key)
+    selected.sort(key=tray_rank_key)
 
     published = Counter()
     attention = Counter()

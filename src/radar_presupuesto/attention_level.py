@@ -113,6 +113,35 @@ GUARDRAIL = (
 )
 
 
+LEVEL_RANK = {IMMEDIATE: 0, PRIORITY: 1, FOLLOW: 2}
+
+
+def tray_rank_key(row: dict) -> tuple:
+    """El orden de la bandeja publicada, encabezado por el nivel de atención.
+
+    Vive aquí y no en quien la ordena porque el primer criterio es el nivel: si
+    el nivel se recalcula, el orden tiene que recalcularse con él o el payload
+    queda diciendo dos cosas. Eso fue lo que pasó en la corrida #44 —13 puntos
+    donde el nivel retrocedía, la última fila de atención inmediata en la
+    posición 171, con seguimientos desde la 78— porque la recalibración tras el
+    recorte no volvía a ordenar.
+    """
+    level = str(row.get("attention_level") or FOLLOW)
+    priority = row.get("review_priority")
+    score = 0.0
+    if isinstance(priority, dict):
+        score = float(priority.get("score") or 0)
+    if not score:
+        score = float(row.get("max_priority_score") or 0)
+    return (
+        LEVEL_RANK.get(level, 3),
+        -score,
+        -int(row.get("signal_family_count") or 0),
+        -float(row.get("max_transaction_amount") or 0),
+        str(row.get("finding_id") or ""),
+    )
+
+
 def _num(row: dict, key: str) -> float:
     try:
         return float(row.get(key) or 0)

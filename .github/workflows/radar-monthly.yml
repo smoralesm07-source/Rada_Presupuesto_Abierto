@@ -196,6 +196,17 @@ jobs:
               f"el resumen dice {f['counts']['attention_levels']} y las filas dicen {_niveles}")
           assert f['attention_calibration']['levels'] == _niveles, (
               f"la calibracion dice {f['attention_calibration']['levels']} y las filas dicen {_niveles}")
+          # Y la bandeja tiene que estar ordenada por el nivel que declara. La
+          # corrida #44 publico 313 filas con el orden del nivel anterior al
+          # recorte: la ultima de atencion inmediata quedo en la posicion 171 y
+          # los seguimientos empezaban en la 78. Es la misma contradiccion, en
+          # el orden en vez de en las cifras.
+          _rank = {'ATENCION_INMEDIATA':0,'REVISION_PRIORITARIA':1,'SEGUIMIENTO':2}
+          _seq = [_rank[_r['attention_level']] for _r in f['relation_findings']]
+          _retro = [i for i,(a,b) in enumerate(zip(_seq,_seq[1:])) if b < a]
+          assert not _retro, (
+              f"el nivel retrocede en {len(_retro)} puntos: la bandeja no esta ordenada "
+              "por el nivel que declara")
           assert c['schema']=='RIGP-CASE-ENTITY-CONTEXT-v1'
           assert s['schema']=='RIGP-RUN-SUMMARY-v1'
           assert f.get('browser_publication',{}).get('schema')=='RIGP-BROWSER-PUBLICATION-v1'
