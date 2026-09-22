@@ -51,7 +51,14 @@ MIN_AMOUNT_CLP = 10_000_000
 # No se resuelve por nombre ni por tramo de RUT —la UFRO es 87.912.900-1 y la
 # U. Adolfo Ibáñez, privada, es 71.543.200-5—, sino con la marca `intraestado`
 # que el bulk de DIPRES ya trae y que `procurement_context` ahora transporta.
-# Mientras esa marca no llegue, la capa lo dice en vez de suponer.
+#
+# **Actualizado el 22-09, con la marca ya en mano.** La marca llegó, se midió y
+# apartó cero de 524 órdenes: cubre transferencias entre servicios del
+# presupuesto central —15 RUT en las 600 relaciones publicadas, todos servicios
+# centrales— y no a toda contraparte pública. Las 8 universidades siguen en la
+# lista. El piso sigue siendo correcto; lo que faltaba era que el payload dijera
+# qué apartó de verdad, en vez de dejar `MEDIDO` a secas y que se leyera como
+# «los convenios públicos ya salieron».
 INTRA_STATE_SHARE_FLOOR = 0.5
 
 LINKED = "DECLARA_LICITACION"
@@ -177,6 +184,49 @@ def _verdict(state: str, kind: str, peers: dict, **extra) -> dict:
     return out
 
 
+# Qué cubre de verdad la marca `intraestado`, medido y no supuesto.
+#
+# La corrida del 22-09 fue la primera en la que la marca llegó a esta capa. Se
+# midió, y apartó **cero** órdenes de 524. No es un defecto del cruce: la marca
+# del bulk señala transferencias entre servicios del presupuesto central —en las
+# 600 relaciones publicadas la llevan 15 RUT, todos servicios centrales:
+# Tesorería, CENABAST, CONAF, Gendarmería, delegaciones presidenciales—, y no
+# marca a toda contraparte pública. Una universidad estatal no la lleva: la
+# Universidad de La Frontera es 87.912.900-1 y su pagador no la declara
+# intraestado.
+#
+# Decirlo importa porque `MEDIDO` se lee como «los convenios públicos ya
+# salieron», y en esta corrida no salió ninguno. Las ocho órdenes con
+# contraparte universitaria siguen en la lista, y siguen siendo la explicación
+# sana más frecuente de por qué una orden no declara licitación.
+#
+# Deducirlo del RUT no es alternativa: ya se midió y la data lo contradice. La
+# U. Adolfo Ibáñez es 71.543.200-5, rango «público», y es privada.
+INTRA_STATE_COVERAGE = (
+    "La marca `intraestado` del bulk señala transferencias entre servicios del presupuesto "
+    "central. No marca a toda contraparte pública: una universidad estatal no la lleva, así "
+    "que sus convenios siguen en esta lista."
+)
+
+
+def _intra_state_note(measured: bool, set_aside: int) -> str:
+    if not measured:
+        return (
+            "La marca `intraestado` no llegó a esta corrida, así que ningún convenio entre "
+            "organismos públicos se apartó. " + INTRA_STATE_COVERAGE
+        )
+    if set_aside == 0:
+        return (
+            "La marca `intraestado` se midió en esta corrida y no apartó ninguna orden. "
+            + INTRA_STATE_COVERAGE
+        )
+    return (
+        f"La marca `intraestado` se midió y apartó {set_aside} "
+        f"{'orden' if set_aside == 1 else 'órdenes'} como convenio entre organismos "
+        "públicos. " + INTRA_STATE_COVERAGE
+    )
+
+
 def review_orders(orders: dict, min_amount: float = MIN_AMOUNT_CLP,
                   max_rows: int = 60,
                   intra_state_by_order: dict | None = None) -> dict:
@@ -195,25 +245,26 @@ def review_orders(orders: dict, min_amount: float = MIN_AMOUNT_CLP,
                                    intra_state_share=shares.get(code))
         tally[verdict["linkage_state"]] = tally.get(verdict["linkage_state"], 0) + 1
         if verdict["worth_asking"]:
+            supplier = (order or {}).get("supplier") or {}
+            buyer = (order or {}).get("buyer") or {}
             rows.append({
                 "purchase_order_code": code,
-                "supplier_rut": ((order or {}).get("supplier") or {}).get("rut"),
-                "supplier_name": ((order or {}).get("supplier") or {}).get("supplier_name"),
+                "supplier_rut": supplier.get("rut"),
+                "supplier_name": supplier.get("supplier_name"),
+                # Contexto que la propia API publica y que decide casi siempre la
+                # primera pregunta del analista: qué hace el proveedor y qué unidad
+                # compró. No afirma nada; ahorra el viaje de ida y vuelta.
+                "supplier_activity": supplier.get("activity"),
+                "buyer_unit_name": buyer.get("unit_name") or buyer.get("organization_name"),
                 **verdict,
             })
     rows.sort(key=lambda r: -float(r.get("amount") or 0.0))
+    set_aside = int(tally.get(INTRA_STATE, 0))
     return {
         "guardrail": GUARDRAIL,
         "intra_state_state": "MEDIDO" if shares else "NO_MEDIDO",
-        "intra_state_note": (
-            "Los convenios entre organismos públicos se apartan con la marca `intraestado` "
-            "del bulk."
-            if shares else
-            "La marca `intraestado` no llegó a esta corrida, así que ningún convenio entre "
-            "organismos públicos se apartó. En la medición del 16-09 eso dejó 8 órdenes con "
-            "contraparte universitaria concentrando el 62% del monto marcado: son el caso "
-            "sano más frecuente de esta lista."
-        ),
+        "intra_state_orders_set_aside": set_aside,
+        "intra_state_note": _intra_state_note(bool(shares), set_aside),
         "min_amount_clp": float(min_amount),
         "baseline_by_purchase_type": baseline,
         "states": tally,
