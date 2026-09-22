@@ -171,6 +171,7 @@ Mismo concepto, dos nombres. Antes de escribir uno nuevo, revisa esta tabla.
 | Fuentes de compras públicas disponibles | `procurement_discovery.py` | — |
 | Modalidad de contratación y licitación vinculada | `procurement_modality.py` | — |
 | Nivel de atención calibrado contra la bandeja | `attention_level.py` | — |
+| Naturaleza del gasto según el subtítulo presupuestario | `spend_nature.py` | — |
 
 ---
 
