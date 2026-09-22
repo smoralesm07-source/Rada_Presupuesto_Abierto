@@ -66,3 +66,76 @@ def test_browser_compaction_preserves_analysis_and_bounds_context(tmp_path: Path
     assert "pattern_description" not in row["primary_pattern"]
     assert len(row["pattern_compatibility"]) == 2
     assert path.stat().st_size < before
+
+
+def _fila(i, *, families=1, types=1, cgr=0, score=80, amount=100_000_000, window="ACCION"):
+    return {
+        "finding_id": f"HAL-{i:04d}",
+        "organization_id": f"ORG-{i%7}", "provider_id": f"PRV-{i}",
+        "organization_name": f"Servicio {i%7}", "provider_name": f"Proveedor {i}",
+        "periodo": 2026, "window": window,
+        "signal_family_count": families, "signal_type_count": types,
+        "cgr_match_count": cgr, "max_priority_score": score,
+        "max_transaction_amount": amount,
+        "signal_types": ["AMOUNT_OUTLIER"],
+        "attention_level": "ATENCION_INMEDIATA",
+        "why_review": "R" * 900,          # prosa que la compactación no toca
+        "finding_title": "T" * 900,
+    }
+
+
+def test_el_payload_no_se_contradice_despues_de_recortar(tmp_path):
+    """La corrida #42 publicó tres cifras distintas en el mismo archivo.
+
+    `counts` y `attention_calibration` describían las 600 relaciones
+    seleccionadas, mientras las filas publicadas eran 353 tras el recorte por
+    presupuesto de bytes. Quien leyera el payload veía una bandeja que no
+    coincidía con su propio resumen.
+    """
+    rows = [_fila(i) for i in range(120)]
+    rows += [_fila(500 + i, families=3, types=3, cgr=1) for i in range(10)]
+    payload = {
+        "methodology_version": "RIGP-FINDINGS-v1",
+        "guardrail": "G" * 200,
+        "counts": {"attention_levels": {"ATENCION_INMEDIATA": 130,
+                                        "REVISION_PRIORITARIA": 0, "SEGUIMIENTO": 0}},
+        "relation_findings": rows,
+        "service_hotspots": [], "provider_hotspots": [], "network_candidates": [],
+    }
+    path = tmp_path / "findings.json"
+    path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+    # Presupuesto apretado a propósito: obliga a recortar filas.
+    compact_browser_publication(input_path=str(path), byte_budget=60_000)
+    out = json.loads(path.read_text(encoding="utf-8"))
+    rel = out["relation_findings"]
+
+    assert len(rel) < 130, "el presupuesto debía recortar la bandeja"
+
+    filas = {k: 0 for k in ("ATENCION_INMEDIATA", "REVISION_PRIORITARIA", "SEGUIMIENTO")}
+    for r in rel:
+        filas[r["attention_level"]] += 1
+
+    assert out["counts"]["attention_levels"] == filas, "el resumen debe contar lo publicado"
+    assert out["attention_calibration"]["levels"] == filas, "la calibración también"
+    assert out["counts"]["relations_returned"] == len(rel)
+    assert all("attention_marks" in r for r in rel)
+
+
+def test_sin_recorte_la_coherencia_tambien_se_mantiene(tmp_path):
+    rows = [_fila(i) for i in range(40)]
+    payload = {"methodology_version": "RIGP-FINDINGS-v1", "guardrail": "g",
+               "counts": {}, "relation_findings": rows,
+               "service_hotspots": [], "provider_hotspots": [], "network_candidates": []}
+    path = tmp_path / "findings.json"
+    path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+    compact_browser_publication(input_path=str(path), byte_budget=5_000_000)
+    out = json.loads(path.read_text(encoding="utf-8"))
+    rel = out["relation_findings"]
+    assert len(rel) == 40
+    filas = {k: 0 for k in ("ATENCION_INMEDIATA", "REVISION_PRIORITARIA", "SEGUIMIENTO")}
+    for r in rel:
+        filas[r["attention_level"]] += 1
+    assert out["counts"]["attention_levels"] == filas
+    assert out["attention_calibration"]["levels"] == filas
