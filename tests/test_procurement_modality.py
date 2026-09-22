@@ -136,10 +136,51 @@ def test_una_relacion_mayormente_privada_no_se_aparta_por_un_pago_intraestado():
 def test_el_bloque_declara_si_la_marca_intraestado_llego_o_no():
     sin = review_orders(_orders())
     assert sin["intra_state_state"] == "NO_MEDIDO"
-    assert "62%" in sin["intra_state_note"], "la limitación se declara con su medida"
+    assert sin["intra_state_orders_set_aside"] == 0
+    assert "no llegó a esta corrida" in sin["intra_state_note"]
 
     con = review_orders(_orders(), intra_state_by_order={"2-0-SE24": 0.9})
     assert con["intra_state_state"] == "MEDIDO"
+    assert con["intra_state_orders_set_aside"] == 1
+    assert "apartó 1 orden" in con["intra_state_note"]
+
+
+def test_medida_y_sin_apartar_nada_no_es_lo_mismo_que_apartar():
+    """La corrida del 22-09: la marca llegó, se midió y apartó cero de 524.
+
+    `MEDIDO` a secas se lee como «los convenios públicos ya salieron». En esa
+    corrida no salió ninguno, y las ocho órdenes con contraparte universitaria
+    seguían en la lista. Decirlo es lo que evita leer la bandeja al revés.
+    """
+    r = review_orders(_orders(), intra_state_by_order={"2-0-SE24": 0.0})
+    assert r["intra_state_state"] == "MEDIDO"
+    assert r["intra_state_orders_set_aside"] == 0
+    assert "no apartó ninguna orden" in r["intra_state_note"]
+
+
+def test_el_bloque_declara_que_la_marca_no_cubre_a_toda_contraparte_publica():
+    """Una universidad estatal no lleva la marca, y el payload lo dice.
+
+    Deducirlo del tramo de RUT ya se midió y la data lo contradice: la UFRO es
+    87.912.900-1 y la U. Adolfo Ibáñez, privada, es 71.543.200-5.
+    """
+    for r in (review_orders(_orders()),
+              review_orders(_orders(), intra_state_by_order={"2-0-SE24": 0.9})):
+        assert "universidad estatal no la lleva" in r["intra_state_note"]
+
+
+def test_cada_orden_publicada_lleva_el_contexto_que_la_api_ya_daba():
+    o = _orders(se_con=0, se_sin=0, cm=0)
+    o.update({f"1-{i}-SE24": _order("SE", tender=f"1-{i}-LP24") for i in range(30)})
+    o["2079-32-SE22"] = dict(
+        _order("SE", total=12_333_333_333),
+        supplier={"rut": "87912900-1", "supplier_name": "UNIVERSIDAD DE LA FRONTERA",
+                  "activity": "UNIVERSIDADES"},
+        buyer={"unit_name": "CPEIP", "organization_name": "SUBSECRETARIA DE EDUCACION"},
+    )
+    fila = review_orders(o)["orders"][0]
+    assert fila["supplier_activity"] == "UNIVERSIDADES"
+    assert fila["buyer_unit_name"] == "CPEIP"
 
 
 def test_las_ordenes_se_publican_por_monto_y_acotadas():
