@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-15T15:00:08+00:00",
+  "generated_at": "2026-09-22T14:05:24+00:00",
   "schema": "RIGP-OPERATIONAL-BUNDLE-v1",
   "analysis_window": {
     "years": [
@@ -21,12 +21,12 @@
     "historical_depth_years": 11
   },
   "publication": {
-    "relations_available": 189751,
+    "relations_available": 189745,
     "relations_published": 600,
     "available_by_signal": {
       "POTENTIAL_FRAGMENTATION": 103241,
       "PAYMENT_DELAY_OUTLIER": 52839,
-      "EXACT_DUPLICATE_CANDIDATE": 30320,
+      "EXACT_DUPLICATE_CANDIDATE": 30313,
       "PROVIDER_CONCENTRATION": 1725,
       "AMOUNT_OUTLIER": 7679,
       "CAPACITY_MISMATCH": 3609,
@@ -37,10 +37,10 @@
     },
     "published_by_signal": {
       "POTENTIAL_FRAGMENTATION": 265,
-      "PAYMENT_DELAY_OUTLIER": 410,
+      "PAYMENT_DELAY_OUTLIER": 411,
       "EXACT_DUPLICATE_CANDIDATE": 277,
       "PROVIDER_CONCENTRATION": 78,
-      "AMOUNT_OUTLIER": 176,
+      "AMOUNT_OUTLIER": 175,
       "CAPACITY_MISMATCH": 84,
       "ACTIVITY_MISMATCH": 9,
       "DORMANT_REACTIVATION": 1,
@@ -48,7 +48,7 @@
       "NEW_TO_SERIES_HIGH_SPEND": 20
     },
     "published_by_pattern": {
-      "INTEGRIDAD_DOCUMENTAL": 370,
+      "INTEGRIDAD_DOCUMENTAL": 371,
       "CONCENTRACION_COMPETENCIA": 64,
       "CAPACIDAD_Y_TRAYECTORIA": 3,
       "IRRUPCION_CAMBIO_ESCALA": 30
@@ -85,15 +85,17 @@
   "finding_context_coverage": {
     "published_relations": 600,
     "relations_with_peer_context": 600,
-    "relations_with_primary_pattern": 467,
-    "relations_with_uncorroborated_similarity": 133,
-    "relations_in_action_window": 96,
-    "relations_learning_only": 504
+    "relations_with_primary_pattern": 468,
+    "relations_with_uncorroborated_similarity": 132,
+    "relations_in_action_window": 95,
+    "relations_learning_only": 505
   },
   "procurement_context": {
     "findings_requested": 600,
     "findings_with_rows": 600,
-    "findings_with_purchase_order": 462
+    "findings_with_purchase_order": 462,
+    "findings_with_weekly_clusters": 266,
+    "findings_worth_triage": 137
   },
   "interpretation": "El bundle separa prioridad de revisión, compatibilidad descriptiva de patrón, materialidad frente a pares y contexto de contratación. Ninguna capa acredita irregularidad o delito."
 }

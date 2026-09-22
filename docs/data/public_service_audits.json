@@ -1,0 +1,356 @@
+{
+  "schema": "RIGP-PUBLIC-SERVICE-AUDITS-v1",
+  "generated_at": "2026-09-22T14:03:55+00:00",
+  "guardrail": "Una observación de auditoría de la Contraloría describe un desorden administrativo constatado por el órgano fiscalizador. No acredita delito, fraude ni responsabilidad penal de ninguna persona, y la mayoría de las observaciones nunca deriva en uno. Esta capa ordena dónde mirar primero, no a quién acusar.",
+  "method": "Se cruza el organismo auditado por la Contraloría con el servicio del presupuesto a nivel de partida y capítulo. Un parecido alto no basta: cuando dos nombres comparten el prefijo institucional y difieren en la cola, se exige que los distintivos de uno contengan a los del otro, para no atribuirle a un servicio la auditoría de otro de su misma familia.",
+  "coverage": {
+    "audited_bodies": 24,
+    "matched_bodies": 8,
+    "services_with_observations": 8,
+    "out_of_scope_bodies": 10,
+    "unmatched_bodies": 6,
+    "budget_services": 287
+  },
+  "services": [
+    {
+      "service_id": "SRV-PA-16-22",
+      "service_name": "SERVICIO DE SALUD ANTOFAGASTA",
+      "ministry_name": "MINISTERIO DE SALUD",
+      "programs": 8,
+      "providers": 9386,
+      "amount_clp": 3299359456448.0,
+      "audited_bodies": [
+        {
+          "audited_name": "Servicio de Salud de Antofagasta",
+          "organization_type": "HEALTH_SERVICE",
+          "region": "Antofagasta",
+          "commune": null,
+          "source_document_id": "CGR-AUD-68149865935d1f457ba4afc273bb03c3",
+          "observation_count": 14,
+          "match_method": "OFICINA_DE_SERVICIO",
+          "match_reason": "el servicio presupuestario precisa [] sobre el organismo auditado",
+          "similarity": 0.968
+        }
+      ],
+      "observation_count": 14
+    },
+    {
+      "service_id": "SRV-PA-15-09",
+      "service_name": "INSTITUTO DE PREVISION SOCIAL",
+      "ministry_name": "MINISTERIO DEL TRABAJO Y PREVISION SOCIAL",
+      "programs": 1,
+      "providers": 0,
+      "amount_clp": 83539661957023.0,
+      "audited_bodies": [
+        {
+          "audited_name": "INSTITUTO DE PREVISIÓN SOCIAL",
+          "organization_type": "PUBLIC_INSTITUTE",
+          "region": null,
+          "commune": null,
+          "source_document_id": "CGR-AUD-0ee781aab153c76e7ee8a2552f81f657",
+          "observation_count": 13,
+          "match_method": "NOMBRE_EXACTO",
+          "match_reason": "el servicio presupuestario precisa [] sobre el organismo auditado",
+          "similarity": 1.0
+        }
+      ],
+      "observation_count": 13
+    },
+    {
+      "service_id": "SRV-PA-05-31",
+      "service_name": "CARABINEROS DE CHILE",
+      "ministry_name": "MINISTERIO DEL INTERIOR",
+      "programs": 33,
+      "providers": 25720,
+      "amount_clp": 11239722196744.0,
+      "audited_bodies": [
+        {
+          "audited_name": "Carabineros de Chile",
+          "organization_type": "PUBLIC_ORGANIZATION",
+          "region": null,
+          "commune": null,
+          "source_document_id": "CGR-AUD-ae728c6df726e855014d1bc7b080d4f6",
+          "observation_count": 9,
+          "match_method": "NOMBRE_EXACTO",
+          "match_reason": "el servicio presupuestario precisa [] sobre el organismo auditado",
+          "similarity": 1.0
+        }
+      ],
+      "observation_count": 9
+    },
+    {
+      "service_id": "SRV-PA-13-06",
+      "service_name": "COMISIÓN NACIONAL DE RIEGO",
+      "ministry_name": "MINISTERIO DE AGRICULTURA",
+      "programs": 1,
+      "providers": 1109,
+      "amount_clp": 124006413437.0,
+      "audited_bodies": [
+        {
+          "audited_name": "Comisión Nacional de Riego",
+          "organization_type": "PUBLIC_COMMISSION",
+          "region": "Metropolitana de Santiago",
+          "commune": null,
+          "source_document_id": "CGR-AUD-49de13e5de4ec7d547154cdf629abc5f",
+          "observation_count": 5,
+          "match_method": "NOMBRE_EXACTO",
+          "match_reason": "el servicio presupuestario precisa [] sobre el organismo auditado",
+          "similarity": 1.0
+        }
+      ],
+      "observation_count": 5
+    },
+    {
+      "service_id": "SRV-PA-13-03",
+      "service_name": "INSTITUTO DE DESARROLLO AGROPECUARIO",
+      "ministry_name": "MINISTERIO DE AGRICULTURA",
+      "programs": 19,
+      "providers": 9182,
+      "amount_clp": 2356690079331.0,
+      "audited_bodies": [
+        {
+          "audited_name": "Dirección Regional Metropolitana del INDAP",
+          "organization_type": "PUBLIC_ORGANIZATION",
+          "region": "Metropolitana de Santiago",
+          "commune": null,
+          "source_document_id": "CGR-AUD-63e842dbd9b7d665568ac3e2dbf1bdcc",
+          "observation_count": 5,
+          "match_method": "SIGLA_EXPANDIDA",
+          "match_reason": "el organismo auditado precisa ['METROPOLITANA'] sobre el servicio presupuestario",
+          "similarity": 0.6044
+        }
+      ],
+      "observation_count": 5
+    },
+    {
+      "service_id": "SRV-PA-13-05",
+      "service_name": "CORPORACION NACIONAL FORESTAL",
+      "ministry_name": "MINISTERIO DE AGRICULTURA",
+      "programs": 54,
+      "providers": 19921,
+      "amount_clp": 1716389636757.0,
+      "audited_bodies": [
+        {
+          "audited_name": "Corporación Nacional Forestal",
+          "organization_type": "PUBLIC_ORGANIZATION",
+          "region": "Arica y Parinacota",
+          "commune": null,
+          "source_document_id": "CGR-AUD-93c71bdfd427efce3d50c21bed0c97b5",
+          "observation_count": 4,
+          "match_method": "NOMBRE_EXACTO",
+          "match_reason": "el servicio presupuestario precisa [] sobre el organismo auditado",
+          "similarity": 1.0
+        }
+      ],
+      "observation_count": 4
+    },
+    {
+      "service_id": "SRV-PA-21-05",
+      "service_name": "INSTITUTO NACIONAL DE LA JUVENTUD",
+      "ministry_name": "MINISTERIO DE DESARROLLO SOCIAL",
+      "programs": 1,
+      "providers": 3739,
+      "amount_clp": 86758211028.0,
+      "audited_bodies": [
+        {
+          "audited_name": "INSTITUTO NACIONAL DE LA JUVENTUD DE VALPARAÍSO",
+          "organization_type": "PUBLIC_INSTITUTE",
+          "region": "Valparaíso",
+          "commune": null,
+          "source_document_id": "CGR-AUD-bdbe4625f49243f24b2c2bec5efacf4b",
+          "observation_count": 3,
+          "match_method": "OFICINA_DE_SERVICIO",
+          "match_reason": "el organismo auditado precisa ['VALPARAISO'] sobre el servicio presupuestario",
+          "similarity": 0.8279
+        }
+      ],
+      "observation_count": 3
+    },
+    {
+      "service_id": "SRV-PA-09-34",
+      "service_name": "SERVICIO LOCAL DE EDUCACIÓN AYSÉN",
+      "ministry_name": "MINISTERIO DE EDUCACION",
+      "programs": 1,
+      "providers": 1012,
+      "amount_clp": 192458013941.0,
+      "audited_bodies": [
+        {
+          "audited_name": "SERVICIO LOCAL DE EDUCACIÓN PÚBLICA DE AYSÉN",
+          "organization_type": "PUBLIC_ORGANIZATION",
+          "region": "Aysén",
+          "commune": null,
+          "source_document_id": "CGR-AUD-7d9782be5be33fc7023b93d269bce591",
+          "observation_count": 3,
+          "match_method": "OFICINA_DE_SERVICIO",
+          "match_reason": "el servicio presupuestario precisa [] sobre el organismo auditado",
+          "similarity": 0.8488
+        }
+      ],
+      "observation_count": 3
+    }
+  ],
+  "out_of_scope": [
+    {
+      "audited_name": "MUNICIPALIDAD DE SANTA CRUZ",
+      "organization_type": "MUNICIPALITY",
+      "region": "O'Higgins",
+      "commune": null,
+      "source_document_id": "CGR-AUD-fc38957fc6ce929fcce5c0cad069857a",
+      "observation_count": 5,
+      "match_method": "SIN_CRUCE",
+      "match_reason": "Los municipios no integran el presupuesto de la Nación; su ejecución se reporta por otra vía y no existe un capítulo presupuestario que cruzar."
+    },
+    {
+      "audited_name": "MUNICIPALIDAD DE QUILLOTA",
+      "organization_type": "MUNICIPALITY",
+      "region": "Valparaíso",
+      "commune": null,
+      "source_document_id": "CGR-AUD-060b001a7ebc963947a8732a3bd209ce",
+      "observation_count": 13,
+      "match_method": "SIN_CRUCE",
+      "match_reason": "Los municipios no integran el presupuesto de la Nación; su ejecución se reporta por otra vía y no existe un capítulo presupuestario que cruzar."
+    },
+    {
+      "audited_name": "MUNICIPALIDAD DE GUAITECAS",
+      "organization_type": "MUNICIPALITY",
+      "region": "Aysén",
+      "commune": null,
+      "source_document_id": "CGR-AUD-3b3e43b75f07bc4cbcac69f989d7661f",
+      "observation_count": 80,
+      "match_method": "SIN_CRUCE",
+      "match_reason": "Los municipios no integran el presupuesto de la Nación; su ejecución se reporta por otra vía y no existe un capítulo presupuestario que cruzar."
+    },
+    {
+      "audited_name": "MUNICIPALIDAD DE LA SERENA",
+      "organization_type": "MUNICIPALITY",
+      "region": "Coquimbo",
+      "commune": null,
+      "source_document_id": "CGR-AUD-71d950ac9c9c08843dfcea4bd8014d63",
+      "observation_count": 2,
+      "match_method": "SIN_CRUCE",
+      "match_reason": "Los municipios no integran el presupuesto de la Nación; su ejecución se reporta por otra vía y no existe un capítulo presupuestario que cruzar."
+    },
+    {
+      "audited_name": "MUNICIPALIDAD DE TENO",
+      "organization_type": "MUNICIPALITY",
+      "region": "Maule",
+      "commune": null,
+      "source_document_id": "CGR-AUD-f0eeb2ac3439d5ee62239b2f00c288ad",
+      "observation_count": 4,
+      "match_method": "SIN_CRUCE",
+      "match_reason": "Los municipios no integran el presupuesto de la Nación; su ejecución se reporta por otra vía y no existe un capítulo presupuestario que cruzar."
+    },
+    {
+      "audited_name": "Municipalidad de La Serena y en el Gobierno Regional de Coquimbo",
+      "organization_type": "MUNICIPALITY",
+      "region": "Coquimbo",
+      "commune": null,
+      "source_document_id": "CGR-AUD-86e03463403f400f1c9c6ff3e652c7a2",
+      "observation_count": 18,
+      "match_method": "SIN_CRUCE",
+      "match_reason": "Los municipios no integran el presupuesto de la Nación; su ejecución se reporta por otra vía y no existe un capítulo presupuestario que cruzar."
+    },
+    {
+      "audited_name": "Municipalidad de Villarrica",
+      "organization_type": "MUNICIPALITY",
+      "region": "La Araucanía",
+      "commune": null,
+      "source_document_id": "CGR-AUD-e6f7ccdd700a02ceceb5892575b7a85e",
+      "observation_count": 8,
+      "match_method": "SIN_CRUCE",
+      "match_reason": "Los municipios no integran el presupuesto de la Nación; su ejecución se reporta por otra vía y no existe un capítulo presupuestario que cruzar."
+    },
+    {
+      "audited_name": "MUNICIPALIDAD DE SAN FELIPE",
+      "organization_type": "MUNICIPALITY",
+      "region": "Valparaíso",
+      "commune": null,
+      "source_document_id": "CGR-AUD-859f574a2be234b6307fc5726115d1b1",
+      "observation_count": 9,
+      "match_method": "SIN_CRUCE",
+      "match_reason": "Los municipios no integran el presupuesto de la Nación; su ejecución se reporta por otra vía y no existe un capítulo presupuestario que cruzar."
+    },
+    {
+      "audited_name": "MUNICIPALIDAD DE HIJUELAS",
+      "organization_type": "MUNICIPALITY",
+      "region": "Valparaíso",
+      "commune": null,
+      "source_document_id": "CGR-AUD-5f52f7d11546b51ec0441d3a666093f1",
+      "observation_count": 11,
+      "match_method": "SIN_CRUCE",
+      "match_reason": "Los municipios no integran el presupuesto de la Nación; su ejecución se reporta por otra vía y no existe un capítulo presupuestario que cruzar."
+    },
+    {
+      "audited_name": "MUNICIPALIDAD DE TIERRA AMARILLA",
+      "organization_type": "MUNICIPALITY",
+      "region": "Atacama",
+      "commune": null,
+      "source_document_id": "CGR-AUD-2eed71e3faa066d432567686ab5b57b6",
+      "observation_count": 2,
+      "match_method": "SIN_CRUCE",
+      "match_reason": "Los municipios no integran el presupuesto de la Nación; su ejecución se reporta por otra vía y no existe un capítulo presupuestario que cruzar."
+    }
+  ],
+  "unmatched": [
+    {
+      "audited_name": "UNIVERSIDAD DEL BIOBÍO",
+      "organization_type": "STATE_UNIVERSITY",
+      "region": "Biobío",
+      "commune": null,
+      "source_document_id": "CGR-AUD-54cc42703de25953e7e956a71a71d079",
+      "observation_count": 7,
+      "match_method": "SIN_CRUCE",
+      "match_reason": "Las universidades estatales no son capítulos del presupuesto de la Nación: reciben transferencias y ejecutan presupuesto propio. La auditoría es real; lo que no existe es un capítulo que cruzar."
+    },
+    {
+      "audited_name": "UNIVERSIDAD DE ANTOFAGASTA PRÉSTAMO PROYECTO MECESUP 3",
+      "organization_type": "STATE_UNIVERSITY",
+      "region": "Antofagasta",
+      "commune": null,
+      "source_document_id": "CGR-AUD-9422aea24faca6fa11bc0843f9112125",
+      "observation_count": 12,
+      "match_method": "SIN_CRUCE",
+      "match_reason": "Las universidades estatales no son capítulos del presupuesto de la Nación: reciben transferencias y ejecutan presupuesto propio. La auditoría es real; lo que no existe es un capítulo que cruzar."
+    },
+    {
+      "audited_name": "HOSPITAL DE VICTORIA",
+      "organization_type": "HOSPITAL",
+      "region": "La Araucanía",
+      "commune": null,
+      "source_document_id": "CGR-AUD-78e998a9d6e1444630fbd1d64116ee06",
+      "observation_count": 6,
+      "match_method": "SIN_CRUCE",
+      "match_reason": "Los hospitales públicos no son capítulos presupuestarios: ejecutan dentro del servicio de salud al que pertenecen. Para ubicar el gasto habría que resolver primero a qué servicio de salud corresponde, y esa relación no está en estos datos."
+    },
+    {
+      "audited_name": "UNIVERSIDAD DE SANTIAGO DE CHILE",
+      "organization_type": "STATE_UNIVERSITY",
+      "region": "Metropolitana de Santiago",
+      "commune": null,
+      "source_document_id": "CGR-AUD-f716a3af11247d63f2be602016be3c51",
+      "observation_count": 4,
+      "match_method": "SIN_CRUCE",
+      "match_reason": "Las universidades estatales no son capítulos del presupuesto de la Nación: reciben transferencias y ejecutan presupuesto propio. La auditoría es real; lo que no existe es un capítulo que cruzar."
+    },
+    {
+      "audited_name": "HOSPITAL DOCTOR CARLOS CISTERNAS DE CALAMA",
+      "organization_type": "HOSPITAL",
+      "region": "Antofagasta",
+      "commune": null,
+      "source_document_id": "CGR-AUD-4ba08bb0759f3f33780f94bd936e34f0",
+      "observation_count": 30,
+      "match_method": "SIN_CRUCE",
+      "match_reason": "Los hospitales públicos no son capítulos presupuestarios: ejecutan dentro del servicio de salud al que pertenecen. Para ubicar el gasto habría que resolver primero a qué servicio de salud corresponde, y esa relación no está en estos datos."
+    },
+    {
+      "audited_name": "UNIVERSIDAD DE ANTOFAGASTA",
+      "organization_type": "STATE_UNIVERSITY",
+      "region": "Antofagasta",
+      "commune": null,
+      "source_document_id": "CGR-AUD-e30124a4a8d88aca7b9a3fe81edcdbb2",
+      "observation_count": 17,
+      "match_method": "SIN_CRUCE",
+      "match_reason": "Las universidades estatales no son capítulos del presupuesto de la Nación: reciben transferencias y ejecutan presupuesto propio. La auditoría es real; lo que no existe es un capítulo que cruzar."
+    }
+  ]
+}
