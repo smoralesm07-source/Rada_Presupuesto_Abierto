@@ -54,8 +54,21 @@ Es la contraparte de la frontera de abajo: la otra misión no entra al motor, y
   `test`, y el bot empujaba directo. Cuatro horas de cómputo perdidas en el
   último paso. La corrida ahora asegura sus payloads en una rama y abre un pull
   request. La regla «nadie escribe a `main` directo» deja de tener excepción,
-  incluso para el bot. Cualquier otro cambio a este workflow —el pipeline
-  analítico, sus disparadores, su ventana— sigue fuera de esta misión.
+  incluso para el bot.
+
+  **Ampliado el 2026-09-22, por el mismo motivo y tras repetirse el defecto.**
+  La corrida #40 calculó 3h39m, pasó todos los pasos analíticos y murió en la
+  validación por una aserción de esquema que se había quedado en v1 cuando el
+  motor ya emitía v2. La persistencia venía después, así que se saltó y la
+  corrida entera se perdió. Publicar por rama no bastaba: el paso que destruía
+  el trabajo era la validación, no el push. Ahora los payloads se aseguran en
+  una rama **antes** de validarse, y el pull request sólo se abre si la
+  validación pasó, de modo que una salida inválida se puede revisar sin llegar
+  sola a `main`. Es la misma corrección que ya se había aplicado a
+  `mercado-publico-enrichment.yml` y que aquí faltaba replicar.
+
+  Cualquier otro cambio a este workflow —el pipeline analítico, sus
+  disparadores, su ventana— sigue fuera de esta misión.
 - **`.github/workflows/mercado-publico-enrichment.yml`, ampliación autorizada por
   el usuario el 2026-09-16**, y por el mismo motivo: que la corrida no destruya
   su propio resultado. Tres corridas seguidas murieron en el último paso —dos
