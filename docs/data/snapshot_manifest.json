@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-22T21:39:54+00:00",
+  "generated_at": "2026-09-23T01:41:57+00:00",
   "source_system": "PRESUPUESTO_ABIERTO",
   "snapshots": [
     {
@@ -8,7 +8,7 @@
       "source_status": "linked_available",
       "sha256": "771b3efc320ebb748426d93f15537c1651e5a752163f853a812d86f9e0b7b08a",
       "bytes": 194645248,
-      "downloaded_at": "2026-09-22T19:04:30+00:00",
+      "downloaded_at": "2026-09-22T23:05:13+00:00",
       "normalized_rows": 4457722,
       "delimiter": "\t",
       "normalized_output": "transactions_2016.parquet"
@@ -19,7 +19,7 @@
       "source_status": "linked_available",
       "sha256": "bfb6b3357ecbeab654f4fccae0d2a7e57c86fe2035ca3cf67e97c2b3cf4a1f90",
       "bytes": 198519456,
-      "downloaded_at": "2026-09-22T19:16:42+00:00",
+      "downloaded_at": "2026-09-22T23:17:33+00:00",
       "normalized_rows": 4946354,
       "delimiter": "\t",
       "normalized_output": "transactions_2017.parquet"
@@ -30,7 +30,7 @@
       "source_status": "linked_available",
       "sha256": "43abbd4436fd3756ec07be3c398c440ed08cecc8c675056cd961af2dc8cd7e8f",
       "bytes": 196759199,
-      "downloaded_at": "2026-09-22T19:30:11+00:00",
+      "downloaded_at": "2026-09-22T23:31:11+00:00",
       "normalized_rows": 5017267,
       "delimiter": "\t",
       "normalized_output": "transactions_2018.parquet"
@@ -41,7 +41,7 @@
       "source_status": "linked_available",
       "sha256": "97fff16e58b7be733966978d34f6eeb3320c93a6b55f22ae630be1451bd3dfc3",
       "bytes": 250812513,
-      "downloaded_at": "2026-09-22T19:43:52+00:00",
+      "downloaded_at": "2026-09-22T23:45:06+00:00",
       "normalized_rows": 5622360,
       "delimiter": "\t",
       "normalized_output": "transactions_2019.parquet"
@@ -52,7 +52,7 @@
       "source_status": "linked_available",
       "sha256": "9e2b107a6740597572d76f93c03a2f72d8972fc181be35f344df736e2257630d",
       "bytes": 190211171,
-      "downloaded_at": "2026-09-22T19:59:18+00:00",
+      "downloaded_at": "2026-09-23T00:00:48+00:00",
       "normalized_rows": 4997020,
       "delimiter": "\t",
       "normalized_output": "transactions_2020.parquet"
@@ -63,7 +63,7 @@
       "source_status": "linked_available",
       "sha256": "f356ddc4628742aa2f36cc11ef222b92d9e545f69e871578609a08d62128ff06",
       "bytes": 258012126,
-      "downloaded_at": "2026-09-22T20:13:06+00:00",
+      "downloaded_at": "2026-09-23T00:14:43+00:00",
       "normalized_rows": 5654098,
       "delimiter": "\t",
       "normalized_output": "transactions_2021.parquet"
@@ -74,7 +74,7 @@
       "source_status": "probed_available",
       "sha256": "19890345b1ffcc5fa450702c689f691896f9fc3c0ac4de785506b50353c15171",
       "bytes": 272860951,
-      "downloaded_at": "2026-09-22T20:28:45+00:00",
+      "downloaded_at": "2026-09-23T00:30:30+00:00",
       "normalized_rows": 5592685,
       "delimiter": "\t",
       "normalized_output": "transactions_2022.parquet"
@@ -85,7 +85,7 @@
       "source_status": "probed_available",
       "sha256": "9478e7ff6ecef869eb41d3f94636fdfcd6342b6c0f9176c4375f8f8dee281655",
       "bytes": 223803986,
-      "downloaded_at": "2026-09-22T20:44:10+00:00",
+      "downloaded_at": "2026-09-23T00:45:54+00:00",
       "normalized_rows": 5814296,
       "delimiter": "\t",
       "normalized_output": "transactions_2023.parquet"
@@ -96,7 +96,7 @@
       "source_status": "probed_available",
       "sha256": "7cb93d3398e68773196387732a01d329c991c807e799eb6be39fec1eb99986bd",
       "bytes": 217663314,
-      "downloaded_at": "2026-09-22T21:00:03+00:00",
+      "downloaded_at": "2026-09-23T01:01:48+00:00",
       "normalized_rows": 5585718,
       "delimiter": "\t",
       "normalized_output": "transactions_2024.parquet"
@@ -107,7 +107,7 @@
       "source_status": "probed_available",
       "sha256": "a5b5d4c26c290725b9fe796c905820a5b532312082eb9a081a65ca66148e0966",
       "bytes": 215651424,
-      "downloaded_at": "2026-09-22T21:15:21+00:00",
+      "downloaded_at": "2026-09-23T01:17:09+00:00",
       "normalized_rows": 5461160,
       "delimiter": "\t",
       "normalized_output": "transactions_2025.parquet"
@@ -118,7 +118,7 @@
       "source_status": "probed_available",
       "sha256": "616b1fc5418df79a4fbe7b9e66cfcff3704cc6d84fc0f02409e1f468820391ad",
       "bytes": 118034862,
-      "downloaded_at": "2026-09-22T21:30:26+00:00",
+      "downloaded_at": "2026-09-23T01:32:25+00:00",
       "normalized_rows": 3543847,
       "delimiter": "\t",
       "normalized_output": "transactions_2026.parquet"

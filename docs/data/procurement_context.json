@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-22T22:11:55+00:00",
+  "generated_at": "2026-09-23T02:14:23+00:00",
   "schema": "RIGP-PROCUREMENT-CONTEXT-v2",
   "guardrail": "La presencia o ausencia de una orden de compra en Presupuesto Abierto no acredita por sí sola regularidad o irregularidad del proceso de contratación. Debe contrastarse con Mercado Público y los documentos del procedimiento correspondiente.",
   "split_guardrail": "La forma del grupo describe cómo se registraron las compras, no si fueron irregulares. Órdenes separadas no acreditan fraccionamiento: la modalidad que lo haría exigible se verifica en Mercado Público y en el expediente del procedimiento.",
@@ -759,27 +759,6 @@
         },
         {
           "item": "",
-          "week_start": "2017-09-11 00:00:00",
-          "documents": 3,
-          "cluster_total": 415198.0,
-          "max_document_amount": 162054.0,
-          "amount_cv": 0.139969,
-          "rows_with_order": 3,
-          "distinct_orders": 3,
-          "order_examples": [
-            "85128",
-            "85130",
-            "85131"
-          ],
-          "split_shape": "ORDENES_SEPARADAS",
-          "split_shape_meaning": "Documentos de monto parejo en una misma semana, cada uno con su propia orden de compra: compras separadas, no cuotas de una compra. Es la forma que deja un fraccionamiento, y también la de un organismo que compra lo mismo seguido.",
-          "split_shape_why": "3 órdenes distintas para 3 documentos con orden",
-          "order_coverage": 1.0,
-          "orders_per_document": 1.0,
-          "worth_triage": true
-        },
-        {
-          "item": "",
           "week_start": "2017-11-13 00:00:00",
           "documents": 3,
           "cluster_total": 415198.0,
@@ -791,6 +770,27 @@
             "87066",
             "87111",
             "87112"
+          ],
+          "split_shape": "ORDENES_SEPARADAS",
+          "split_shape_meaning": "Documentos de monto parejo en una misma semana, cada uno con su propia orden de compra: compras separadas, no cuotas de una compra. Es la forma que deja un fraccionamiento, y también la de un organismo que compra lo mismo seguido.",
+          "split_shape_why": "3 órdenes distintas para 3 documentos con orden",
+          "order_coverage": 1.0,
+          "orders_per_document": 1.0,
+          "worth_triage": true
+        },
+        {
+          "item": "",
+          "week_start": "2017-09-11 00:00:00",
+          "documents": 3,
+          "cluster_total": 415198.0,
+          "max_document_amount": 162054.0,
+          "amount_cv": 0.139969,
+          "rows_with_order": 3,
+          "distinct_orders": 3,
+          "order_examples": [
+            "85128",
+            "85130",
+            "85131"
           ],
           "split_shape": "ORDENES_SEPARADAS",
           "split_shape_meaning": "Documentos de monto parejo en una misma semana, cada uno con su propia orden de compra: compras separadas, no cuotas de una compra. Es la forma que deja un fraccionamiento, y también la de un organismo que compra lo mismo seguido.",
@@ -9766,6 +9766,25 @@
         },
         {
           "item": "",
+          "week_start": "2019-01-14 00:00:00",
+          "documents": 14,
+          "cluster_total": 3998400.0,
+          "max_document_amount": 285600.0,
+          "amount_cv": 0.0,
+          "rows_with_order": 13,
+          "distinct_orders": 1,
+          "order_examples": [
+            "837-1930-SE17"
+          ],
+          "split_shape": "PAGOS_BAJO_UNA_ORDEN",
+          "split_shape_meaning": "Los documentos comparten una sola orden de compra: son pagos de una misma compra. Es la explicación inocente que la señal de fragmentación ya nombraba.",
+          "split_shape_why": "los documentos con orden comparten una sola",
+          "order_coverage": 0.928571,
+          "orders_per_document": 0.076923,
+          "worth_triage": false
+        },
+        {
+          "item": "",
           "week_start": "2019-08-12 00:00:00",
           "documents": 14,
           "cluster_total": 3998400.0,
@@ -9783,25 +9802,6 @@
           "order_coverage": 1.0,
           "orders_per_document": 0.142857,
           "worth_triage": true
-        },
-        {
-          "item": "",
-          "week_start": "2019-01-14 00:00:00",
-          "documents": 14,
-          "cluster_total": 3998400.0,
-          "max_document_amount": 285600.0,
-          "amount_cv": 0.0,
-          "rows_with_order": 13,
-          "distinct_orders": 1,
-          "order_examples": [
-            "837-1930-SE17"
-          ],
-          "split_shape": "PAGOS_BAJO_UNA_ORDEN",
-          "split_shape_meaning": "Los documentos comparten una sola orden de compra: son pagos de una misma compra. Es la explicación inocente que la señal de fragmentación ya nombraba.",
-          "split_shape_why": "los documentos con orden comparten una sola",
-          "order_coverage": 0.928571,
-          "orders_per_document": 0.076923,
-          "worth_triage": false
         }
       ],
       "split_shape": "PAGOS_BAJO_UNA_ORDEN",
@@ -10439,6 +10439,25 @@
       "weekly_clusters": [
         {
           "item": "",
+          "week_start": "2017-09-25 00:00:00",
+          "documents": 3,
+          "cluster_total": 855000.0,
+          "max_document_amount": 285000.0,
+          "amount_cv": 0.0,
+          "rows_with_order": 3,
+          "distinct_orders": 1,
+          "order_examples": [
+            "1671-413-se17"
+          ],
+          "split_shape": "PAGOS_BAJO_UNA_ORDEN",
+          "split_shape_meaning": "Los documentos comparten una sola orden de compra: son pagos de una misma compra. Es la explicación inocente que la señal de fragmentación ya nombraba.",
+          "split_shape_why": "los documentos con orden comparten una sola",
+          "order_coverage": 1.0,
+          "orders_per_document": 0.333333,
+          "worth_triage": false
+        },
+        {
+          "item": "",
           "week_start": "2017-10-23 00:00:00",
           "documents": 3,
           "cluster_total": 855000.0,
@@ -10457,28 +10476,9 @@
           "order_coverage": 1.0,
           "orders_per_document": 1.0,
           "worth_triage": true
-        },
-        {
-          "item": "",
-          "week_start": "2017-09-25 00:00:00",
-          "documents": 3,
-          "cluster_total": 855000.0,
-          "max_document_amount": 285000.0,
-          "amount_cv": 0.0,
-          "rows_with_order": 3,
-          "distinct_orders": 1,
-          "order_examples": [
-            "1671-413-se17"
-          ],
-          "split_shape": "PAGOS_BAJO_UNA_ORDEN",
-          "split_shape_meaning": "Los documentos comparten una sola orden de compra: son pagos de una misma compra. Es la explicación inocente que la señal de fragmentación ya nombraba.",
-          "split_shape_why": "los documentos con orden comparten una sola",
-          "order_coverage": 1.0,
-          "orders_per_document": 0.333333,
-          "worth_triage": false
         }
       ],
-      "split_shape": "ORDENES_SEPARADAS",
+      "split_shape": "PAGOS_BAJO_UNA_ORDEN",
       "split_worth_triage": true
     },
     {
@@ -12052,6 +12052,25 @@
       "weekly_clusters": [
         {
           "item": "",
+          "week_start": "2018-07-30 00:00:00",
+          "documents": 3,
+          "cluster_total": 2535000.0,
+          "max_document_amount": 928200.0,
+          "amount_cv": 0.086659,
+          "rows_with_order": 1,
+          "distinct_orders": 1,
+          "order_examples": [
+            "1036-63-CM18"
+          ],
+          "split_shape": "NO_DETERMINADO",
+          "split_shape_meaning": "La cobertura de orden de compra en el grupo no alcanza para distinguir cuotas de compras separadas.",
+          "split_shape_why": "sólo 1 de 3 documentos traen orden de compra, bajo el piso de 60% necesario para declarar la forma",
+          "order_coverage": 0.333333,
+          "orders_per_document": 0.0,
+          "worth_triage": false
+        },
+        {
+          "item": "",
           "week_start": "2018-08-27 00:00:00",
           "documents": 3,
           "cluster_total": 2535000.0,
@@ -12069,28 +12088,9 @@
           "order_coverage": 0.666667,
           "orders_per_document": 1.0,
           "worth_triage": true
-        },
-        {
-          "item": "",
-          "week_start": "2018-07-30 00:00:00",
-          "documents": 3,
-          "cluster_total": 2535000.0,
-          "max_document_amount": 928200.0,
-          "amount_cv": 0.086659,
-          "rows_with_order": 1,
-          "distinct_orders": 1,
-          "order_examples": [
-            "1036-63-CM18"
-          ],
-          "split_shape": "NO_DETERMINADO",
-          "split_shape_meaning": "La cobertura de orden de compra en el grupo no alcanza para distinguir cuotas de compras separadas.",
-          "split_shape_why": "sólo 1 de 3 documentos traen orden de compra, bajo el piso de 60% necesario para declarar la forma",
-          "order_coverage": 0.333333,
-          "orders_per_document": 0.0,
-          "worth_triage": false
         }
       ],
-      "split_shape": "ORDENES_SEPARADAS",
+      "split_shape": "NO_DETERMINADO",
       "split_worth_triage": true
     },
     {
