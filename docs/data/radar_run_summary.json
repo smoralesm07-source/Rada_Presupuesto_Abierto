@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-22T22:39:04+00:00",
+  "generated_at": "2026-09-23T02:42:03+00:00",
   "schema": "RIGP-RUN-SUMMARY-v1",
   "guardrail": "Este resumen describe cobertura y comportamiento operativo del radar. No acredita irregularidad, fraude, corrupción, delito funcionario, lavado de activos ni responsabilidad de una entidad o persona.",
   "analysis_window": {
@@ -86,7 +86,7 @@
     "dominant_share": 0.422807
   },
   "findings": {
-    "relations_available": 189745,
+    "relations_available": 189747,
     "relations_published": 600,
     "publication_ratio": 0.003162,
     "attention_levels": {
@@ -99,8 +99,8 @@
       "POTENTIAL_FRAGMENTATION": 265,
       "EXACT_DUPLICATE_CANDIDATE": 277,
       "PROVIDER_CONCENTRATION": 78,
-      "AMOUNT_OUTLIER": 176,
       "CAPACITY_MISMATCH": 84,
+      "AMOUNT_OUTLIER": 176,
       "ACTIVITY_MISMATCH": 9,
       "NEW_TO_SERIES_HIGH_SPEND": 20,
       "NEWBORN_SUPPLIER": 1,

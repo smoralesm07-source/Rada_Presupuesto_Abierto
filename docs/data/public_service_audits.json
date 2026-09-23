@@ -1,6 +1,6 @@
 {
   "schema": "RIGP-PUBLIC-SERVICE-AUDITS-v1",
-  "generated_at": "2026-09-22T22:10:24+00:00",
+  "generated_at": "2026-09-23T02:12:53+00:00",
   "guardrail": "Una observación de auditoría de la Contraloría describe un desorden administrativo constatado por el órgano fiscalizador. No acredita delito, fraude ni responsabilidad penal de ninguna persona, y la mayoría de las observaciones nunca deriva en uno. Esta capa ordena dónde mirar primero, no a quién acusar.",
   "method": "Se cruza el organismo auditado por la Contraloría con el servicio del presupuesto a nivel de partida y capítulo. Un parecido alto no basta: cuando dos nombres comparten el prefijo institucional y difieren en la cola, se exige que los distintivos de uno contengan a los del otro, para no atribuirle a un servicio la auditoría de otro de su misma familia.",
   "coverage": {
