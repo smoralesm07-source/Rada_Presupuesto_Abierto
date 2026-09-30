@@ -2,6 +2,12 @@ name: Publish Public Funds Universe to ATLAS
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/atlas-public-funds-publish.yml'
+      - 'src/radar_presupuesto/public_funds_export.py'
+      - 'src/radar_presupuesto/spend_view_fast3.py'
   workflow_run:
     workflows: ['Corrected Spend Data v3']
     types: [completed]
