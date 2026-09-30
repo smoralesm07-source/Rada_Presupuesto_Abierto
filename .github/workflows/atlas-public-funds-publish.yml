@@ -98,22 +98,8 @@ jobs:
           print('[OK] public funds contract',p['coverage'],len(p['entity']),len(p['year']),len(p['payer_year']))
           PY
 
-      - name: Obtain GitHub OIDC token for ATLAS public funds
-        id: oidc
-        shell: bash
-        run: |
-          set -euo pipefail
-          URL="${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=atlas-public-funds-ingest"
-          TOKEN_JSON=$(curl --fail --silent --show-error \
-            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "$URL")
-          OIDC=$(python -c 'import json,sys; print(json.load(sys.stdin)["value"])' <<<"$TOKEN_JSON")
-          test -n "$OIDC"
-          echo "token=$OIDC" >> "$GITHUB_OUTPUT"
-
       - name: Publish atomically to ATLAS
         shell: bash
-        env:
-          OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
         run: |
           set -euo pipefail
           ENDPOINT='https://ldmtlwzqaqmegedktlxr.supabase.co/functions/v1/atlas-public-funds-ingest'
@@ -131,22 +117,51 @@ jobs:
           Path('/tmp/pf-init.json').write_text(json.dumps(init,separators=(',',':')),encoding='utf-8')
           out=Path('/tmp/pf-batches'); out.mkdir(exist_ok=True)
           seq=0
+          batch_size=1500
           for kind in ('entity','year','payer_year'):
               rows=p[kind]
-              for start in range(0,len(rows),400):
+              for start in range(0,len(rows),batch_size):
                   seq+=1
-                  body={'operation':'batch','snapshot_id':snapshot,'kind':kind,'rows':rows[start:start+400]}
+                  body={'operation':'batch','snapshot_id':snapshot,'kind':kind,'rows':rows[start:start+batch_size]}
                   (out/f'{seq:05d}-{kind}.json').write_text(json.dumps(body,ensure_ascii=False,separators=(',',':'),allow_nan=False),encoding='utf-8')
           Path('/tmp/pf-finalize.json').write_text(json.dumps({'operation':'finalize','snapshot_id':snapshot},separators=(',',':')),encoding='utf-8')
-          print('[OK] batches',seq)
+          print('[OK] batches',seq,'batch_size',batch_size)
           PY
 
+          OIDC_TOKEN=''
+          OIDC_REFRESHED_AT=0
+
+          refresh_oidc() {
+            local url token_json
+            url="${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=atlas-public-funds-ingest"
+            token_json=$(curl --fail --silent --show-error \
+              -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "$url")
+            OIDC_TOKEN=$(python -c 'import json,sys; print(json.load(sys.stdin)["value"])' <<<"$token_json")
+            test -n "$OIDC_TOKEN"
+            OIDC_REFRESHED_AT=$(date +%s)
+          }
+
+          ensure_oidc() {
+            local now age
+            now=$(date +%s)
+            age=$((now - OIDC_REFRESHED_AT))
+            if [ -z "$OIDC_TOKEN" ] || [ "$age" -ge 180 ]; then
+              refresh_oidc
+            fi
+          }
+
           post() {
-            local file="$1" label="$2"
-            local code
+            local file="$1" label="$2" code
+            ensure_oidc
             code=$(curl --silent --show-error --output /tmp/pf-response.json --write-out '%{http_code}' \
               -X POST -H "Authorization: Bearer ${OIDC_TOKEN}" -H 'Content-Type: application/json' \
               --data-binary "@$file" "$ENDPOINT")
+            if [ "$code" = "401" ]; then
+              refresh_oidc
+              code=$(curl --silent --show-error --output /tmp/pf-response.json --write-out '%{http_code}' \
+                -X POST -H "Authorization: Bearer ${OIDC_TOKEN}" -H 'Content-Type: application/json' \
+                --data-binary "@$file" "$ENDPOINT")
+            fi
             if [ "$code" != "200" ]; then
               echo "[$label] HTTP $code"; cat /tmp/pf-response.json; exit 1
             fi
