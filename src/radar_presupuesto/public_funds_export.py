@@ -16,21 +16,36 @@ def _records(con: duckdb.DuckDBPyConnection, sql: str) -> list[dict]:
     return df.where(df.notna(), None).to_dict("records")
 
 
+def _parquet_source(parquet_path: str) -> str:
+    """Resolve a single parquet file or a directory of yearly parquet shards."""
+    path = Path(parquet_path)
+    if path.is_dir():
+        files = sorted(path.glob("*.parquet"))
+        if not files:
+            raise FileNotFoundError(f"No hay archivos parquet en {path}")
+        return str(path / "*.parquet")
+    if not path.exists():
+        raise FileNotFoundError(path)
+    return str(path)
+
+
 def build_public_funds_export(parquet_path: str, output: str, snapshot_id: str) -> dict:
     """Materializa la relación transversal con fondos públicos por RUT.
 
     Sólo pagos efectivos positivos, con RUT resuelto y fuera de intra-Estado.
     Conserva proveedor y receptor como roles distintos y publica únicamente
     agregados para ATLAS, nunca hechos transaccionales individuales.
+
+    La elegibilidad de una entidad se calcula sobre toda la historia entregada
+    por la fuente. L12/L36 son métricas auxiliares de recencia y nunca filtros
+    de inclusión del universo histórico.
     """
-    path = Path(parquet_path)
-    if not path.exists():
-        raise FileNotFoundError(path)
+    parquet_source = _parquet_source(parquet_path)
     if not snapshot_id.startswith("PF-"):
         raise ValueError("snapshot_id debe comenzar con PF-")
 
     con = duckdb.connect()
-    q = str(path).replace("'", "''")
+    q = parquet_source.replace("'", "''")
     con.execute(f"""
       CREATE OR REPLACE VIEW paid AS
       SELECT
@@ -44,7 +59,7 @@ def build_public_funds_export(parquet_path: str, output: str, snapshot_id: str) 
                  nullif(trim(nombre_partida),''), organization_id) AS payer_name,
         CASE WHEN coalesce(is_provider,false) THEN 'SUPPLIER' ELSE 'RECIPIENT' END AS role,
         try_cast(monto_pago AS DOUBLE) AS amount
-      FROM read_parquet('{q}')
+      FROM read_parquet('{q}', union_by_name=true)
       WHERE coalesce(trim(rut_beneficiario),'') <> ''
         AND try_cast(periodo AS INTEGER) IS NOT NULL
         AND try_cast(mes AS INTEGER) BETWEEN 1 AND 12
@@ -139,6 +154,8 @@ def build_public_funds_export(parquet_path: str, output: str, snapshot_id: str) 
             "amount_basis": "POSITIVE_MONTO_PAGO", "identity_basis": "RUT_EXACT_NORMALIZED",
             "payer_grain": "PARTIDA_CAPITULO", "recipient_scope": "ALL_BENEFICIARIES_AND_RECIPIENTS",
             "intra_state": "EXCLUDED", "roles": ["RECIPIENT", "SUPPLIER"],
+            "universe_window": "FULL_AVAILABLE_HISTORY",
+            "recency_metrics_only": ["amount_12m", "amount_36m"],
             "risk_score_mutation": False,
         },
         "coverage": {
