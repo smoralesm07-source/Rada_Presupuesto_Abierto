@@ -15,7 +15,7 @@ PAGES = [
     f"{BASE}/municipalities/09/09121?view=general",
 ]
 OUT = Path("docs/data/municipal_source_probe.json")
-UA = "ATLAS-UAF municipal-source-probe/1.2"
+UA = "ATLAS-UAF municipal-source-probe/1.3"
 
 
 def get(url: str) -> requests.Response:
@@ -64,15 +64,22 @@ def main() -> None:
             r = get(url)
             text = r.text
             item.update({"status": r.status_code, "bytes": len(r.content)})
+            if len(text) <= 12000:
+                item["text"] = text
 
             candidates = set(re.findall(r"https?://[^\"'\\\s)]+\.js", text, re.I))
             candidates.update(urljoin(url, x) for x in re.findall(r"/?_nuxt/[A-Za-z0-9._/-]+\.js", text))
-            # Nuxt 2 webpack runtime typically stores lazy chunks as bare hashed
-            # file names. Probe those names under /_nuxt/ as well.
-            for filename in re.findall(r"(?<![A-Za-z0-9])([0-9a-f]{6,}\.(?:js))(?![A-Za-z0-9])", text, re.I):
+            for filename in re.findall(r"(?<![A-Za-z0-9])([0-9a-f]{6,}\.js)(?![A-Za-z0-9])", text, re.I):
                 candidates.add(f"{BASE}/_nuxt/{filename}")
             for filename in re.findall(r"[\"']([0-9]+\.[0-9a-f]{6,}\.js)[\"']", text, re.I):
                 candidates.add(f"{BASE}/_nuxt/{filename}")
+
+            # Parse the common webpack form: ({chunkId:chunkName}[e]||e)+'.'+{chunkId:hash}[e]+'.js'.
+            name_maps = re.findall(r"\{((?:\d+:[\"'][^\"']+[\"'],?){2,})\}", text)
+            for raw_map in name_maps:
+                for _, value in re.findall(r"(\d+):[\"']([^\"']+)[\"']", raw_map):
+                    if re.fullmatch(r"[0-9a-f]{6,}", value, re.I):
+                        candidates.add(f"{BASE}/_nuxt/{value}.js")
 
             for candidate in sorted(candidates):
                 if urlparse(candidate).hostname == "presupuestoabierto.gob.cl" and candidate not in crawled and candidate not in queue:
