@@ -164,6 +164,7 @@ jobs:
                   body={'operation':'batch','snapshot_id':snapshot,'kind':kind,'rows':rows[start:start+batch_size]}
                   (out/f'{seq:05d}-{kind}.json').write_text(json.dumps(body,ensure_ascii=False,separators=(',',':'),allow_nan=False),encoding='utf-8')
           Path('/tmp/pf-finalize.json').write_text(json.dumps({'operation':'finalize','snapshot_id':snapshot},separators=(',',':')),encoding='utf-8')
+          Path('/tmp/pf-status.json').write_text(json.dumps({'operation':'status','snapshot_id':snapshot},separators=(',',':')),encoding='utf-8')
           print('[OK] batches',seq,'batch_size',batch_size)
           PY
 
@@ -214,5 +215,29 @@ jobs:
           post /tmp/pf-init.json init
           for file in /tmp/pf-batches/*.json; do post "$file" "$(basename "$file")"; done
           post /tmp/pf-finalize.json finalize
+
+          READY=0
+          for attempt in $(seq 1 120); do
+            post /tmp/pf-status.json status
+            STATUS=$(python -c 'import json; print(json.load(open("/tmp/pf-response.json"))["status"])')
+            echo "[status] attempt=$attempt status=$STATUS"
+            if [ "$STATUS" = "READY" ]; then
+              READY=1
+              break
+            fi
+            if [ "$STATUS" != "LOADING" ]; then
+              echo "Estado inesperado: $STATUS"
+              cat /tmp/pf-response.json
+              exit 1
+            fi
+            sleep 5
+          done
+
+          if [ "$READY" != "1" ]; then
+            echo 'La promoción atómica no alcanzó READY dentro de 10 minutos.'
+            cat /tmp/pf-response.json
+            exit 1
+          fi
+
           cat /tmp/pf-response.json
           echo 'ATLAS public funds publication READY'
