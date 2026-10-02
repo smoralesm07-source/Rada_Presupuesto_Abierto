@@ -3,20 +3,23 @@
     {
       "url": "https://presupuestoabierto.gob.cl/municipalities",
       "status": 200,
-      "bytes": 3811
+      "bytes": 3811,
+      "html_head": "<!doctype html>\n<html >\n  <head >\n    <title>Presupuesto Abierto - Gobierno de Chile</title><meta data-n-head=\"1\" charset=\"utf-8\"><meta data-n-head=\"1\" name=\"viewport\" content=\"width=device-width, initial-scale=1\"><meta data-n-head=\"1\" data-hid=\"description\" name=\"description\" content=\"\"><link data-n-head=\"1\" rel=\"icon\" type=\"image/x-icon\" href=\"/favicon.png\"><script data-n-head=\"1\" data-hid=\"gtm-script\">if(!window._gtm_init){window._gtm_init=1;(function(w,n,d,m,e,p){w[d]=(w[d]==1||n[d]=='yes'||n[d]==1||n[m]==1||(w[e]&&w[e][p]&&w[e][p]()))?1:0})(window,navigator,'doNotTrack','msDoNotTrack','external','msTrackingProtectionEnabled');(function(w,d,s,l,x,y){w[x]={};w._gtm_inject=function(i){if(w.doNotTrack||w[x][i])return;w[x][i]=1;w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s);j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i;f.parentNode.insertBefore(j,f);};w[y]('GTM-TK2TQKXM')})(window,document,'script','dataLayer','_gtm_ids','_gtm_inject')}</script><link rel=\"preload\" href=\"/_nuxt/6bdc2d8.js\" as=\"script\"><link rel=\"preload\" href=\"/_nuxt/9811603.js\" as=\"script\"><link rel=\"preload\" hr"
     },
     {
       "url": "https://presupuestoabierto.gob.cl/municipalities/9/9118?view=general",
       "status": 200,
-      "bytes": 3811
+      "bytes": 3811,
+      "html_head": "<!doctype html>\n<html >\n  <head >\n    <title>Presupuesto Abierto - Gobierno de Chile</title><meta data-n-head=\"1\" charset=\"utf-8\"><meta data-n-head=\"1\" name=\"viewport\" content=\"width=device-width, initial-scale=1\"><meta data-n-head=\"1\" data-hid=\"description\" name=\"description\" content=\"\"><link data-n-head=\"1\" rel=\"icon\" type=\"image/x-icon\" href=\"/favicon.png\"><script data-n-head=\"1\" data-hid=\"gtm-script\">if(!window._gtm_init){window._gtm_init=1;(function(w,n,d,m,e,p){w[d]=(w[d]==1||n[d]=='yes'||n[d]==1||n[m]==1||(w[e]&&w[e][p]&&w[e][p]()))?1:0})(window,navigator,'doNotTrack','msDoNotTrack','external','msTrackingProtectionEnabled');(function(w,d,s,l,x,y){w[x]={};w._gtm_inject=function(i){if(w.doNotTrack||w[x][i])return;w[x][i]=1;w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s);j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i;f.parentNode.insertBefore(j,f);};w[y]('GTM-TK2TQKXM')})(window,document,'script','dataLayer','_gtm_ids','_gtm_inject')}</script><link rel=\"preload\" href=\"/_nuxt/6bdc2d8.js\" as=\"script\"><link rel=\"preload\" href=\"/_nuxt/9811603.js\" as=\"script\"><link rel=\"preload\" hr"
     },
     {
       "url": "https://presupuestoabierto.gob.cl/municipalities/09/09121?view=general",
       "status": 200,
-      "bytes": 3811
+      "bytes": 3811,
+      "html_head": "<!doctype html>\n<html >\n  <head >\n    <title>Presupuesto Abierto - Gobierno de Chile</title><meta data-n-head=\"1\" charset=\"utf-8\"><meta data-n-head=\"1\" name=\"viewport\" content=\"width=device-width, initial-scale=1\"><meta data-n-head=\"1\" data-hid=\"description\" name=\"description\" content=\"\"><link data-n-head=\"1\" rel=\"icon\" type=\"image/x-icon\" href=\"/favicon.png\"><script data-n-head=\"1\" data-hid=\"gtm-script\">if(!window._gtm_init){window._gtm_init=1;(function(w,n,d,m,e,p){w[d]=(w[d]==1||n[d]=='yes'||n[d]==1||n[m]==1||(w[e]&&w[e][p]&&w[e][p]()))?1:0})(window,navigator,'doNotTrack','msDoNotTrack','external','msTrackingProtectionEnabled');(function(w,d,s,l,x,y){w[x]={};w._gtm_inject=function(i){if(w.doNotTrack||w[x][i])return;w[x][i]=1;w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s);j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i;f.parentNode.insertBefore(j,f);};w[y]('GTM-TK2TQKXM')})(window,document,'script','dataLayer','_gtm_ids','_gtm_inject')}</script><link rel=\"preload\" href=\"/_nuxt/6bdc2d8.js\" as=\"script\"><link rel=\"preload\" href=\"/_nuxt/9811603.js\" as=\"script\"><link rel=\"preload\" hr"
     }
   ],
-  "scripts": [
+  "assets": [
     {
       "url": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
       "status": 200,
@@ -40,112 +43,176 @@
   ],
   "matches": [
     {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
-      "value": "https://fonts.googleapis.com/icon?family=Material+Icons);"
-    },
-    {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
-      "value": "https://fonts.googleapis.com/icon?family=Roboto:300,400,500,700);"
-    },
-    {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
       "value": "https://api.presupuestoabierto.gob.cl"
     },
     {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
       "value": "r=o(57),n=o.n(r);t.default={state:function(){return{defaultYear:null,updatedAt:null,municipiosUpdatedAt:null,section:null}},mutations:{setDefaultYear:function(e,t){e.defaultYear=t,window.sessionStorage.setItem("
     },
     {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
       "value": ",t)},setUpdatedAt:function(e,t){e.updatedAt=t},setMunicipiosUpdatedAt:function(e,t){e.municipiosUpdatedAt=t},setSection:function(e,t){e.section=t,window.sessionStorage.setItem("
     },
     {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
       "value": "setMunicipiosUpdatedAt"
     },
     {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
       "value": ",n()(t.municipiosUpdatedAt).toDate())}}}},330:function(e,t,o){var"
     },
     {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "/providers"
+    },
+    {
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "providers"
+    },
+    {
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "/pages/providers"
+    },
+    {
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "pages-providers"
+    },
+    {
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "/pages/institutions/providers/:id?"
+    },
+    {
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "pages-institutions-providers-id"
+    },
+    {
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
       "value": "/pages/municipalities/providers/:id?"
     },
     {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
       "value": "pages-municipalities-providers-id"
     },
     {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "/pages/regional-government/providers/:id?"
+    },
+    {
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "pages-regional-government-providers-id"
+    },
+    {
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "/institutions/providers/:id?"
+    },
+    {
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "institutions-providers-id"
+    },
+    {
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
       "value": "/municipalities/providers/:id?"
     },
     {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
       "value": "municipalities-providers-id"
     },
     {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "/regional-government/providers/:id?"
+    },
+    {
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "regional-government-providers-id"
+    },
+    {
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
       "value": "/pages/municipalities/:region?/:comuna?"
     },
     {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
       "value": "pages-municipalities-region-comuna"
     },
     {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
       "value": "/municipalities/:region?/:comuna?"
     },
     {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
       "value": "municipalities-region-comuna"
     },
     {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
       "value": "),e.$config.municipalitiesEnabled?r("
     },
     {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
-      "value": "Municipalidades"
-    },
-    {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
       "value": "/municipalities"
     },
     {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
-      "value": "Municipal"
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "proveedores"
     },
     {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "Proveedores"
+    },
+    {
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "/institutions/18/33?view=providers"
+    },
+    {
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
       "value": "BCardText"
     },
     {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
       "value": "),Bs=mt({components:{BCard:ys,BCardHeader:ns,BCardBody:Ja,BCardTitle:qa,BCardSubTitle:Ga,BCardFooter:as,BCardImg:ps,BCardImgLazy:Ms,BCardText:Fs,BCardGroup:o.default.extend({name:"
     },
     {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
-      "value": "temButton:pc,BDdItemBtn:pc,BDropdownHeader:bc,BDdHeader:bc,BDropdownDivider:xc,BDdDivider:xc,BDropdownForm:Dc,BDdForm:Dc,BDropdownText:jc,BDdText:jc,BDropdownGroup:Mc,BDdGroup:Mc}}),Fc=["
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
+      "value": "wnItemButton:pc,BDropdownItemBtn:pc,BDdItemButton:pc,BDdItemBtn:pc,BDropdownHeader:bc,BDdHeader:bc,BDropdownDivider:xc,BDdDivider:xc,BDropdownForm:Dc,BDdForm:Dc,BDropdownText:jc,BDdText:jc,BDropdownGroup:Mc,BDdGroup:Mc}}),Fc=["
     },
     {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
       "value": "this.activeTrigger)if(this.activeTrigger[e])return!0;return!1},computedTemplateData:function(){return{title:this.title,content:this.content,variant:this.variant,customClass:this.customClass,noFade:this.noFade,interactive:this.interactive}}},watch:{computedTriggers:function(e,t){var"
     },
     {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
-      "value": "his.$nextTick((function(){n.unListen(),t.forEach((function(t){Jt(e,t)||n.activeTrigger[t]&&(n.activeTrigger[t]=!1)})),n.listen()}))},computedTemplateData:function(){this.handleTemplateUpdate()},title:function(e,t){e===t||e||this.hide()},disabled:function(e){e?this.disable():this.enable()}},created:function(){var"
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
+      "value": "n=this;no(e,t)||this.$nextTick((function(){n.unListen(),t.forEach((function(t){Jt(e,t)||n.activeTrigger[t]&&(n.activeTrigger[t]=!1)})),n.listen()}))},computedTemplateData:function(){this.handleTemplateUpdate()},title:function(e,t){e===t||e||this.hide()},disabled:function(e){e?this.disable():this.enable()}},created:function(){var"
     },
     {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
       "value": ",{columns:e.length,fields:e})])),n}}}),_g={emptyFilteredHtml:hi(Bt),emptyFilteredText:hi(Bt,"
     },
     {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
       "value": "r=this.computedFields,o=this.isFiltered,l=this.emptyText,c=this.emptyHtml,d=this.emptyFilteredText,h=this.emptyFilteredHtml,f=this.tbodyTrClass,m=this.tbodyTrAttr;(n=this.normalizeSlot(o?"
     },
     {
-      "script": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
       "value": ",{emptyFilteredHtml:h,emptyFilteredText:d,emptyHtml:c,emptyText:l,fields:r,items:e}))||(n=t("
+    },
+    {
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
+      "value": "),Zg={apiUrl:hi(Bt),items:hi(At,[]),noProviderFiltering:hi($t,!1),noProviderPaging:hi($t,!1),noProviderSorting:hi($t,!1)},Jg=o.default.extend({mixins:[so],props:Zg,computed:{hasProvider:function(){return"
+    },
+    {
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
+      "value": "this.noProviderFiltering||(e.filter=this.localFilter),this.noProviderSorting||(e.sortBy=this.localSortBy,e.sortDesc=this.localSortDesc),this.noProviderPaging||(e.perPage=this.perPage,e.currentPage=this.currentPage),Ye(e)}},watch:{items:function(e){(this.hasProvider||Ce(e))&&this.$nextTick(this._providerUpdate)},providerTriggerCo"
+    },
+    {
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
+      "value": ",t):(this.clearSelected(),this.hasProvider?this.$nextTick(this._providerUpdate):this.localItems=Pe(e)?e.slice():[])},_providerSetLocal:function(e){this.localItems=Pe(e)?e.slice():[],this.localBusy=!1,this.$emit("
+    },
+    {
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
+      "value": "data=e.items(e.context,e._providerSetLocal);!ke(t=data)&&Ce(t.then)&&Ce(t.catch)?data.then((function(t){e._providerSetLocal(t)})):Pe(data)?e._providerSetLocal(data):2!==e.items.length&&(nt("
+    },
+    {
+      "asset": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
+      "value": "this.hasProvider?!!this.noProviderSorting:!this.noLocalSorting},isSortable:function(){return"
     }
   ]
 }
