@@ -1,0 +1,70 @@
+name: Probe official municipal source
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/probe_municipal_source.py'
+      - 'scripts/probe_municipal_api.py'
+      - 'scripts/capture_municipal_network.mjs'
+      - '.github/workflows/municipal-source-probe.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/probe_municipal_source.py'
+      - 'scripts/probe_municipal_api.py'
+      - 'scripts/capture_municipal_network.mjs'
+      - '.github/workflows/municipal-source-probe.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Discover official municipal API surface
+        run: python scripts/probe_municipal_source.py
+      - name: Probe official municipal data contract
+        run: python scripts/probe_municipal_api.py
+      - name: Install browser capture
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Capture official municipal network calls
+        run: node scripts/capture_municipal_network.mjs
+      - name: Validate probe result
+        run: |
+          python - <<'PY'
+          import json
+          p=json.load(open('docs/data/municipal_source_probe.json',encoding='utf-8'))
+          a=json.load(open('docs/data/municipal_api_probe.json',encoding='utf-8'))
+          n=json.load(open('docs/data/municipal_network_capture.json',encoding='utf-8'))
+          if not p.get('assets'): raise SystemExit('No se detectaron assets del sitio oficial')
+          if not p.get('matches'): raise SystemExit('No se detectaron referencias API/municipales')
+          api=[c for c in n.get('calls',[]) if 'api.presupuestoabierto.gob.cl' in c.get('url','')]
+          if not api: raise SystemExit('No se capturaron llamadas a la API municipal oficial')
+          flex=a.get('cholchol_flexing_2025_raw',{})
+          if flex.get('status') != 200: raise SystemExit('Caso FLEXING/Cholchol no consultable en API oficial')
+          print('[OK] assets',len(p['assets']),'matches',len(p['matches']),'api_calls',len(api),'flexing_rows',flex.get('count'))
+          PY
+      - name: Persist probe result on branch
+        if: github.event_name == 'pull_request'
+        run: |
+          git config user.name "radar-presupuesto-bot"
+          git config user.email "radar-presupuesto-bot@users.noreply.github.com"
+          git add docs/data/municipal_source_probe.json docs/data/municipal_api_probe.json docs/data/municipal_network_capture.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "data: valida API municipal y caso Cholchol/FLEXING"
+          git pull --rebase origin "${GITHUB_HEAD_REF}"
+          git push origin "HEAD:${GITHUB_HEAD_REF}"
