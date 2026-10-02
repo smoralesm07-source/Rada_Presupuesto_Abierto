@@ -46,7 +46,7 @@ jobs:
           python - <<'PY'
           import json
           p=json.load(open('docs/data/municipal_source_probe.json',encoding='utf-8'))
-          if not p.get('scripts'): raise SystemExit('No se detectaron assets del sitio oficial')
+          if not p.get('assets'): raise SystemExit('No se detectaron assets del sitio oficial')
           if not p.get('matches'): raise SystemExit('No se detectaron referencias API/municipales')
-          print('[OK] scripts',len(p['scripts']),'matches',len(p['matches']))
+          print('[OK] assets',len(p['assets']),'matches',len(p['matches']))
           PY
