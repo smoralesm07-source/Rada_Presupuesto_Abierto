@@ -121,7 +121,9 @@ jobs:
           if s.get('amount_basis')!='POSITIVE_MONTO_PAGO': raise SystemExit('base de monto incorrecta')
           if s.get('identity_basis')!='RUT_EXACT_NORMALIZED': raise SystemExit('identidad no exacta')
           if s.get('intra_state')!='EXCLUDED': raise SystemExit('intraestado no excluido')
-          if not p.get('entity') or not p.get('year') or not p.get('payer_year'): raise SystemExit('agregados vacíos')
+          if s.get('execution_basis')!='NET_MONTO_DEVENGADO_ALL_ROWS': raise SystemExit('base de ejecución incorrecta')
+          if not p.get('entity') or not p.get('year') or not p.get('payer_year') or not p.get('execution_year'):
+              raise SystemExit('agregados vacíos')
           coverage=p.get('coverage') or {}
           first=coverage.get('first_month') or ''
           if not str(first).startswith('2016-'):
@@ -131,7 +133,7 @@ jobs:
           missing=[y for y in range(2016,latest+1) if y not in years]
           if missing:
               raise SystemExit(f'agregados anuales incompletos: {missing}')
-          print('[OK] public funds full-history contract',p['coverage'],len(p['entity']),len(p['year']),len(p['payer_year']))
+          print('[OK] public funds full-history contract',p['coverage'],len(p['entity']),len(p['year']),len(p['payer_year']),len(p['execution_year']))
           PY
 
       - name: Publish atomically to ATLAS
@@ -149,12 +151,13 @@ jobs:
             'expected_entity':len(p['entity']),
             'expected_year':len(p['year']),
             'expected_payer_year':len(p['payer_year']),
+            'expected_execution_year':len(p['execution_year']),
           }
           Path('/tmp/pf-init.json').write_text(json.dumps(init,separators=(',',':')),encoding='utf-8')
           out=Path('/tmp/pf-batches'); out.mkdir(exist_ok=True)
           seq=0
           batch_size=1500
-          for kind in ('entity','year','payer_year'):
+          for kind in ('entity','year','payer_year','execution_year'):
               rows=p[kind]
               for start in range(0,len(rows),batch_size):
                   seq+=1

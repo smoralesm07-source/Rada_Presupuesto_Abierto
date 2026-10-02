@@ -32,13 +32,13 @@ def _parquet_source(parquet_path: str) -> str:
 def build_public_funds_export(parquet_path: str, output: str, snapshot_id: str) -> dict:
     """Materializa la relación transversal con fondos públicos por RUT.
 
-    Sólo pagos efectivos positivos, con RUT resuelto y fuera de intra-Estado.
-    Conserva proveedor y receptor como roles distintos y publica únicamente
-    agregados para ATLAS, nunca hechos transaccionales individuales.
+    Los flujos a contrapartes conservan la semántica histórica de ATLAS:
+    pagos efectivos positivos, con RUT resuelto y fuera de intra-Estado.
 
-    La elegibilidad de una entidad se calcula sobre toda la historia entregada
-    por la fuente. L12/L36 son métricas auxiliares de recencia y nunca filtros
-    de inclusión del universo histórico.
+    En paralelo se publica un agregado liviano de ejecución presupuestaria por
+    organismo-año, calculado sobre monto devengado neto de todos los registros,
+    incluyendo gastos en personal y filas sin contraparte RUT. Esto permite a
+    Huella pública distinguir ejecución total de flujos identificables.
     """
     parquet_source = _parquet_source(parquet_path)
     if not snapshot_id.startswith("PF-"):
@@ -139,12 +139,60 @@ def build_public_funds_export(parquet_path: str, output: str, snapshot_id: str) 
       ORDER BY t.amount_total DESC, t.rut
     """)
 
+    execution_years = _records(con, f"""
+      WITH base AS (
+        SELECT
+          organization_id AS payer_key,
+          coalesce(nullif(trim(nombre_capitulo),''), nullif(trim(nombre_area),''),
+                   nullif(trim(nombre_partida),''), organization_id) AS payer_name,
+          try_cast(periodo AS INTEGER) AS period_year,
+          make_date(try_cast(periodo AS INTEGER), try_cast(mes AS INTEGER), 1) AS period_date,
+          coalesce(try_cast(monto_devengado AS DOUBLE),0.0) AS execution_devengado,
+          CASE
+            WHEN try_cast(trim(coalesce(subtitulo,'')) AS INTEGER)=21
+              OR upper(trim(coalesce(nombre_subtitulo,''))) LIKE '%GASTOS EN PERSONAL%'
+            THEN coalesce(try_cast(monto_devengado AS DOUBLE),0.0)
+            ELSE 0.0
+          END AS personnel_devengado
+        FROM read_parquet('{q}', union_by_name=true)
+        WHERE try_cast(periodo AS INTEGER) IS NOT NULL
+          AND try_cast(mes AS INTEGER) BETWEEN 1 AND 12
+          AND coalesce(trim(organization_id),'') <> ''
+      )
+      SELECT
+        payer_key,
+        arg_max(payer_name, abs(execution_devengado)) AS payer_name,
+        period_year,
+        sum(execution_devengado) AS execution_devengado,
+        sum(personnel_devengado) AS personnel_devengado,
+        count(*) FILTER (WHERE execution_devengado<>0)::BIGINT AS transaction_count,
+        min(period_date) FILTER (WHERE execution_devengado<>0)::DATE AS first_seen,
+        max(period_date) FILTER (WHERE execution_devengado<>0)::DATE AS last_seen
+      FROM base
+      GROUP BY 1,3
+      HAVING count(*) FILTER (WHERE execution_devengado<>0) > 0
+      ORDER BY payer_key, period_year
+    """)
+
     meta = con.execute("""
       SELECT count(*)::BIGINT, count(DISTINCT rut)::BIGINT, count(DISTINCT payer_key)::BIGINT,
              sum(amount), min(period_date), max(period_date),
              count(*) FILTER (WHERE role='SUPPLIER')::BIGINT,
              count(*) FILTER (WHERE role='RECIPIENT')::BIGINT
       FROM paid
+    """).fetchone()
+    execution_meta = con.execute(f"""
+      SELECT count(*)::BIGINT,
+             count(DISTINCT organization_id)::BIGINT,
+             coalesce(sum(try_cast(monto_devengado AS DOUBLE)),0),
+             coalesce(sum(try_cast(monto_devengado AS DOUBLE)) FILTER (
+               WHERE try_cast(trim(coalesce(subtitulo,'')) AS INTEGER)=21
+                  OR upper(trim(coalesce(nombre_subtitulo,''))) LIKE '%GASTOS EN PERSONAL%'
+             ),0)
+      FROM read_parquet('{q}', union_by_name=true)
+      WHERE try_cast(periodo AS INTEGER) IS NOT NULL
+        AND try_cast(mes AS INTEGER) BETWEEN 1 AND 12
+        AND coalesce(trim(organization_id),'') <> ''
     """).fetchone()
     con.close()
 
@@ -154,6 +202,10 @@ def build_public_funds_export(parquet_path: str, output: str, snapshot_id: str) 
             "amount_basis": "POSITIVE_MONTO_PAGO", "identity_basis": "RUT_EXACT_NORMALIZED",
             "payer_grain": "PARTIDA_CAPITULO", "recipient_scope": "ALL_BENEFICIARIES_AND_RECIPIENTS",
             "intra_state": "EXCLUDED", "roles": ["RECIPIENT", "SUPPLIER"],
+            "execution_basis": "NET_MONTO_DEVENGADO_ALL_ROWS",
+            "personnel_basis": "SUBTITULO_21_NET_MONTO_DEVENGADO",
+            "execution_includes_unresolved_counterparties": True,
+            "execution_includes_intra_state": True,
             "universe_window": "FULL_AVAILABLE_HISTORY",
             "recency_metrics_only": ["amount_12m", "amount_36m"],
             "risk_score_mutation": False,
@@ -164,8 +216,13 @@ def build_public_funds_export(parquet_path: str, output: str, snapshot_id: str) 
             "first_month": str(meta[4]) if meta[4] else None,
             "last_month": str(meta[5]) if meta[5] else None,
             "supplier_rows": int(meta[6] or 0), "recipient_rows": int(meta[7] or 0),
+            "execution_rows": int(execution_meta[0] or 0),
+            "execution_payers": int(execution_meta[1] or 0),
+            "execution_devengado_total": float(execution_meta[2] or 0),
+            "personnel_devengado_total": float(execution_meta[3] or 0),
         },
         "entity": entities, "year": years, "payer_year": payer_years,
+        "execution_year": execution_years,
     }
     out = Path(output)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -182,7 +239,8 @@ def main() -> None:
     payload = build_public_funds_export(args.parquet, args.output, args.snapshot_id)
     print(json.dumps({"schema":payload["schema"],"snapshot_id":payload["snapshot_id"],
                       "coverage":payload["coverage"],"entity":len(payload["entity"]),
-                      "year":len(payload["year"]),"payer_year":len(payload["payer_year"])}, ensure_ascii=False))
+                      "year":len(payload["year"]),"payer_year":len(payload["payer_year"]),
+                      "execution_year":len(payload["execution_year"])}, ensure_ascii=False))
 
 
 if __name__ == "__main__":
