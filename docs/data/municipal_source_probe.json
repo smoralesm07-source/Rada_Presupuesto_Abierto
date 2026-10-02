@@ -1,0 +1,151 @@
+{
+  "pages": [
+    {
+      "url": "https://presupuestoabierto.gob.cl/municipalities",
+      "status": 200,
+      "bytes": 3811
+    },
+    {
+      "url": "https://presupuestoabierto.gob.cl/municipalities/9/9118?view=general",
+      "status": 200,
+      "bytes": 3811
+    },
+    {
+      "url": "https://presupuestoabierto.gob.cl/municipalities/09/09121?view=general",
+      "status": 200,
+      "bytes": 3811
+    }
+  ],
+  "scripts": [
+    {
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "status": 200,
+      "bytes": 463824
+    },
+    {
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
+      "status": 200,
+      "bytes": 1300316
+    },
+    {
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/6bdc2d8.js",
+      "status": 200,
+      "bytes": 3250
+    },
+    {
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/9811603.js",
+      "status": 200,
+      "bytes": 250498
+    }
+  ],
+  "matches": [
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "https://fonts.googleapis.com/icon?family=Material+Icons);"
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "https://fonts.googleapis.com/icon?family=Roboto:300,400,500,700);"
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "https://api.presupuestoabierto.gob.cl"
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "r=o(57),n=o.n(r);t.default={state:function(){return{defaultYear:null,updatedAt:null,municipiosUpdatedAt:null,section:null}},mutations:{setDefaultYear:function(e,t){e.defaultYear=t,window.sessionStorage.setItem("
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": ",t)},setUpdatedAt:function(e,t){e.updatedAt=t},setMunicipiosUpdatedAt:function(e,t){e.municipiosUpdatedAt=t},setSection:function(e,t){e.section=t,window.sessionStorage.setItem("
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "setMunicipiosUpdatedAt"
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": ",n()(t.municipiosUpdatedAt).toDate())}}}},330:function(e,t,o){var"
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "/pages/municipalities/providers/:id?"
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "pages-municipalities-providers-id"
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "/municipalities/providers/:id?"
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "municipalities-providers-id"
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "/pages/municipalities/:region?/:comuna?"
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "pages-municipalities-region-comuna"
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "/municipalities/:region?/:comuna?"
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "municipalities-region-comuna"
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "),e.$config.municipalitiesEnabled?r("
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "Municipalidades"
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "/municipalities"
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "value": "Municipal"
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
+      "value": "BCardText"
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
+      "value": "),Bs=mt({components:{BCard:ys,BCardHeader:ns,BCardBody:Ja,BCardTitle:qa,BCardSubTitle:Ga,BCardFooter:as,BCardImg:ps,BCardImgLazy:Ms,BCardText:Fs,BCardGroup:o.default.extend({name:"
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
+      "value": "temButton:pc,BDdItemBtn:pc,BDropdownHeader:bc,BDdHeader:bc,BDropdownDivider:xc,BDdDivider:xc,BDropdownForm:Dc,BDdForm:Dc,BDropdownText:jc,BDdText:jc,BDropdownGroup:Mc,BDdGroup:Mc}}),Fc=["
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
+      "value": "this.activeTrigger)if(this.activeTrigger[e])return!0;return!1},computedTemplateData:function(){return{title:this.title,content:this.content,variant:this.variant,customClass:this.customClass,noFade:this.noFade,interactive:this.interactive}}},watch:{computedTriggers:function(e,t){var"
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
+      "value": "his.$nextTick((function(){n.unListen(),t.forEach((function(t){Jt(e,t)||n.activeTrigger[t]&&(n.activeTrigger[t]=!1)})),n.listen()}))},computedTemplateData:function(){this.handleTemplateUpdate()},title:function(e,t){e===t||e||this.hide()},disabled:function(e){e?this.disable():this.enable()}},created:function(){var"
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
+      "value": ",{columns:e.length,fields:e})])),n}}}),_g={emptyFilteredHtml:hi(Bt),emptyFilteredText:hi(Bt,"
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
+      "value": "r=this.computedFields,o=this.isFiltered,l=this.emptyText,c=this.emptyHtml,d=this.emptyFilteredText,h=this.emptyFilteredHtml,f=this.tbodyTrClass,m=this.tbodyTrAttr;(n=this.normalizeSlot(o?"
+    },
+    {
+      "script": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
+      "value": ",{emptyFilteredHtml:h,emptyFilteredText:d,emptyHtml:c,emptyText:l,fields:r,items:e}))||(n=t("
+    }
+  ]
+}
