@@ -1,6 +1,6 @@
 {
   "schema": "RIGP-PUBLIC-SERVICE-AUDITS-v1",
-  "generated_at": "2026-09-23T02:12:53+00:00",
+  "generated_at": "2026-10-10T18:39:21+00:00",
   "guardrail": "Una observación de auditoría de la Contraloría describe un desorden administrativo constatado por el órgano fiscalizador. No acredita delito, fraude ni responsabilidad penal de ninguna persona, y la mayoría de las observaciones nunca deriva en uno. Esta capa ordena dónde mirar primero, no a quién acusar.",
   "method": "Se cruza el organismo auditado por la Contraloría con el servicio del presupuesto a nivel de partida y capítulo. Un parecido alto no basta: cuando dos nombres comparten el prefijo institucional y difieren en la cola, se exige que los distintivos de uno contengan a los del otro, para no atribuirle a un servicio la auditoría de otro de su misma familia.",
   "coverage": {
@@ -17,8 +17,8 @@
       "service_name": "SERVICIO DE SALUD ANTOFAGASTA",
       "ministry_name": "MINISTERIO DE SALUD",
       "programs": 8,
-      "providers": 9386,
-      "amount_clp": 3299359456448.0,
+      "providers": 9401,
+      "amount_clp": 3333482863979.0,
       "audited_bodies": [
         {
           "audited_name": "Servicio de Salud de Antofagasta",
@@ -40,7 +40,7 @@
       "ministry_name": "MINISTERIO DEL TRABAJO Y PREVISION SOCIAL",
       "programs": 1,
       "providers": 0,
-      "amount_clp": 83539661957023.0,
+      "amount_clp": 84530462414513.0,
       "audited_bodies": [
         {
           "audited_name": "INSTITUTO DE PREVISIÓN SOCIAL",
@@ -83,8 +83,8 @@
       "service_name": "COMISIÓN NACIONAL DE RIEGO",
       "ministry_name": "MINISTERIO DE AGRICULTURA",
       "programs": 1,
-      "providers": 1109,
-      "amount_clp": 124006413437.0,
+      "providers": 1115,
+      "amount_clp": 125073640548.0,
       "audited_bodies": [
         {
           "audited_name": "Comisión Nacional de Riego",
@@ -105,8 +105,8 @@
       "service_name": "INSTITUTO DE DESARROLLO AGROPECUARIO",
       "ministry_name": "MINISTERIO DE AGRICULTURA",
       "programs": 19,
-      "providers": 9182,
-      "amount_clp": 2356690079331.0,
+      "providers": 9209,
+      "amount_clp": 2375041188637.0,
       "audited_bodies": [
         {
           "audited_name": "Dirección Regional Metropolitana del INDAP",
@@ -127,8 +127,8 @@
       "service_name": "CORPORACION NACIONAL FORESTAL",
       "ministry_name": "MINISTERIO DE AGRICULTURA",
       "programs": 54,
-      "providers": 19921,
-      "amount_clp": 1716389636757.0,
+      "providers": 20016,
+      "amount_clp": 1732193623216.0,
       "audited_bodies": [
         {
           "audited_name": "Corporación Nacional Forestal",
@@ -150,7 +150,7 @@
       "ministry_name": "MINISTERIO DE DESARROLLO SOCIAL",
       "programs": 1,
       "providers": 3739,
-      "amount_clp": 86758211028.0,
+      "amount_clp": 87026473423.0,
       "audited_bodies": [
         {
           "audited_name": "INSTITUTO NACIONAL DE LA JUVENTUD DE VALPARAÍSO",
@@ -171,8 +171,8 @@
       "service_name": "SERVICIO LOCAL DE EDUCACIÓN AYSÉN",
       "ministry_name": "MINISTERIO DE EDUCACION",
       "programs": 1,
-      "providers": 1012,
-      "amount_clp": 192458013941.0,
+      "providers": 1025,
+      "amount_clp": 198650476422.0,
       "audited_bodies": [
         {
           "audited_name": "SERVICIO LOCAL DE EDUCACIÓN PÚBLICA DE AYSÉN",

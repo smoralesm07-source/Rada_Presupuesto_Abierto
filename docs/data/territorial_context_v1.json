@@ -1,6 +1,6 @@
 {
   "schema": "PRESUPUESTO_TERRITORIAL_CONTEXT_V1",
-  "generated_at": "2026-09-23T02:42:02+00:00",
+  "generated_at": "2026-10-10T19:09:01+00:00",
   "source": "RADAR_PRESUPUESTO",
   "grain": [
     "REGION",
@@ -9,275 +9,275 @@
   "regions": [
     {
       "region": "13",
-      "transactions": 17455451,
-      "amount_clp": 262483258185134.0,
+      "transactions": 17587638,
+      "amount_clp": 266674425490688.0,
       "organizations": 423,
-      "providers": 333176,
-      "anomaly_signals": 191675,
-      "p1_signals": 69519,
-      "high_severity_signals": 124440,
-      "avg_investigation_priority": 62.405,
-      "cgr_linked_signals": 4044,
+      "providers": 333601,
+      "anomaly_signals": 192461,
+      "p1_signals": 69698,
+      "high_severity_signals": 124837,
+      "avg_investigation_priority": 62.393,
+      "cgr_linked_signals": 4058,
       "signal_type_count": 7,
-      "p1_per_100k_transactions": 398.2653,
-      "signals_per_100k_transactions": 1098.0811,
-      "amount_per_transaction": 15037323.19
+      "p1_per_100k_transactions": 396.2897,
+      "signals_per_100k_transactions": 1094.297,
+      "amount_per_transaction": 15162606.0
     },
     {
       "region": "UNKNOWN",
-      "transactions": 2966732,
-      "amount_clp": 159945745738566.0,
-      "organizations": 671,
-      "providers": 77249,
-      "anomaly_signals": 36896,
-      "p1_signals": 8608,
-      "high_severity_signals": 15495,
-      "avg_investigation_priority": 59.447,
-      "cgr_linked_signals": 9143,
+      "transactions": 2997922,
+      "amount_clp": 160207729973924.0,
+      "organizations": 673,
+      "providers": 77373,
+      "anomaly_signals": 37187,
+      "p1_signals": 8738,
+      "high_severity_signals": 15617,
+      "avg_investigation_priority": 59.495,
+      "cgr_linked_signals": 9147,
       "signal_type_count": 10,
-      "p1_per_100k_transactions": 290.1509,
-      "signals_per_100k_transactions": 1243.658,
-      "amount_per_transaction": 53913109.02
+      "p1_per_100k_transactions": 291.4686,
+      "signals_per_100k_transactions": 1240.4259,
+      "amount_per_transaction": 53439592.48
     },
     {
       "region": "8",
-      "transactions": 4627475,
-      "amount_clp": 24442615617714.0,
+      "transactions": 4667885,
+      "amount_clp": 24697351691710.0,
       "organizations": 110,
-      "providers": 63747,
-      "anomaly_signals": 35692,
-      "p1_signals": 13099,
-      "high_severity_signals": 22222,
-      "avg_investigation_priority": 62.812,
-      "cgr_linked_signals": 2012,
+      "providers": 63853,
+      "anomaly_signals": 35874,
+      "p1_signals": 13145,
+      "high_severity_signals": 22337,
+      "avg_investigation_priority": 62.807,
+      "cgr_linked_signals": 2020,
       "signal_type_count": 7,
-      "p1_per_100k_transactions": 283.0701,
-      "signals_per_100k_transactions": 771.3062,
-      "amount_per_transaction": 5282063.25
+      "p1_per_100k_transactions": 281.6051,
+      "signals_per_100k_transactions": 768.5279,
+      "amount_per_transaction": 5290908.34
     },
     {
       "region": "5",
-      "transactions": 4910525,
-      "amount_clp": 23950476965513.0,
+      "transactions": 4954628,
+      "amount_clp": 24223504492961.0,
       "organizations": 140,
-      "providers": 73698,
-      "anomaly_signals": 40555,
-      "p1_signals": 14859,
-      "high_severity_signals": 24494,
-      "avg_investigation_priority": 62.673,
-      "cgr_linked_signals": 1480,
+      "providers": 73890,
+      "anomaly_signals": 40816,
+      "p1_signals": 14913,
+      "high_severity_signals": 24594,
+      "avg_investigation_priority": 62.648,
+      "cgr_linked_signals": 1486,
       "signal_type_count": 7,
-      "p1_per_100k_transactions": 302.5949,
-      "signals_per_100k_transactions": 825.8791,
-      "amount_per_transaction": 4877376.04
+      "p1_per_100k_transactions": 300.9913,
+      "signals_per_100k_transactions": 823.7954,
+      "amount_per_transaction": 4889066.24
     },
     {
       "region": "9",
-      "transactions": 4893721,
-      "amount_clp": 18647285513163.0,
+      "transactions": 4938561,
+      "amount_clp": 18836431580476.0,
       "organizations": 112,
-      "providers": 67079,
-      "anomaly_signals": 34467,
-      "p1_signals": 11961,
-      "high_severity_signals": 21283,
-      "avg_investigation_priority": 62.298,
-      "cgr_linked_signals": 1700,
+      "providers": 67195,
+      "anomaly_signals": 34567,
+      "p1_signals": 11984,
+      "high_severity_signals": 21334,
+      "avg_investigation_priority": 62.282,
+      "cgr_linked_signals": 1706,
       "signal_type_count": 6,
-      "p1_per_100k_transactions": 244.4152,
-      "signals_per_100k_transactions": 704.3107,
-      "amount_per_transaction": 3810451.29
+      "p1_per_100k_transactions": 242.6618,
+      "signals_per_100k_transactions": 699.9407,
+      "amount_per_transaction": 3814153.88
     },
     {
       "region": "7",
-      "transactions": 3721394,
-      "amount_clp": 17295557589979.0,
+      "transactions": 3747513,
+      "amount_clp": 17459603020972.0,
       "organizations": 102,
-      "providers": 46157,
-      "anomaly_signals": 43095,
-      "p1_signals": 11936,
-      "high_severity_signals": 30417,
-      "avg_investigation_priority": 60.022,
-      "cgr_linked_signals": 1949,
+      "providers": 46280,
+      "anomaly_signals": 43249,
+      "p1_signals": 11978,
+      "high_severity_signals": 30499,
+      "avg_investigation_priority": 60.025,
+      "cgr_linked_signals": 1959,
       "signal_type_count": 7,
-      "p1_per_100k_transactions": 320.74,
-      "signals_per_100k_transactions": 1158.0338,
-      "amount_per_transaction": 4647601.84
+      "p1_per_100k_transactions": 319.6253,
+      "signals_per_100k_transactions": 1154.072,
+      "amount_per_transaction": 4658983.98
     },
     {
       "region": "10",
-      "transactions": 3574758,
-      "amount_clp": 15163898541212.0,
+      "transactions": 3606770,
+      "amount_clp": 15317714346460.0,
       "organizations": 95,
-      "providers": 49228,
-      "anomaly_signals": 35568,
-      "p1_signals": 11891,
-      "high_severity_signals": 24475,
-      "avg_investigation_priority": 61.72,
-      "cgr_linked_signals": 3944,
+      "providers": 49355,
+      "anomaly_signals": 35697,
+      "p1_signals": 11864,
+      "high_severity_signals": 24540,
+      "avg_investigation_priority": 61.696,
+      "cgr_linked_signals": 3964,
       "signal_type_count": 6,
-      "p1_per_100k_transactions": 332.6379,
-      "signals_per_100k_transactions": 994.9764,
-      "amount_per_transaction": 4241937.09
+      "p1_per_100k_transactions": 328.937,
+      "signals_per_100k_transactions": 989.7221,
+      "amount_per_transaction": 4246934.06
     },
     {
       "region": "6",
-      "transactions": 2705228,
-      "amount_clp": 11440835398162.0,
+      "transactions": 2728800,
+      "amount_clp": 11550836018483.0,
       "organizations": 76,
-      "providers": 40824,
-      "anomaly_signals": 21570,
-      "p1_signals": 7981,
-      "high_severity_signals": 13574,
-      "avg_investigation_priority": 62.699,
-      "cgr_linked_signals": 909,
+      "providers": 40918,
+      "anomaly_signals": 21683,
+      "p1_signals": 8016,
+      "high_severity_signals": 13637,
+      "avg_investigation_priority": 62.687,
+      "cgr_linked_signals": 920,
       "signal_type_count": 7,
-      "p1_per_100k_transactions": 295.0213,
-      "signals_per_100k_transactions": 797.345,
-      "amount_per_transaction": 4229157.54
+      "p1_per_100k_transactions": 293.7555,
+      "signals_per_100k_transactions": 794.5984,
+      "amount_per_transaction": 4232936.1
     },
     {
       "region": "4",
-      "transactions": 2511053,
-      "amount_clp": 10651339386058.0,
+      "transactions": 2532883,
+      "amount_clp": 10771419654431.0,
       "organizations": 72,
-      "providers": 36188,
-      "anomaly_signals": 21154,
-      "p1_signals": 6963,
-      "high_severity_signals": 13464,
-      "avg_investigation_priority": 61.342,
+      "providers": 36283,
+      "anomaly_signals": 21243,
+      "p1_signals": 6991,
+      "high_severity_signals": 13518,
+      "avg_investigation_priority": 61.356,
       "cgr_linked_signals": 1150,
       "signal_type_count": 7,
-      "p1_per_100k_transactions": 277.294,
-      "signals_per_100k_transactions": 842.4354,
-      "amount_per_transaction": 4241781.99
+      "p1_per_100k_transactions": 276.0096,
+      "signals_per_100k_transactions": 838.6886,
+      "amount_per_transaction": 4252632.14
     },
     {
       "region": "2",
-      "transactions": 1411586,
-      "amount_clp": 7766420106619.0,
+      "transactions": 1421841,
+      "amount_clp": 7844372246709.0,
       "organizations": 72,
-      "providers": 23882,
-      "anomaly_signals": 12412,
-      "p1_signals": 4559,
-      "high_severity_signals": 7459,
-      "avg_investigation_priority": 63.554,
-      "cgr_linked_signals": 5002,
+      "providers": 23949,
+      "anomaly_signals": 12460,
+      "p1_signals": 4568,
+      "high_severity_signals": 7467,
+      "avg_investigation_priority": 63.535,
+      "cgr_linked_signals": 5027,
       "signal_type_count": 7,
-      "p1_per_100k_transactions": 322.97,
-      "signals_per_100k_transactions": 879.2946,
-      "amount_per_transaction": 5501910.69
+      "p1_per_100k_transactions": 321.2736,
+      "signals_per_100k_transactions": 876.3286,
+      "amount_per_transaction": 5517053.06
     },
     {
       "region": "14",
-      "transactions": 1840038,
-      "amount_clp": 6480589187243.0,
+      "transactions": 1855058,
+      "amount_clp": 6537304620183.0,
       "organizations": 68,
-      "providers": 27126,
-      "anomaly_signals": 16744,
-      "p1_signals": 5089,
-      "high_severity_signals": 10697,
-      "avg_investigation_priority": 59.988,
-      "cgr_linked_signals": 1179,
+      "providers": 27216,
+      "anomaly_signals": 16812,
+      "p1_signals": 5091,
+      "high_severity_signals": 10732,
+      "avg_investigation_priority": 59.967,
+      "cgr_linked_signals": 1185,
       "signal_type_count": 6,
-      "p1_per_100k_transactions": 276.5704,
-      "signals_per_100k_transactions": 909.9812,
-      "amount_per_transaction": 3521986.6
+      "p1_per_100k_transactions": 274.4389,
+      "signals_per_100k_transactions": 906.2789,
+      "amount_per_transaction": 3524043.25
     },
     {
       "region": "1",
-      "transactions": 1075376,
-      "amount_clp": 5862796966033.0,
+      "transactions": 1083977,
+      "amount_clp": 5922756586012.0,
       "organizations": 63,
-      "providers": 18497,
-      "anomaly_signals": 13970,
-      "p1_signals": 2796,
-      "high_severity_signals": 9679,
-      "avg_investigation_priority": 59.124,
-      "cgr_linked_signals": 233,
+      "providers": 18559,
+      "anomaly_signals": 13993,
+      "p1_signals": 2802,
+      "high_severity_signals": 9696,
+      "avg_investigation_priority": 59.121,
+      "cgr_linked_signals": 234,
       "signal_type_count": 6,
-      "p1_per_100k_transactions": 260.0021,
-      "signals_per_100k_transactions": 1299.0805,
-      "amount_per_transaction": 5451857.74
+      "p1_per_100k_transactions": 258.4926,
+      "signals_per_100k_transactions": 1290.8945,
+      "amount_per_transaction": 5463913.52
     },
     {
       "region": "3",
-      "transactions": 1166626,
-      "amount_clp": 4506216977052.0,
+      "transactions": 1175301,
+      "amount_clp": 4550659191967.0,
       "organizations": 66,
-      "providers": 22926,
-      "anomaly_signals": 12980,
-      "p1_signals": 3502,
-      "high_severity_signals": 7776,
-      "avg_investigation_priority": 59.53,
-      "cgr_linked_signals": 556,
+      "providers": 22990,
+      "anomaly_signals": 13035,
+      "p1_signals": 3509,
+      "high_severity_signals": 7798,
+      "avg_investigation_priority": 59.509,
+      "cgr_linked_signals": 558,
       "signal_type_count": 6,
-      "p1_per_100k_transactions": 300.1819,
-      "signals_per_100k_transactions": 1112.6102,
-      "amount_per_transaction": 3862606.33
+      "p1_per_100k_transactions": 298.5618,
+      "signals_per_100k_transactions": 1109.0776,
+      "amount_per_transaction": 3871909.57
     },
     {
       "region": "12",
-      "transactions": 1100445,
-      "amount_clp": 4292635123179.0,
+      "transactions": 1108748,
+      "amount_clp": 4330544437612.0,
       "organizations": 67,
-      "providers": 16404,
-      "anomaly_signals": 15662,
-      "p1_signals": 5291,
-      "high_severity_signals": 11389,
-      "avg_investigation_priority": 63.642,
-      "cgr_linked_signals": 662,
+      "providers": 16467,
+      "anomaly_signals": 15699,
+      "p1_signals": 5295,
+      "high_severity_signals": 11403,
+      "avg_investigation_priority": 63.64,
+      "cgr_linked_signals": 666,
       "signal_type_count": 6,
-      "p1_per_100k_transactions": 480.8055,
-      "signals_per_100k_transactions": 1423.2424,
-      "amount_per_transaction": 3900817.51
+      "p1_per_100k_transactions": 477.5657,
+      "signals_per_100k_transactions": 1415.9214,
+      "amount_per_transaction": 3905796.84
     },
     {
       "region": "15",
-      "transactions": 1079818,
-      "amount_clp": 4172671901215.0,
+      "transactions": 1088729,
+      "amount_clp": 4213339972793.0,
       "organizations": 56,
-      "providers": 17965,
-      "anomaly_signals": 11756,
-      "p1_signals": 3723,
-      "high_severity_signals": 7546,
-      "avg_investigation_priority": 61.338,
-      "cgr_linked_signals": 341,
+      "providers": 18011,
+      "anomaly_signals": 11804,
+      "p1_signals": 3730,
+      "high_severity_signals": 7572,
+      "avg_investigation_priority": 61.333,
+      "cgr_linked_signals": 342,
       "signal_type_count": 7,
-      "p1_per_100k_transactions": 344.7803,
-      "signals_per_100k_transactions": 1088.702,
-      "amount_per_transaction": 3864236.29
+      "p1_per_100k_transactions": 342.6013,
+      "signals_per_100k_transactions": 1084.2,
+      "amount_per_transaction": 3869962.11
     },
     {
       "region": "11",
-      "transactions": 1175215,
-      "amount_clp": 3758304466818.0,
+      "transactions": 1186091,
+      "amount_clp": 3795039363359.0,
       "organizations": 73,
-      "providers": 21496,
-      "anomaly_signals": 14011,
-      "p1_signals": 3664,
-      "high_severity_signals": 9141,
-      "avg_investigation_priority": 59.765,
-      "cgr_linked_signals": 981,
+      "providers": 21585,
+      "anomaly_signals": 14066,
+      "p1_signals": 3673,
+      "high_severity_signals": 9170,
+      "avg_investigation_priority": 59.771,
+      "cgr_linked_signals": 984,
       "signal_type_count": 6,
-      "p1_per_100k_transactions": 311.7727,
-      "signals_per_100k_transactions": 1192.2074,
-      "amount_per_transaction": 3197971.83
+      "p1_per_100k_transactions": 309.6727,
+      "signals_per_100k_transactions": 1185.9124,
+      "amount_per_transaction": 3199619.05
     },
     {
       "region": "16",
-      "transactions": 477086,
-      "amount_clp": 2850162066048.0,
+      "transactions": 492452,
+      "amount_clp": 2950280630331.0,
       "organizations": 56,
-      "providers": 8982,
-      "anomaly_signals": 2100,
-      "p1_signals": 494,
-      "high_severity_signals": 764,
-      "avg_investigation_priority": 58.565,
-      "cgr_linked_signals": 128,
+      "providers": 9067,
+      "anomaly_signals": 2171,
+      "p1_signals": 492,
+      "high_severity_signals": 786,
+      "avg_investigation_priority": 58.503,
+      "cgr_linked_signals": 133,
       "signal_type_count": 5,
-      "p1_per_100k_transactions": 103.5453,
-      "signals_per_100k_transactions": 440.1722,
-      "amount_per_transaction": 5974105.44
+      "p1_per_100k_transactions": 99.9082,
+      "signals_per_100k_transactions": 440.8551,
+      "amount_per_transaction": 5991001.42
     }
   ],
   "geographic_units": [
@@ -347,6 +347,19 @@
       "p1_per_100k_transactions": 639.8862
     },
     {
+      "region": "13",
+      "geographic_unit_code": "99",
+      "geographic_unit_name": "Nacional",
+      "transactions": 15990,
+      "amount_clp": 52110994217.0,
+      "organizations": 1,
+      "providers": 942,
+      "anomaly_signals": 132,
+      "p1_signals": 14,
+      "avg_investigation_priority": 54.939,
+      "p1_per_100k_transactions": 87.5547
+    },
+    {
       "region": "4",
       "geographic_unit_code": "01",
       "geographic_unit_name": "Regional",
@@ -358,19 +371,6 @@
       "p1_signals": 17,
       "avg_investigation_priority": 63.766,
       "p1_per_100k_transactions": 262.1838
-    },
-    {
-      "region": "13",
-      "geographic_unit_code": "99",
-      "geographic_unit_name": "Nacional",
-      "transactions": 15641,
-      "amount_clp": 51079426548.0,
-      "organizations": 1,
-      "providers": 940,
-      "anomaly_signals": 122,
-      "p1_signals": 14,
-      "avg_investigation_priority": 55.459,
-      "p1_per_100k_transactions": 89.5083
     },
     {
       "region": "11",
@@ -427,6 +427,19 @@
     {
       "region": "5",
       "geographic_unit_code": "00",
+      "geographic_unit_name": "Institucional",
+      "transactions": 8940,
+      "amount_clp": 34944891991.0,
+      "organizations": 1,
+      "providers": 2400,
+      "anomaly_signals": 15,
+      "p1_signals": 5,
+      "avg_investigation_priority": 62.0,
+      "p1_per_100k_transactions": 55.9284
+    },
+    {
+      "region": "5",
+      "geographic_unit_code": "00",
       "geographic_unit_name": "Sin Aplicación",
       "transactions": 6774,
       "amount_clp": 34712593702.0,
@@ -436,19 +449,6 @@
       "p1_signals": 3,
       "avg_investigation_priority": 53.648,
       "p1_per_100k_transactions": 44.287
-    },
-    {
-      "region": "5",
-      "geographic_unit_code": "00",
-      "geographic_unit_name": "Institucional",
-      "transactions": 8688,
-      "amount_clp": 34378717850.0,
-      "organizations": 1,
-      "providers": 2394,
-      "anomaly_signals": 16,
-      "p1_signals": 5,
-      "avg_investigation_priority": 61.5,
-      "p1_per_100k_transactions": 57.5506
     },
     {
       "region": "15",
@@ -828,6 +828,19 @@
       "p1_per_100k_transactions": 0.0
     },
     {
+      "region": "13",
+      "geographic_unit_code": "13",
+      "geographic_unit_name": "130102-Cerrillos",
+      "transactions": 20,
+      "amount_clp": 10796724222.0,
+      "organizations": 1,
+      "providers": 8,
+      "anomaly_signals": 0,
+      "p1_signals": 0,
+      "avg_investigation_priority": null,
+      "p1_per_100k_transactions": 0.0
+    },
+    {
       "region": "UNKNOWN",
       "geographic_unit_code": "18",
       "geographic_unit_name": "Todas las Regiones",
@@ -842,16 +855,16 @@
     },
     {
       "region": "13",
-      "geographic_unit_code": "13",
-      "geographic_unit_name": "130102-Cerrillos",
-      "transactions": 19,
-      "amount_clp": 9830426622.0,
+      "geographic_unit_code": "06",
+      "geographic_unit_name": "060101-Rancagua",
+      "transactions": 1025,
+      "amount_clp": 9555926067.0,
       "organizations": 1,
-      "providers": 8,
-      "anomaly_signals": 0,
-      "p1_signals": 0,
-      "avg_investigation_priority": null,
-      "p1_per_100k_transactions": 0.0
+      "providers": 74,
+      "anomaly_signals": 10,
+      "p1_signals": 6,
+      "avg_investigation_priority": 67.2,
+      "p1_per_100k_transactions": 585.3659
     },
     {
       "region": "6",
@@ -904,19 +917,6 @@
       "p1_signals": 1,
       "avg_investigation_priority": 71.667,
       "p1_per_100k_transactions": 1960.7843
-    },
-    {
-      "region": "13",
-      "geographic_unit_code": "06",
-      "geographic_unit_name": "060101-Rancagua",
-      "transactions": 991,
-      "amount_clp": 8785407354.0,
-      "organizations": 1,
-      "providers": 70,
-      "anomaly_signals": 9,
-      "p1_signals": 5,
-      "avg_investigation_priority": 65.889,
-      "p1_per_100k_transactions": 504.5409
     },
     {
       "region": "3",
@@ -997,6 +997,19 @@
       "p1_per_100k_transactions": 0.0
     },
     {
+      "region": "13",
+      "geographic_unit_code": "13",
+      "geographic_unit_name": "130404-Paine",
+      "transactions": 87,
+      "amount_clp": 8033185475.0,
+      "organizations": 1,
+      "providers": 14,
+      "anomaly_signals": 0,
+      "p1_signals": 0,
+      "avg_investigation_priority": null,
+      "p1_per_100k_transactions": 0.0
+    },
+    {
       "region": "9",
       "geographic_unit_code": "29",
       "geographic_unit_name": "Lonquimay",
@@ -1034,19 +1047,6 @@
       "p1_signals": 1,
       "avg_investigation_priority": 62.0,
       "p1_per_100k_transactions": 775.1938
-    },
-    {
-      "region": "13",
-      "geographic_unit_code": "13",
-      "geographic_unit_name": "130404-Paine",
-      "transactions": 82,
-      "amount_clp": 7670327075.0,
-      "organizations": 1,
-      "providers": 14,
-      "anomaly_signals": 0,
-      "p1_signals": 0,
-      "avg_investigation_priority": null,
-      "p1_per_100k_transactions": 0.0
     },
     {
       "region": "14",
@@ -1179,6 +1179,19 @@
       "p1_per_100k_transactions": 0.0
     },
     {
+      "region": "13",
+      "geographic_unit_code": "13",
+      "geographic_unit_name": "130101-Santiago",
+      "transactions": 2969,
+      "amount_clp": 6793007419.0,
+      "organizations": 1,
+      "providers": 101,
+      "anomaly_signals": 24,
+      "p1_signals": 7,
+      "avg_investigation_priority": 59.0,
+      "p1_per_100k_transactions": 235.7696
+    },
+    {
       "region": "14",
       "geographic_unit_code": "07",
       "geographic_unit_name": "Los Lagos",
@@ -1203,19 +1216,6 @@
       "p1_signals": 0,
       "avg_investigation_priority": null,
       "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "13",
-      "geographic_unit_code": "13",
-      "geographic_unit_name": "130101-Santiago",
-      "transactions": 2861,
-      "amount_clp": 6598802912.0,
-      "organizations": 1,
-      "providers": 96,
-      "anomaly_signals": 22,
-      "p1_signals": 6,
-      "avg_investigation_priority": 58.0,
-      "p1_per_100k_transactions": 209.7169
     },
     {
       "region": "10",
@@ -1335,6 +1335,19 @@
       "p1_per_100k_transactions": 0.0
     },
     {
+      "region": "13",
+      "geographic_unit_code": "13",
+      "geographic_unit_name": "Lampa",
+      "transactions": 34,
+      "amount_clp": 5486347252.0,
+      "organizations": 1,
+      "providers": 14,
+      "anomaly_signals": 1,
+      "p1_signals": 1,
+      "avg_investigation_priority": 88.0,
+      "p1_per_100k_transactions": 2941.1765
+    },
+    {
       "region": "9",
       "geographic_unit_code": "23",
       "geographic_unit_name": "Villarrica",
@@ -1424,19 +1437,6 @@
       "p1_signals": 0,
       "avg_investigation_priority": 51.0,
       "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "13",
-      "geographic_unit_code": "13",
-      "geographic_unit_name": "Lampa",
-      "transactions": 33,
-      "amount_clp": 5023329652.0,
-      "organizations": 1,
-      "providers": 14,
-      "anomaly_signals": 1,
-      "p1_signals": 1,
-      "avg_investigation_priority": 88.0,
-      "p1_per_100k_transactions": 3030.303
     },
     {
       "region": "4",
@@ -1699,6 +1699,19 @@
       "p1_per_100k_transactions": 0.0
     },
     {
+      "region": "13",
+      "geographic_unit_code": "08",
+      "geographic_unit_name": "080101-Concepción",
+      "transactions": 3635,
+      "amount_clp": 4001519946.0,
+      "organizations": 1,
+      "providers": 86,
+      "anomaly_signals": 28,
+      "p1_signals": 7,
+      "avg_investigation_priority": 58.786,
+      "p1_per_100k_transactions": 192.5722
+    },
+    {
       "region": "14",
       "geographic_unit_code": "14",
       "geographic_unit_name": "Lago Ranco",
@@ -1736,19 +1749,6 @@
       "p1_signals": 0,
       "avg_investigation_priority": null,
       "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "13",
-      "geographic_unit_code": "08",
-      "geographic_unit_name": "080101-Concepción",
-      "transactions": 3549,
-      "amount_clp": 3887349456.0,
-      "organizations": 1,
-      "providers": 81,
-      "anomaly_signals": 28,
-      "p1_signals": 7,
-      "avg_investigation_priority": 59.0,
-      "p1_per_100k_transactions": 197.2387
     },
     {
       "region": "8",
@@ -1829,6 +1829,19 @@
       "p1_per_100k_transactions": 1538.4615
     },
     {
+      "region": "13",
+      "geographic_unit_code": "13",
+      "geographic_unit_name": "130113-La Reina",
+      "transactions": 22,
+      "amount_clp": 3786844334.0,
+      "organizations": 1,
+      "providers": 6,
+      "anomaly_signals": 0,
+      "p1_signals": 0,
+      "avg_investigation_priority": null,
+      "p1_per_100k_transactions": 0.0
+    },
+    {
       "region": "9",
       "geographic_unit_code": "06",
       "geographic_unit_name": "Cunco",
@@ -1894,6 +1907,19 @@
       "p1_per_100k_transactions": 0.0
     },
     {
+      "region": "13",
+      "geographic_unit_code": "07",
+      "geographic_unit_name": "070101-Talca",
+      "transactions": 1702,
+      "amount_clp": 3596016808.0,
+      "organizations": 1,
+      "providers": 90,
+      "anomaly_signals": 10,
+      "p1_signals": 4,
+      "avg_investigation_priority": 59.4,
+      "p1_per_100k_transactions": 235.0176
+    },
+    {
       "region": "UNKNOWN",
       "geographic_unit_code": "19",
       "geographic_unit_name": "Central",
@@ -1931,19 +1957,6 @@
       "p1_signals": 0,
       "avg_investigation_priority": null,
       "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "13",
-      "geographic_unit_code": "07",
-      "geographic_unit_name": "070101-Talca",
-      "transactions": 1636,
-      "amount_clp": 3371336751.0,
-      "organizations": 1,
-      "providers": 88,
-      "anomaly_signals": 11,
-      "p1_signals": 5,
-      "avg_investigation_priority": 60.909,
-      "p1_per_100k_transactions": 305.6235
     },
     {
       "region": "9",
@@ -2089,19 +2102,6 @@
       "p1_per_100k_transactions": 0.0
     },
     {
-      "region": "13",
-      "geographic_unit_code": "13",
-      "geographic_unit_name": "130113-La Reina",
-      "transactions": 20,
-      "amount_clp": 3011793134.0,
-      "organizations": 1,
-      "providers": 6,
-      "anomaly_signals": 0,
-      "p1_signals": 0,
-      "avg_investigation_priority": null,
-      "p1_per_100k_transactions": 0.0
-    },
-    {
       "region": "8",
       "geographic_unit_code": "22",
       "geographic_unit_name": "Lebu",
@@ -2180,6 +2180,19 @@
       "p1_per_100k_transactions": 0.0
     },
     {
+      "region": "13",
+      "geographic_unit_code": "09",
+      "geographic_unit_name": "090101-Temuco",
+      "transactions": 3206,
+      "amount_clp": 2833683299.0,
+      "organizations": 1,
+      "providers": 89,
+      "anomaly_signals": 16,
+      "p1_signals": 3,
+      "avg_investigation_priority": 54.0,
+      "p1_per_100k_transactions": 93.5745
+    },
+    {
       "region": "14",
       "geographic_unit_code": "13",
       "geographic_unit_name": "Futrono",
@@ -2191,19 +2204,6 @@
       "p1_signals": 0,
       "avg_investigation_priority": null,
       "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "13",
-      "geographic_unit_code": "09",
-      "geographic_unit_name": "090101-Temuco",
-      "transactions": 3158,
-      "amount_clp": 2745131654.0,
-      "organizations": 1,
-      "providers": 86,
-      "anomaly_signals": 16,
-      "p1_signals": 3,
-      "avg_investigation_priority": 54.0,
-      "p1_per_100k_transactions": 94.9968
     },
     {
       "region": "5",
@@ -2271,6 +2271,19 @@
       "p1_per_100k_transactions": 0.0
     },
     {
+      "region": "13",
+      "geographic_unit_code": "00",
+      "geographic_unit_name": "Sin Aplicación",
+      "transactions": 1040,
+      "amount_clp": 2528809730.0,
+      "organizations": 1,
+      "providers": 122,
+      "anomaly_signals": 6,
+      "p1_signals": 2,
+      "avg_investigation_priority": 62.833,
+      "p1_per_100k_transactions": 192.3077
+    },
+    {
       "region": "10",
       "geographic_unit_code": "03",
       "geographic_unit_name": "Provincia de Chiloé",
@@ -2282,19 +2295,6 @@
       "p1_signals": 0,
       "avg_investigation_priority": null,
       "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "13",
-      "geographic_unit_code": "00",
-      "geographic_unit_name": "Sin Aplicación",
-      "transactions": 943,
-      "amount_clp": 2500996322.0,
-      "organizations": 1,
-      "providers": 120,
-      "anomaly_signals": 6,
-      "p1_signals": 2,
-      "avg_investigation_priority": 62.0,
-      "p1_per_100k_transactions": 212.0891
     },
     {
       "region": "4",
@@ -2343,6 +2343,19 @@
       "amount_clp": 2339789427.0,
       "organizations": 1,
       "providers": 6,
+      "anomaly_signals": 0,
+      "p1_signals": 0,
+      "avg_investigation_priority": null,
+      "p1_per_100k_transactions": 0.0
+    },
+    {
+      "region": "13",
+      "geographic_unit_code": "05",
+      "geographic_unit_name": "050107-Viña Del Mar",
+      "transactions": 51,
+      "amount_clp": 2334722732.0,
+      "organizations": 1,
+      "providers": 30,
       "anomaly_signals": 0,
       "p1_signals": 0,
       "avg_investigation_priority": null,
@@ -2440,6 +2453,19 @@
       "p1_per_100k_transactions": 0.0
     },
     {
+      "region": "13",
+      "geographic_unit_code": "02",
+      "geographic_unit_name": "020101-Antofagasta",
+      "transactions": 452,
+      "amount_clp": 2204333088.0,
+      "organizations": 1,
+      "providers": 69,
+      "anomaly_signals": 16,
+      "p1_signals": 8,
+      "avg_investigation_priority": 65.188,
+      "p1_per_100k_transactions": 1769.9115
+    },
+    {
       "region": "5",
       "geographic_unit_code": "38",
       "geographic_unit_name": "Catemu",
@@ -2492,6 +2518,32 @@
       "p1_per_100k_transactions": 0.0
     },
     {
+      "region": "13",
+      "geographic_unit_code": "10",
+      "geographic_unit_name": "100101-Puerto Montt",
+      "transactions": 1119,
+      "amount_clp": 2125913641.0,
+      "organizations": 1,
+      "providers": 68,
+      "anomaly_signals": 16,
+      "p1_signals": 4,
+      "avg_investigation_priority": 61.125,
+      "p1_per_100k_transactions": 357.462
+    },
+    {
+      "region": "13",
+      "geographic_unit_code": "13",
+      "geographic_unit_name": "130503-Curacaví",
+      "transactions": 32,
+      "amount_clp": 2103469747.0,
+      "organizations": 1,
+      "providers": 5,
+      "anomaly_signals": 1,
+      "p1_signals": 1,
+      "avg_investigation_priority": 80.0,
+      "p1_per_100k_transactions": 3125.0
+    },
+    {
       "region": "5",
       "geographic_unit_code": "35",
       "geographic_unit_name": "El Tabo",
@@ -2503,19 +2555,6 @@
       "p1_signals": 0,
       "avg_investigation_priority": 45.0,
       "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "13",
-      "geographic_unit_code": "02",
-      "geographic_unit_name": "020101-Antofagasta",
-      "transactions": 437,
-      "amount_clp": 2069902576.0,
-      "organizations": 1,
-      "providers": 67,
-      "anomaly_signals": 12,
-      "p1_signals": 6,
-      "avg_investigation_priority": 65.083,
-      "p1_per_100k_transactions": 1372.9977
     },
     {
       "region": "6",
@@ -2544,19 +2583,6 @@
       "p1_per_100k_transactions": 0.0
     },
     {
-      "region": "13",
-      "geographic_unit_code": "10",
-      "geographic_unit_name": "100101-Puerto Montt",
-      "transactions": 1083,
-      "amount_clp": 2038714675.0,
-      "organizations": 1,
-      "providers": 65,
-      "anomaly_signals": 14,
-      "p1_signals": 3,
-      "avg_investigation_priority": 59.5,
-      "p1_per_100k_transactions": 277.0083
-    },
-    {
       "region": "14",
       "geographic_unit_code": "05",
       "geographic_unit_name": "Corral",
@@ -2583,19 +2609,6 @@
       "p1_per_100k_transactions": 0.0
     },
     {
-      "region": "13",
-      "geographic_unit_code": "13",
-      "geographic_unit_name": "130503-Curacaví",
-      "transactions": 30,
-      "amount_clp": 1977649747.0,
-      "organizations": 1,
-      "providers": 5,
-      "anomaly_signals": 1,
-      "p1_signals": 1,
-      "avg_investigation_priority": 80.0,
-      "p1_per_100k_transactions": 3333.3333
-    },
-    {
       "region": "9",
       "geographic_unit_code": "13",
       "geographic_unit_name": "Melipeuco",
@@ -2603,19 +2616,6 @@
       "amount_clp": 1973977935.0,
       "organizations": 1,
       "providers": 13,
-      "anomaly_signals": 0,
-      "p1_signals": 0,
-      "avg_investigation_priority": null,
-      "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "13",
-      "geographic_unit_code": "05",
-      "geographic_unit_name": "050107-Viña Del Mar",
-      "transactions": 50,
-      "amount_clp": 1962295532.0,
-      "organizations": 1,
-      "providers": 30,
       "anomaly_signals": 0,
       "p1_signals": 0,
       "avg_investigation_priority": null,
@@ -2633,6 +2633,32 @@
       "p1_signals": 0,
       "avg_investigation_priority": null,
       "p1_per_100k_transactions": 0.0
+    },
+    {
+      "region": "13",
+      "geographic_unit_code": "05",
+      "geographic_unit_name": "050101-Valparaíso",
+      "transactions": 1099,
+      "amount_clp": 1949909328.0,
+      "organizations": 1,
+      "providers": 92,
+      "anomaly_signals": 11,
+      "p1_signals": 5,
+      "avg_investigation_priority": 66.0,
+      "p1_per_100k_transactions": 454.9591
+    },
+    {
+      "region": "13",
+      "geographic_unit_code": "13",
+      "geographic_unit_name": "130402-Buin",
+      "transactions": 34,
+      "amount_clp": 1948395932.0,
+      "organizations": 1,
+      "providers": 10,
+      "anomaly_signals": 1,
+      "p1_signals": 1,
+      "avg_investigation_priority": 84.0,
+      "p1_per_100k_transactions": 2941.1765
     },
     {
       "region": "10",
@@ -2687,19 +2713,6 @@
       "p1_per_100k_transactions": 0.0
     },
     {
-      "region": "13",
-      "geographic_unit_code": "05",
-      "geographic_unit_name": "050101-Valparaíso",
-      "transactions": 1045,
-      "amount_clp": 1836725039.0,
-      "organizations": 1,
-      "providers": 87,
-      "anomaly_signals": 13,
-      "p1_signals": 5,
-      "avg_investigation_priority": 64.769,
-      "p1_per_100k_transactions": 478.4689
-    },
-    {
       "region": "8",
       "geographic_unit_code": "11",
       "geographic_unit_name": "Hualqui",
@@ -2715,15 +2728,15 @@
     {
       "region": "13",
       "geographic_unit_code": "13",
-      "geographic_unit_name": "130402-Buin",
-      "transactions": 33,
-      "amount_clp": 1797411932.0,
+      "geographic_unit_name": "130127-Recoleta",
+      "transactions": 41,
+      "amount_clp": 1803970344.0,
       "organizations": 1,
-      "providers": 10,
+      "providers": 12,
       "anomaly_signals": 1,
       "p1_signals": 1,
       "avg_investigation_priority": 84.0,
-      "p1_per_100k_transactions": 3030.303
+      "p1_per_100k_transactions": 2439.0244
     },
     {
       "region": "10",
@@ -2831,6 +2844,19 @@
     },
     {
       "region": "13",
+      "geographic_unit_code": "05",
+      "geographic_unit_name": "Limache",
+      "transactions": 38,
+      "amount_clp": 1635704645.0,
+      "organizations": 1,
+      "providers": 16,
+      "anomaly_signals": 0,
+      "p1_signals": 0,
+      "avg_investigation_priority": null,
+      "p1_per_100k_transactions": 0.0
+    },
+    {
+      "region": "13",
       "geographic_unit_code": "13",
       "geographic_unit_name": "130120-Ñuñoa",
       "transactions": 28,
@@ -2883,29 +2909,16 @@
     },
     {
       "region": "13",
-      "geographic_unit_code": "05",
-      "geographic_unit_name": "Limache",
-      "transactions": 37,
-      "amount_clp": 1499819045.0,
+      "geographic_unit_code": "04",
+      "geographic_unit_name": "040101-La Serena",
+      "transactions": 742,
+      "amount_clp": 1508551736.0,
       "organizations": 1,
-      "providers": 16,
-      "anomaly_signals": 0,
+      "providers": 74,
+      "anomaly_signals": 4,
       "p1_signals": 0,
-      "avg_investigation_priority": null,
+      "avg_investigation_priority": 59.0,
       "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "13",
-      "geographic_unit_code": "13",
-      "geographic_unit_name": "130127-Recoleta",
-      "transactions": 39,
-      "amount_clp": 1475160744.0,
-      "organizations": 1,
-      "providers": 12,
-      "anomaly_signals": 1,
-      "p1_signals": 1,
-      "avg_investigation_priority": 84.0,
-      "p1_per_100k_transactions": 2564.1026
     },
     {
       "region": "11",
@@ -2922,16 +2935,16 @@
     },
     {
       "region": "13",
-      "geographic_unit_code": "04",
-      "geographic_unit_name": "040101-La Serena",
-      "transactions": 733,
-      "amount_clp": 1460353272.0,
+      "geographic_unit_code": "13",
+      "geographic_unit_name": "130111-La Granja",
+      "transactions": 23,
+      "amount_clp": 1448475357.0,
       "organizations": 1,
-      "providers": 70,
-      "anomaly_signals": 4,
-      "p1_signals": 0,
-      "avg_investigation_priority": 59.0,
-      "p1_per_100k_transactions": 0.0
+      "providers": 9,
+      "anomaly_signals": 1,
+      "p1_signals": 1,
+      "avg_investigation_priority": 77.0,
+      "p1_per_100k_transactions": 4347.8261
     },
     {
       "region": "5",
@@ -2954,6 +2967,19 @@
       "amount_clp": 1437516904.0,
       "organizations": 1,
       "providers": 44,
+      "anomaly_signals": 0,
+      "p1_signals": 0,
+      "avg_investigation_priority": null,
+      "p1_per_100k_transactions": 0.0
+    },
+    {
+      "region": "13",
+      "geographic_unit_code": "13",
+      "geographic_unit_name": "130116-Lo Espejo",
+      "transactions": 35,
+      "amount_clp": 1436026135.0,
+      "organizations": 1,
+      "providers": 11,
       "anomaly_signals": 0,
       "p1_signals": 0,
       "avg_investigation_priority": null,
@@ -2993,19 +3019,6 @@
       "amount_clp": 1424604019.0,
       "organizations": 1,
       "providers": 40,
-      "anomaly_signals": 0,
-      "p1_signals": 0,
-      "avg_investigation_priority": null,
-      "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "13",
-      "geographic_unit_code": "13",
-      "geographic_unit_name": "130116-Lo Espejo",
-      "transactions": 34,
-      "amount_clp": 1420927735.0,
-      "organizations": 1,
-      "providers": 11,
       "anomaly_signals": 0,
       "p1_signals": 0,
       "avg_investigation_priority": null,
@@ -3077,6 +3090,19 @@
       "p1_per_100k_transactions": 0.0
     },
     {
+      "region": "13",
+      "geographic_unit_code": "16",
+      "geographic_unit_name": "160101-Chillán",
+      "transactions": 1112,
+      "amount_clp": 1343830494.0,
+      "organizations": 1,
+      "providers": 58,
+      "anomaly_signals": 11,
+      "p1_signals": 6,
+      "avg_investigation_priority": 67.636,
+      "p1_per_100k_transactions": 539.5683
+    },
+    {
       "region": "5",
       "geographic_unit_code": "13",
       "geographic_unit_name": "Puchuncaví",
@@ -3084,6 +3110,19 @@
       "amount_clp": 1332146893.0,
       "organizations": 1,
       "providers": 9,
+      "anomaly_signals": 0,
+      "p1_signals": 0,
+      "avg_investigation_priority": null,
+      "p1_per_100k_transactions": 0.0
+    },
+    {
+      "region": "13",
+      "geographic_unit_code": "05",
+      "geographic_unit_name": "050106-Quintero",
+      "transactions": 20,
+      "amount_clp": 1326674115.0,
+      "organizations": 1,
+      "providers": 8,
       "anomaly_signals": 0,
       "p1_signals": 0,
       "avg_investigation_priority": null,
@@ -3103,32 +3142,6 @@
       "p1_per_100k_transactions": 0.0
     },
     {
-      "region": "13",
-      "geographic_unit_code": "13",
-      "geographic_unit_name": "130111-La Granja",
-      "transactions": 22,
-      "amount_clp": 1312589757.0,
-      "organizations": 1,
-      "providers": 9,
-      "anomaly_signals": 1,
-      "p1_signals": 1,
-      "avg_investigation_priority": 77.0,
-      "p1_per_100k_transactions": 4545.4545
-    },
-    {
-      "region": "13",
-      "geographic_unit_code": "16",
-      "geographic_unit_name": "160101-Chillán",
-      "transactions": 1083,
-      "amount_clp": 1280230112.0,
-      "organizations": 1,
-      "providers": 55,
-      "anomaly_signals": 10,
-      "p1_signals": 6,
-      "avg_investigation_priority": 68.7,
-      "p1_per_100k_transactions": 554.0166
-    },
-    {
       "region": "5",
       "geographic_unit_code": "24",
       "geographic_unit_name": "Petorca",
@@ -3142,6 +3155,19 @@
       "p1_per_100k_transactions": 0.0
     },
     {
+      "region": "13",
+      "geographic_unit_code": "04",
+      "geographic_unit_name": "040102-Coquimbo",
+      "transactions": 150,
+      "amount_clp": 1245706062.0,
+      "organizations": 1,
+      "providers": 44,
+      "anomaly_signals": 3,
+      "p1_signals": 1,
+      "avg_investigation_priority": 66.333,
+      "p1_per_100k_transactions": 666.6667
+    },
+    {
       "region": "8",
       "geographic_unit_code": "10",
       "geographic_unit_name": "Hualpén",
@@ -3153,19 +3179,6 @@
       "p1_signals": 0,
       "avg_investigation_priority": null,
       "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "13",
-      "geographic_unit_code": "04",
-      "geographic_unit_name": "040102-Coquimbo",
-      "transactions": 130,
-      "amount_clp": 1230031062.0,
-      "organizations": 1,
-      "providers": 44,
-      "anomaly_signals": 3,
-      "p1_signals": 2,
-      "avg_investigation_priority": 67.667,
-      "p1_per_100k_transactions": 1538.4615
     },
     {
       "region": "5",
@@ -3191,19 +3204,6 @@
       "anomaly_signals": 1,
       "p1_signals": 0,
       "avg_investigation_priority": 54.0,
-      "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "13",
-      "geographic_unit_code": "05",
-      "geographic_unit_name": "050106-Quintero",
-      "transactions": 19,
-      "amount_clp": 1195821315.0,
-      "organizations": 1,
-      "providers": 8,
-      "anomaly_signals": 0,
-      "p1_signals": 0,
-      "avg_investigation_priority": null,
       "p1_per_100k_transactions": 0.0
     },
     {
@@ -3285,6 +3285,19 @@
       "p1_per_100k_transactions": 0.0
     },
     {
+      "region": "13",
+      "geographic_unit_code": "15",
+      "geographic_unit_name": "150101-Arica",
+      "transactions": 499,
+      "amount_clp": 1094037672.0,
+      "organizations": 1,
+      "providers": 101,
+      "anomaly_signals": 10,
+      "p1_signals": 5,
+      "avg_investigation_priority": 67.9,
+      "p1_per_100k_transactions": 1002.004
+    },
+    {
       "region": "5",
       "geographic_unit_code": "19",
       "geographic_unit_name": "Rinconada",
@@ -3298,19 +3311,6 @@
       "p1_per_100k_transactions": 0.0
     },
     {
-      "region": "13",
-      "geographic_unit_code": "15",
-      "geographic_unit_name": "150101-Arica",
-      "transactions": 476,
-      "amount_clp": 1074951422.0,
-      "organizations": 1,
-      "providers": 100,
-      "anomaly_signals": 12,
-      "p1_signals": 7,
-      "avg_investigation_priority": 69.167,
-      "p1_per_100k_transactions": 1470.5882
-    },
-    {
       "region": "5",
       "geographic_unit_code": "42",
       "geographic_unit_name": "Santa María",
@@ -3322,6 +3322,19 @@
       "p1_signals": 0,
       "avg_investigation_priority": 46.0,
       "p1_per_100k_transactions": 0.0
+    },
+    {
+      "region": "13",
+      "geographic_unit_code": "14",
+      "geographic_unit_name": "140101-Valdivia",
+      "transactions": 683,
+      "amount_clp": 1065529860.0,
+      "organizations": 1,
+      "providers": 74,
+      "anomaly_signals": 6,
+      "p1_signals": 4,
+      "avg_investigation_priority": 72.667,
+      "p1_per_100k_transactions": 585.6515
     },
     {
       "region": "5",
@@ -3350,6 +3363,19 @@
       "p1_per_100k_transactions": 0.0
     },
     {
+      "region": "13",
+      "geographic_unit_code": "03",
+      "geographic_unit_name": "030101-Copiapó",
+      "transactions": 491,
+      "amount_clp": 1041628746.0,
+      "organizations": 1,
+      "providers": 61,
+      "anomaly_signals": 8,
+      "p1_signals": 6,
+      "avg_investigation_priority": 72.375,
+      "p1_per_100k_transactions": 1221.9959
+    },
+    {
       "region": "10",
       "geographic_unit_code": "20",
       "geographic_unit_name": "Puqueldón",
@@ -3364,29 +3390,29 @@
     },
     {
       "region": "13",
-      "geographic_unit_code": "14",
-      "geographic_unit_name": "140101-Valdivia",
-      "transactions": 645,
-      "amount_clp": 1019221023.0,
+      "geographic_unit_code": "01",
+      "geographic_unit_name": "010101-Iquique",
+      "transactions": 265,
+      "amount_clp": 994075866.0,
       "organizations": 1,
-      "providers": 71,
-      "anomaly_signals": 3,
+      "providers": 58,
+      "anomaly_signals": 7,
       "p1_signals": 2,
-      "avg_investigation_priority": 72.667,
-      "p1_per_100k_transactions": 310.0775
+      "avg_investigation_priority": 62.857,
+      "p1_per_100k_transactions": 754.717
     },
     {
       "region": "13",
-      "geographic_unit_code": "03",
-      "geographic_unit_name": "030101-Copiapó",
-      "transactions": 478,
-      "amount_clp": 985566043.0,
+      "geographic_unit_code": "12",
+      "geographic_unit_name": "120101-Punta Arenas",
+      "transactions": 331,
+      "amount_clp": 974965020.0,
       "organizations": 1,
-      "providers": 56,
-      "anomaly_signals": 7,
-      "p1_signals": 5,
-      "avg_investigation_priority": 71.857,
-      "p1_per_100k_transactions": 1046.0251
+      "providers": 69,
+      "anomaly_signals": 5,
+      "p1_signals": 4,
+      "avg_investigation_priority": 72.6,
+      "p1_per_100k_transactions": 1208.4592
     },
     {
       "region": "13",
@@ -3416,29 +3442,16 @@
     },
     {
       "region": "13",
-      "geographic_unit_code": "01",
-      "geographic_unit_name": "010101-Iquique",
-      "transactions": 255,
-      "amount_clp": 963689016.0,
+      "geographic_unit_code": "13",
+      "geographic_unit_name": "130110-La Florida",
+      "transactions": 51,
+      "amount_clp": 936926493.0,
       "organizations": 1,
-      "providers": 56,
-      "anomaly_signals": 5,
+      "providers": 26,
+      "anomaly_signals": 3,
       "p1_signals": 1,
-      "avg_investigation_priority": 58.6,
-      "p1_per_100k_transactions": 392.1569
-    },
-    {
-      "region": "13",
-      "geographic_unit_code": "12",
-      "geographic_unit_name": "120101-Punta Arenas",
-      "transactions": 326,
-      "amount_clp": 958558504.0,
-      "organizations": 1,
-      "providers": 67,
-      "anomaly_signals": 7,
-      "p1_signals": 5,
-      "avg_investigation_priority": 69.286,
-      "p1_per_100k_transactions": 1533.7423
+      "avg_investigation_priority": 65.333,
+      "p1_per_100k_transactions": 1960.7843
     },
     {
       "region": "6",
@@ -3519,19 +3532,6 @@
       "p1_per_100k_transactions": 0.0
     },
     {
-      "region": "13",
-      "geographic_unit_code": "13",
-      "geographic_unit_name": "130110-La Florida",
-      "transactions": 50,
-      "amount_clp": 851368893.0,
-      "organizations": 1,
-      "providers": 26,
-      "anomaly_signals": 3,
-      "p1_signals": 1,
-      "avg_investigation_priority": 65.333,
-      "p1_per_100k_transactions": 2000.0
-    },
-    {
       "region": "UNKNOWN",
       "geographic_unit_code": "00",
       "geographic_unit_name": "Sin Aplicación",
@@ -3556,6 +3556,19 @@
       "p1_signals": 0,
       "avg_investigation_priority": null,
       "p1_per_100k_transactions": 0.0
+    },
+    {
+      "region": "13",
+      "geographic_unit_code": "08",
+      "geographic_unit_name": "080112-Hualpén",
+      "transactions": 46,
+      "amount_clp": 834860197.0,
+      "organizations": 1,
+      "providers": 16,
+      "anomaly_signals": 9,
+      "p1_signals": 9,
+      "avg_investigation_priority": 82.0,
+      "p1_per_100k_transactions": 19565.2174
     },
     {
       "region": "10",
@@ -3608,6 +3621,19 @@
       "p1_signals": 0,
       "avg_investigation_priority": null,
       "p1_per_100k_transactions": 0.0
+    },
+    {
+      "region": "13",
+      "geographic_unit_code": "11",
+      "geographic_unit_name": "110101-Coyhaique",
+      "transactions": 715,
+      "amount_clp": 794901464.0,
+      "organizations": 1,
+      "providers": 63,
+      "anomaly_signals": 11,
+      "p1_signals": 4,
+      "avg_investigation_priority": 61.182,
+      "p1_per_100k_transactions": 559.4406
     },
     {
       "region": "6",
@@ -3673,19 +3699,6 @@
       "p1_signals": 0,
       "avg_investigation_priority": null,
       "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "13",
-      "geographic_unit_code": "11",
-      "geographic_unit_name": "110101-Coyhaique",
-      "transactions": 702,
-      "amount_clp": 768231828.0,
-      "organizations": 1,
-      "providers": 61,
-      "anomaly_signals": 13,
-      "p1_signals": 6,
-      "avg_investigation_priority": 63.538,
-      "p1_per_100k_transactions": 854.7009
     },
     {
       "region": "10",
@@ -3792,19 +3805,6 @@
       "p1_per_100k_transactions": 0.0
     },
     {
-      "region": "13",
-      "geographic_unit_code": "08",
-      "geographic_unit_name": "080112-Hualpén",
-      "transactions": 44,
-      "amount_clp": 705684997.0,
-      "organizations": 1,
-      "providers": 16,
-      "anomaly_signals": 8,
-      "p1_signals": 8,
-      "avg_investigation_priority": 81.875,
-      "p1_per_100k_transactions": 18181.8182
-    },
-    {
       "region": "11",
       "geographic_unit_code": "07",
       "geographic_unit_name": "Lago Verde",
@@ -3896,6 +3896,19 @@
       "p1_per_100k_transactions": 0.0
     },
     {
+      "region": "13",
+      "geographic_unit_code": "12",
+      "geographic_unit_name": "120401-Natales",
+      "transactions": 25,
+      "amount_clp": 666875450.0,
+      "organizations": 1,
+      "providers": 5,
+      "anomaly_signals": 0,
+      "p1_signals": 0,
+      "avg_investigation_priority": null,
+      "p1_per_100k_transactions": 0.0
+    },
+    {
       "region": "12",
       "geographic_unit_code": "08",
       "geographic_unit_name": "Río Verde",
@@ -3972,6 +3985,19 @@
       "p1_signals": 0,
       "avg_investigation_priority": null,
       "p1_per_100k_transactions": 0.0
+    },
+    {
+      "region": "13",
+      "geographic_unit_code": "10",
+      "geographic_unit_name": "100201-Castro",
+      "transactions": 22,
+      "amount_clp": 597391160.0,
+      "organizations": 1,
+      "providers": 6,
+      "anomaly_signals": 4,
+      "p1_signals": 4,
+      "avg_investigation_priority": 83.0,
+      "p1_per_100k_transactions": 18181.8182
     },
     {
       "region": "8",
@@ -4065,19 +4091,6 @@
       "p1_per_100k_transactions": 0.0
     },
     {
-      "region": "13",
-      "geographic_unit_code": "12",
-      "geographic_unit_name": "120401-Natales",
-      "transactions": 24,
-      "amount_clp": 566219450.0,
-      "organizations": 1,
-      "providers": 5,
-      "anomaly_signals": 0,
-      "p1_signals": 0,
-      "avg_investigation_priority": null,
-      "p1_per_100k_transactions": 0.0
-    },
-    {
       "region": "3",
       "geographic_unit_code": "13",
       "geographic_unit_name": "Alto del Carmen",
@@ -4085,6 +4098,19 @@
       "amount_clp": 553771281.0,
       "organizations": 1,
       "providers": 3,
+      "anomaly_signals": 0,
+      "p1_signals": 0,
+      "avg_investigation_priority": null,
+      "p1_per_100k_transactions": 0.0
+    },
+    {
+      "region": "13",
+      "geographic_unit_code": "13",
+      "geographic_unit_name": "130203-San José De Maipo",
+      "transactions": 19,
+      "amount_clp": 499873453.0,
+      "organizations": 1,
+      "providers": 7,
       "anomaly_signals": 0,
       "p1_signals": 0,
       "avg_investigation_priority": null,
@@ -4130,19 +4156,6 @@
       "p1_per_100k_transactions": 0.0
     },
     {
-      "region": "13",
-      "geographic_unit_code": "10",
-      "geographic_unit_name": "100201-Castro",
-      "transactions": 20,
-      "amount_clp": 468215960.0,
-      "organizations": 1,
-      "providers": 6,
-      "anomaly_signals": 3,
-      "p1_signals": 3,
-      "avg_investigation_priority": 82.667,
-      "p1_per_100k_transactions": 15000.0
-    },
-    {
       "region": "6",
       "geographic_unit_code": "12",
       "geographic_unit_name": "Machalí",
@@ -4157,16 +4170,29 @@
     },
     {
       "region": "13",
-      "geographic_unit_code": "13",
-      "geographic_unit_name": "130203-San José De Maipo",
-      "transactions": 18,
-      "amount_clp": 449545453.0,
+      "geographic_unit_code": "07",
+      "geographic_unit_name": "070307-Sagrada Familia",
+      "transactions": 17,
+      "amount_clp": 441196900.0,
       "organizations": 1,
-      "providers": 7,
-      "anomaly_signals": 0,
-      "p1_signals": 0,
-      "avg_investigation_priority": null,
-      "p1_per_100k_transactions": 0.0
+      "providers": 5,
+      "anomaly_signals": 1,
+      "p1_signals": 1,
+      "avg_investigation_priority": 80.0,
+      "p1_per_100k_transactions": 5882.3529
+    },
+    {
+      "region": "13",
+      "geographic_unit_code": "13",
+      "geographic_unit_name": "130122-Peñalolén",
+      "transactions": 24,
+      "amount_clp": 439321376.0,
+      "organizations": 1,
+      "providers": 14,
+      "anomaly_signals": 2,
+      "p1_signals": 2,
+      "avg_investigation_priority": 82.5,
+      "p1_per_100k_transactions": 8333.3333
     },
     {
       "region": "8",
@@ -4232,32 +4258,6 @@
       "p1_signals": 0,
       "avg_investigation_priority": null,
       "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "13",
-      "geographic_unit_code": "13",
-      "geographic_unit_name": "130122-Peñalolén",
-      "transactions": 23,
-      "amount_clp": 378927776.0,
-      "organizations": 1,
-      "providers": 14,
-      "anomaly_signals": 2,
-      "p1_signals": 2,
-      "avg_investigation_priority": 82.5,
-      "p1_per_100k_transactions": 8695.6522
-    },
-    {
-      "region": "13",
-      "geographic_unit_code": "07",
-      "geographic_unit_name": "070307-Sagrada Familia",
-      "transactions": 16,
-      "amount_clp": 360672100.0,
-      "organizations": 1,
-      "providers": 5,
-      "anomaly_signals": 1,
-      "p1_signals": 1,
-      "avg_investigation_priority": 80.0,
-      "p1_per_100k_transactions": 6250.0
     },
     {
       "region": "6",
@@ -4507,6 +4507,19 @@
       "p1_per_100k_transactions": 0.0
     },
     {
+      "region": "13",
+      "geographic_unit_code": "13",
+      "geographic_unit_name": "130403-Calera De Tango",
+      "transactions": 10,
+      "amount_clp": 203512654.0,
+      "organizations": 1,
+      "providers": 3,
+      "anomaly_signals": 0,
+      "p1_signals": 0,
+      "avg_investigation_priority": null,
+      "p1_per_100k_transactions": 0.0
+    },
+    {
       "region": "10",
       "geographic_unit_code": "24",
       "geographic_unit_name": "Quinchao",
@@ -4579,19 +4592,6 @@
       "amount_clp": 165859690.0,
       "organizations": 1,
       "providers": 16,
-      "anomaly_signals": 0,
-      "p1_signals": 0,
-      "avg_investigation_priority": null,
-      "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "13",
-      "geographic_unit_code": "13",
-      "geographic_unit_name": "130403-Calera De Tango",
-      "transactions": 9,
-      "amount_clp": 163250254.0,
-      "organizations": 1,
-      "providers": 3,
       "anomaly_signals": 0,
       "p1_signals": 0,
       "avg_investigation_priority": null,
@@ -4730,6 +4730,19 @@
     {
       "region": "13",
       "geographic_unit_code": "13",
+      "geographic_unit_name": "130121-Pedro Aguirre Cerda",
+      "transactions": 27,
+      "amount_clp": 144081710.0,
+      "organizations": 1,
+      "providers": 10,
+      "anomaly_signals": 0,
+      "p1_signals": 0,
+      "avg_investigation_priority": null,
+      "p1_per_100k_transactions": 0.0
+    },
+    {
+      "region": "13",
+      "geographic_unit_code": "13",
       "geographic_unit_name": "130201-Puente Alto",
       "transactions": 46,
       "amount_clp": 142931530.0,
@@ -4813,19 +4826,6 @@
       "amount_clp": 134059297.0,
       "organizations": 1,
       "providers": 4,
-      "anomaly_signals": 0,
-      "p1_signals": 0,
-      "avg_investigation_priority": null,
-      "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "13",
-      "geographic_unit_code": "13",
-      "geographic_unit_name": "130121-Pedro Aguirre Cerda",
-      "transactions": 26,
-      "amount_clp": 134016110.0,
-      "organizations": 1,
-      "providers": 10,
       "anomaly_signals": 0,
       "p1_signals": 0,
       "avg_investigation_priority": null,
@@ -5560,6 +5560,19 @@
       "p1_per_100k_transactions": 0.0
     },
     {
+      "region": "5",
+      "geographic_unit_code": "10",
+      "geographic_unit_name": "Region de los Lagos",
+      "transactions": 204,
+      "amount_clp": 74698035.0,
+      "organizations": 1,
+      "providers": 26,
+      "anomaly_signals": 1,
+      "p1_signals": 0,
+      "avg_investigation_priority": 63.0,
+      "p1_per_100k_transactions": 0.0
+    },
+    {
       "region": "15",
       "geographic_unit_code": "00",
       "geographic_unit_name": "Sin Aplicación",
@@ -5622,19 +5635,6 @@
       "anomaly_signals": 0,
       "p1_signals": 0,
       "avg_investigation_priority": null,
-      "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "5",
-      "geographic_unit_code": "10",
-      "geographic_unit_name": "Region de los Lagos",
-      "transactions": 194,
-      "amount_clp": 70229559.0,
-      "organizations": 1,
-      "providers": 24,
-      "anomaly_signals": 1,
-      "p1_signals": 0,
-      "avg_investigation_priority": 63.0,
       "p1_per_100k_transactions": 0.0
     },
     {
@@ -5716,6 +5716,19 @@
       "p1_per_100k_transactions": 0.0
     },
     {
+      "region": "5",
+      "geographic_unit_code": "08",
+      "geographic_unit_name": "Region Del Biobio",
+      "transactions": 205,
+      "amount_clp": 64162476.0,
+      "organizations": 1,
+      "providers": 19,
+      "anomaly_signals": 1,
+      "p1_signals": 0,
+      "avg_investigation_priority": 63.0,
+      "p1_per_100k_transactions": 0.0
+    },
+    {
       "region": "13",
       "geographic_unit_code": "10",
       "geographic_unit_name": "100210-Quinchao",
@@ -5752,19 +5765,6 @@
       "anomaly_signals": 0,
       "p1_signals": 0,
       "avg_investigation_priority": null,
-      "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "5",
-      "geographic_unit_code": "08",
-      "geographic_unit_name": "Region Del Biobio",
-      "transactions": 197,
-      "amount_clp": 61876841.0,
-      "organizations": 1,
-      "providers": 19,
-      "anomaly_signals": 1,
-      "p1_signals": 0,
-      "avg_investigation_priority": 63.0,
       "p1_per_100k_transactions": 0.0
     },
     {
@@ -6341,8 +6341,8 @@
     },
     {
       "region": "13",
-      "geographic_unit_code": "09",
-      "geographic_unit_name": "090110-Melipeuco",
+      "geographic_unit_code": "10",
+      "geographic_unit_name": "100209-Quemchi",
       "transactions": 5,
       "amount_clp": 42119698.0,
       "organizations": 1,
@@ -6354,8 +6354,8 @@
     },
     {
       "region": "13",
-      "geographic_unit_code": "10",
-      "geographic_unit_name": "100209-Quemchi",
+      "geographic_unit_code": "09",
+      "geographic_unit_name": "090110-Melipeuco",
       "transactions": 5,
       "amount_clp": 42119698.0,
       "organizations": 1,
@@ -6420,20 +6420,7 @@
     {
       "region": "13",
       "geographic_unit_code": "11",
-      "geographic_unit_name": "110402-Río Ibáñez",
-      "transactions": 2,
-      "amount_clp": 41252562.0,
-      "organizations": 1,
-      "providers": 1,
-      "anomaly_signals": 0,
-      "p1_signals": 0,
-      "avg_investigation_priority": null,
-      "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "13",
-      "geographic_unit_code": "05",
-      "geographic_unit_name": "050404-Petorca",
+      "geographic_unit_name": "110302-Ohiggins",
       "transactions": 2,
       "amount_clp": 41252562.0,
       "organizations": 1,
@@ -6458,8 +6445,8 @@
     },
     {
       "region": "13",
-      "geographic_unit_code": "11",
-      "geographic_unit_name": "110302-Ohiggins",
+      "geographic_unit_code": "01",
+      "geographic_unit_name": "010405-Pica",
       "transactions": 2,
       "amount_clp": 41252562.0,
       "organizations": 1,
@@ -6484,8 +6471,21 @@
     },
     {
       "region": "13",
-      "geographic_unit_code": "01",
-      "geographic_unit_name": "010405-Pica",
+      "geographic_unit_code": "05",
+      "geographic_unit_name": "050404-Petorca",
+      "transactions": 2,
+      "amount_clp": 41252562.0,
+      "organizations": 1,
+      "providers": 1,
+      "anomaly_signals": 0,
+      "p1_signals": 0,
+      "avg_investigation_priority": null,
+      "p1_per_100k_transactions": 0.0
+    },
+    {
+      "region": "13",
+      "geographic_unit_code": "11",
+      "geographic_unit_name": "110402-Río Ibáñez",
       "transactions": 2,
       "amount_clp": 41252562.0,
       "organizations": 1,
@@ -6678,6 +6678,19 @@
       "p1_per_100k_transactions": 0.0
     },
     {
+      "region": "5",
+      "geographic_unit_code": "14",
+      "geographic_unit_name": "Region de los Rios",
+      "transactions": 97,
+      "amount_clp": 31097052.0,
+      "organizations": 1,
+      "providers": 22,
+      "anomaly_signals": 4,
+      "p1_signals": 0,
+      "avg_investigation_priority": 67.25,
+      "p1_per_100k_transactions": 0.0
+    },
+    {
       "region": "13",
       "geographic_unit_code": "16",
       "geographic_unit_name": "160109-Yungay",
@@ -6701,19 +6714,6 @@
       "anomaly_signals": 0,
       "p1_signals": 0,
       "avg_investigation_priority": null,
-      "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "5",
-      "geographic_unit_code": "14",
-      "geographic_unit_name": "Region de los Rios",
-      "transactions": 94,
-      "amount_clp": 30201410.0,
-      "organizations": 1,
-      "providers": 22,
-      "anomaly_signals": 3,
-      "p1_signals": 0,
-      "avg_investigation_priority": 66.667,
       "p1_per_100k_transactions": 0.0
     },
     {
@@ -6759,10 +6759,23 @@
       "region": "5",
       "geographic_unit_code": "11",
       "geographic_unit_name": "Región de Aysen",
-      "transactions": 49,
-      "amount_clp": 28187480.0,
+      "transactions": 51,
+      "amount_clp": 29052482.0,
       "organizations": 1,
       "providers": 12,
+      "anomaly_signals": 0,
+      "p1_signals": 0,
+      "avg_investigation_priority": null,
+      "p1_per_100k_transactions": 0.0
+    },
+    {
+      "region": "5",
+      "geographic_unit_code": "12",
+      "geographic_unit_name": "Región de Magallanes",
+      "transactions": 86,
+      "amount_clp": 26729175.0,
+      "organizations": 1,
+      "providers": 15,
       "anomaly_signals": 0,
       "p1_signals": 0,
       "avg_investigation_priority": null,
@@ -6776,19 +6789,6 @@
       "amount_clp": 26655250.0,
       "organizations": 1,
       "providers": 6,
-      "anomaly_signals": 0,
-      "p1_signals": 0,
-      "avg_investigation_priority": null,
-      "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "5",
-      "geographic_unit_code": "12",
-      "geographic_unit_name": "Región de Magallanes",
-      "transactions": 83,
-      "amount_clp": 26265517.0,
-      "organizations": 1,
-      "providers": 15,
       "anomaly_signals": 0,
       "p1_signals": 0,
       "avg_investigation_priority": null,
@@ -7107,6 +7107,19 @@
       "p1_per_100k_transactions": 0.0
     },
     {
+      "region": "5",
+      "geographic_unit_code": "06",
+      "geographic_unit_name": "Region de Ohiggins",
+      "transactions": 135,
+      "amount_clp": 21250784.0,
+      "organizations": 1,
+      "providers": 19,
+      "anomaly_signals": 0,
+      "p1_signals": 0,
+      "avg_investigation_priority": null,
+      "p1_per_100k_transactions": 0.0
+    },
+    {
       "region": "13",
       "geographic_unit_code": "13",
       "geographic_unit_name": "130125-Quilicura",
@@ -7114,19 +7127,6 @@
       "amount_clp": 20365298.0,
       "organizations": 1,
       "providers": 7,
-      "anomaly_signals": 0,
-      "p1_signals": 0,
-      "avg_investigation_priority": null,
-      "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "5",
-      "geographic_unit_code": "06",
-      "geographic_unit_name": "Region de Ohiggins",
-      "transactions": 130,
-      "amount_clp": 20358901.0,
-      "organizations": 1,
-      "providers": 19,
       "anomaly_signals": 0,
       "p1_signals": 0,
       "avg_investigation_priority": null,
@@ -7224,6 +7224,19 @@
       "p1_per_100k_transactions": 0.0
     },
     {
+      "region": "5",
+      "geographic_unit_code": "07",
+      "geographic_unit_name": "Region del Maule",
+      "transactions": 90,
+      "amount_clp": 16886702.0,
+      "organizations": 1,
+      "providers": 21,
+      "anomaly_signals": 1,
+      "p1_signals": 0,
+      "avg_investigation_priority": 61.0,
+      "p1_per_100k_transactions": 0.0
+    },
+    {
       "region": "13",
       "geographic_unit_code": "15",
       "geographic_unit_name": "150201-Putre",
@@ -7247,19 +7260,6 @@
       "anomaly_signals": 0,
       "p1_signals": 0,
       "avg_investigation_priority": null,
-      "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "5",
-      "geographic_unit_code": "07",
-      "geographic_unit_name": "Region del Maule",
-      "transactions": 86,
-      "amount_clp": 16319122.0,
-      "organizations": 1,
-      "providers": 19,
-      "anomaly_signals": 1,
-      "p1_signals": 0,
-      "avg_investigation_priority": 61.0,
       "p1_per_100k_transactions": 0.0
     },
     {
@@ -7809,6 +7809,19 @@
       "p1_per_100k_transactions": 0.0
     },
     {
+      "region": "5",
+      "geographic_unit_code": "02",
+      "geographic_unit_name": "Region de Antofagasta",
+      "transactions": 87,
+      "amount_clp": 7350925.0,
+      "organizations": 1,
+      "providers": 11,
+      "anomaly_signals": 0,
+      "p1_signals": 0,
+      "avg_investigation_priority": null,
+      "p1_per_100k_transactions": 0.0
+    },
+    {
       "region": "13",
       "geographic_unit_code": "02",
       "geographic_unit_name": "020203-San Pedro De Atacama",
@@ -7842,19 +7855,6 @@
       "amount_clp": 7212470.0,
       "organizations": 1,
       "providers": 3,
-      "anomaly_signals": 0,
-      "p1_signals": 0,
-      "avg_investigation_priority": null,
-      "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "5",
-      "geographic_unit_code": "02",
-      "geographic_unit_name": "Region de Antofagasta",
-      "transactions": 84,
-      "amount_clp": 7141388.0,
-      "organizations": 1,
-      "providers": 11,
       "anomaly_signals": 0,
       "p1_signals": 0,
       "avg_investigation_priority": null,
@@ -7968,8 +7968,8 @@
       "region": "5",
       "geographic_unit_code": "01",
       "geographic_unit_name": "Region de Tarapaca",
-      "transactions": 42,
-      "amount_clp": 6223794.0,
+      "transactions": 44,
+      "amount_clp": 6302451.0,
       "organizations": 1,
       "providers": 8,
       "anomaly_signals": 0,
@@ -8082,6 +8082,19 @@
       "p1_per_100k_transactions": 0.0
     },
     {
+      "region": "5",
+      "geographic_unit_code": "15",
+      "geographic_unit_name": "Region de Arica y Parinacota",
+      "transactions": 25,
+      "amount_clp": 4303963.0,
+      "organizations": 1,
+      "providers": 3,
+      "anomaly_signals": 0,
+      "p1_signals": 0,
+      "avg_investigation_priority": null,
+      "p1_per_100k_transactions": 0.0
+    },
+    {
       "region": "13",
       "geographic_unit_code": "06",
       "geographic_unit_name": "060103-Coinco",
@@ -8115,19 +8128,6 @@
       "amount_clp": 3995353.0,
       "organizations": 1,
       "providers": 1,
-      "anomaly_signals": 0,
-      "p1_signals": 0,
-      "avg_investigation_priority": null,
-      "p1_per_100k_transactions": 0.0
-    },
-    {
-      "region": "5",
-      "geographic_unit_code": "15",
-      "geographic_unit_name": "Region de Arica y Parinacota",
-      "transactions": 23,
-      "amount_clp": 3915071.0,
-      "organizations": 1,
-      "providers": 3,
       "anomaly_signals": 0,
       "p1_signals": 0,
       "avg_investigation_priority": null,
@@ -8215,8 +8215,8 @@
       "region": "5",
       "geographic_unit_code": "04",
       "geographic_unit_name": "Region de Coquimbo",
-      "transactions": 50,
-      "amount_clp": 3395881.0,
+      "transactions": 51,
+      "amount_clp": 3415073.0,
       "organizations": 1,
       "providers": 10,
       "anomaly_signals": 1,
@@ -8462,11 +8462,11 @@
       "region": "5",
       "geographic_unit_code": "03",
       "geographic_unit_name": "Region de Atacama",
-      "transactions": 40,
-      "amount_clp": 1201677.0,
+      "transactions": 42,
+      "amount_clp": 1222667.0,
       "organizations": 1,
       "providers": 8,
-      "anomaly_signals": 2,
+      "anomaly_signals": 1,
       "p1_signals": 0,
       "avg_investigation_priority": 66.0,
       "p1_per_100k_transactions": 0.0
@@ -8810,6 +8810,19 @@
       "p1_per_100k_transactions": 0.0
     },
     {
+      "region": "5",
+      "geographic_unit_code": "09",
+      "geographic_unit_name": "Region de la Araucania",
+      "transactions": 1,
+      "amount_clp": 130000.0,
+      "organizations": 1,
+      "providers": 0,
+      "anomaly_signals": 0,
+      "p1_signals": 0,
+      "avg_investigation_priority": null,
+      "p1_per_100k_transactions": 0.0
+    },
+    {
       "region": "13",
       "geographic_unit_code": "09",
       "geographic_unit_name": "090103-Cunco",
@@ -8825,7 +8838,7 @@
   ],
   "coverage": {
     "regions": 16,
-    "source_geographic_units": 657,
+    "source_geographic_units": 658,
     "priority_available": true,
     "commune_canonicalization_state": "PENDING_CONTEXT_HUB_VALIDATION"
   },

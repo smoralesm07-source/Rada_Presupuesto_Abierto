@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-23T02:14:23+00:00",
+  "generated_at": "2026-10-10T18:40:59+00:00",
   "schema": "RIGP-OPERATIONAL-BUNDLE-v1",
   "analysis_window": {
     "years": [
@@ -21,41 +21,41 @@
     "historical_depth_years": 11
   },
   "publication": {
-    "relations_available": 189747,
+    "relations_available": 190445,
     "relations_published": 600,
     "available_by_signal": {
+      "POTENTIAL_FRAGMENTATION": 103785,
       "PAYMENT_DELAY_OUTLIER": 52839,
-      "POTENTIAL_FRAGMENTATION": 103241,
-      "EXACT_DUPLICATE_CANDIDATE": 30315,
-      "PROVIDER_CONCENTRATION": 1725,
-      "CAPACITY_MISMATCH": 3609,
-      "AMOUNT_OUTLIER": 7679,
-      "ACTIVITY_MISMATCH": 5943,
+      "EXACT_DUPLICATE_CANDIDATE": 30411,
+      "PROVIDER_CONCENTRATION": 1720,
+      "CAPACITY_MISMATCH": 3616,
+      "AMOUNT_OUTLIER": 7683,
+      "ACTIVITY_MISMATCH": 6066,
       "DORMANT_REACTIVATION": 61,
       "NEWBORN_SUPPLIER": 371,
-      "NEW_TO_SERIES_HIGH_SPEND": 34
+      "NEW_TO_SERIES_HIGH_SPEND": 42
     },
     "published_by_signal": {
-      "PAYMENT_DELAY_OUTLIER": 410,
       "POTENTIAL_FRAGMENTATION": 265,
-      "EXACT_DUPLICATE_CANDIDATE": 277,
-      "PROVIDER_CONCENTRATION": 78,
-      "CAPACITY_MISMATCH": 84,
-      "AMOUNT_OUTLIER": 176,
-      "ACTIVITY_MISMATCH": 9,
+      "PAYMENT_DELAY_OUTLIER": 408,
+      "EXACT_DUPLICATE_CANDIDATE": 275,
+      "PROVIDER_CONCENTRATION": 80,
+      "CAPACITY_MISMATCH": 87,
+      "AMOUNT_OUTLIER": 177,
+      "ACTIVITY_MISMATCH": 12,
       "NEW_TO_SERIES_HIGH_SPEND": 20,
       "NEWBORN_SUPPLIER": 1,
       "DORMANT_REACTIVATION": 1
     },
     "published_by_pattern": {
-      "INTEGRIDAD_DOCUMENTAL": 370,
-      "CONCENTRACION_COMPETENCIA": 64,
-      "CAPACIDAD_Y_TRAYECTORIA": 3,
-      "IRRUPCION_CAMBIO_ESCALA": 30
+      "INTEGRIDAD_DOCUMENTAL": 369,
+      "CONCENTRACION_COMPETENCIA": 65,
+      "CAPACIDAD_Y_TRAYECTORIA": 5,
+      "IRRUPCION_CAMBIO_ESCALA": 31
     }
   },
   "signal_health": {
-    "total_signals": 560307,
+    "total_signals": 562817,
     "active_signal_types": 11,
     "needs_review_signal_types": 1,
     "statuses": {
@@ -75,27 +75,27 @@
   },
   "peer_context": {
     "path": "data/processed/provider_peer_context.parquet",
-    "rows": 3524746,
-    "peer_groups": 119184,
-    "insufficient_peer_rows": 93114,
-    "extreme_peer_rows": 83054,
-    "high_peer_rows": 288806,
+    "rows": 3536699,
+    "peer_groups": 119607,
+    "insufficient_peer_rows": 93302,
+    "extreme_peer_rows": 83464,
+    "high_peer_rows": 289711,
     "min_peer_providers": 5
   },
   "finding_context_coverage": {
     "published_relations": 600,
     "relations_with_peer_context": 600,
-    "relations_with_primary_pattern": 467,
-    "relations_with_uncorroborated_similarity": 133,
-    "relations_in_action_window": 96,
-    "relations_learning_only": 504
+    "relations_with_primary_pattern": 470,
+    "relations_with_uncorroborated_similarity": 130,
+    "relations_in_action_window": 97,
+    "relations_learning_only": 503
   },
   "procurement_context": {
     "findings_requested": 600,
     "findings_with_rows": 600,
     "findings_with_purchase_order": 462,
     "findings_with_weekly_clusters": 266,
-    "findings_worth_triage": 137
+    "findings_worth_triage": 138
   },
   "interpretation": "El bundle separa prioridad de revisión, compatibilidad descriptiva de patrón, materialidad frente a pares y contexto de contratación. Ninguna capa acredita irregularidad o delito."
 }
