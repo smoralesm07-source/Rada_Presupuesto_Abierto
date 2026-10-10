@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-23T02:42:03+00:00",
+  "generated_at": "2026-10-10T19:09:02+00:00",
   "schema": "RIGP-RUN-SUMMARY-v1",
   "guardrail": "Este resumen describe cobertura y comportamiento operativo del radar. No acredita irregularidad, fraude, corrupción, delito funcionario, lavado de activos ni responsabilidad de una entidad o persona.",
   "analysis_window": {
@@ -34,37 +34,37 @@
       2026
     ],
     "effective_year_count": 11,
-    "normalized_rows": 56692527
+    "normalized_rows": 57174797
   },
   "signals": {
-    "total": 560307,
+    "total": 562817,
     "counts": {
-      "AMOUNT_OUTLIER": 19363,
-      "POTENTIAL_FRAGMENTATION": 171968,
-      "EXACT_DUPLICATE_CANDIDATE": 236902,
+      "AMOUNT_OUTLIER": 19469,
+      "POTENTIAL_FRAGMENTATION": 173066,
+      "EXACT_DUPLICATE_CANDIDATE": 238075,
       "YEAR_END_SPIKE": 1906,
-      "PROVIDER_CONCENTRATION": 1725,
+      "PROVIDER_CONCENTRATION": 1720,
       "PAYMENT_DELAY_OUTLIER": 118425,
-      "NEW_TO_SERIES_HIGH_SPEND": 34,
+      "NEW_TO_SERIES_HIGH_SPEND": 42,
       "NEWBORN_SUPPLIER": 371,
-      "CAPACITY_MISMATCH": 3609,
-      "ACTIVITY_MISMATCH": 5943,
+      "CAPACITY_MISMATCH": 3616,
+      "ACTIVITY_MISMATCH": 6066,
       "TERMINATION_AFTER_PAYMENT": 0,
       "DORMANT_REACTIVATION": 61
     },
     "shares": {
-      "AMOUNT_OUTLIER": 0.034558,
-      "POTENTIAL_FRAGMENTATION": 0.306917,
-      "EXACT_DUPLICATE_CANDIDATE": 0.422807,
-      "YEAR_END_SPIKE": 0.003402,
-      "PROVIDER_CONCENTRATION": 0.003079,
-      "PAYMENT_DELAY_OUTLIER": 0.211357,
-      "NEW_TO_SERIES_HIGH_SPEND": 6.1e-05,
-      "NEWBORN_SUPPLIER": 0.000662,
-      "CAPACITY_MISMATCH": 0.006441,
-      "ACTIVITY_MISMATCH": 0.010607,
+      "AMOUNT_OUTLIER": 0.034592,
+      "POTENTIAL_FRAGMENTATION": 0.3075,
+      "EXACT_DUPLICATE_CANDIDATE": 0.423006,
+      "YEAR_END_SPIKE": 0.003387,
+      "PROVIDER_CONCENTRATION": 0.003056,
+      "PAYMENT_DELAY_OUTLIER": 0.210415,
+      "NEW_TO_SERIES_HIGH_SPEND": 7.5e-05,
+      "NEWBORN_SUPPLIER": 0.000659,
+      "CAPACITY_MISMATCH": 0.006425,
+      "ACTIVITY_MISMATCH": 0.010778,
       "TERMINATION_AFTER_PAYMENT": 0.0,
-      "DORMANT_REACTIVATION": 0.000109
+      "DORMANT_REACTIVATION": 0.000108
     },
     "statuses": {
       "AMOUNT_OUTLIER": "ACTIVE",
@@ -83,25 +83,25 @@
     "active_types": 11,
     "types_needing_review": 1,
     "dominant_signal": "EXACT_DUPLICATE_CANDIDATE",
-    "dominant_share": 0.422807
+    "dominant_share": 0.423006
   },
   "findings": {
-    "relations_available": 189747,
+    "relations_available": 190445,
     "relations_published": 600,
-    "publication_ratio": 0.003162,
+    "publication_ratio": 0.003151,
     "attention_levels": {
-      "ATENCION_INMEDIATA": 45,
-      "REVISION_PRIORITARIA": 79,
-      "SEGUIMIENTO": 189
+      "ATENCION_INMEDIATA": 44,
+      "REVISION_PRIORITARIA": 83,
+      "SEGUIMIENTO": 186
     },
     "published_by_signal": {
-      "PAYMENT_DELAY_OUTLIER": 410,
       "POTENTIAL_FRAGMENTATION": 265,
-      "EXACT_DUPLICATE_CANDIDATE": 277,
-      "PROVIDER_CONCENTRATION": 78,
-      "CAPACITY_MISMATCH": 84,
-      "AMOUNT_OUTLIER": 176,
-      "ACTIVITY_MISMATCH": 9,
+      "PAYMENT_DELAY_OUTLIER": 408,
+      "EXACT_DUPLICATE_CANDIDATE": 275,
+      "PROVIDER_CONCENTRATION": 80,
+      "CAPACITY_MISMATCH": 87,
+      "AMOUNT_OUTLIER": 177,
+      "ACTIVITY_MISMATCH": 12,
       "NEW_TO_SERIES_HIGH_SPEND": 20,
       "NEWBORN_SUPPLIER": 1,
       "DORMANT_REACTIVATION": 1
@@ -111,8 +111,8 @@
   "context": {
     "peer_context_relations": 600,
     "peer_context_coverage": 1.0,
-    "primary_pattern_relations": 467,
-    "primary_pattern_coverage": 0.778333,
+    "primary_pattern_relations": 470,
+    "primary_pattern_coverage": 0.783333,
     "primary_pattern_distribution": {}
   },
   "procurement": {
@@ -122,14 +122,14 @@
     "schema": "RIGP-PROCUREMENT-CONTEXT-v2"
   },
   "sii": {
-    "providers_requested": 290,
+    "providers_requested": 289,
     "providers_with_context": 93,
-    "context_coverage": 0.32069,
+    "context_coverage": 0.321799,
     "coverage_state": "MEDIDO",
     "coverage_note": null,
     "reported_coverage": {
-      "providers_published": 290,
-      "providers_with_valid_rut": 286,
+      "providers_published": 289,
+      "providers_with_valid_rut": 285,
       "providers_matched_in_sii": 93,
       "providers_without_valid_rut": 4
     },

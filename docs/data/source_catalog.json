@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-22T23:05:02+00:00",
+  "generated_at": "2026-10-10T15:29:35+00:00",
   "source": "Presupuesto Abierto - DIPRES",
   "downloads": [
     {
@@ -113,7 +113,7 @@
       "url": "https://api.presupuestoabierto.gob.cl/data/pagos-2026.gz",
       "http_status": 200,
       "content_type": "application/gzip",
-      "content_length": "118034862",
+      "content_length": "128939533",
       "probe_method": "HEAD",
       "final_url": "https://api.presupuestoabierto.gob.cl/data/pagos-2026.gz",
       "status": "probed_available"
