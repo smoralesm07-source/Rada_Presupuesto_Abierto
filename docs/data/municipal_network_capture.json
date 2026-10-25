@@ -1,0 +1,482 @@
+{
+  "capturedAt": "2026-10-02T18:26:05.565Z",
+  "visits": [
+    {
+      "url": "https://presupuestoabierto.gob.cl/municipalities",
+      "status": 200,
+      "title": "Presupuesto Abierto - Gobierno de Chile",
+      "finalUrl": "https://presupuestoabierto.gob.cl/municipalities",
+      "error": "Error: locator.innerText: Error: strict mode violation: locator('body') resolved to 17 elements:\n    1) <body>…</body> aka locator('body').filter({ hasText: 'Presupuesto Abierto: Conoce' })\n    2) <body>…</body> aka locator('foreignobject').filter({ hasText: 'Metropolitana de Santiago 35,' }).locator('body')\n    3) <body>…</body> aka locator('foreignobject').filter({ hasText: 'Valparaíso 10,64%' }).locator('body')\n    4) <body>…</body> aka locator('foreignobject').filter({ hasText: 'Biobío 8,43%' }).locator('body')\n    5) <body>…</body> aka locator('foreignobject').filter({ hasText: 'La Araucanía 7,90%' }).locator('body')\n    6) <body>…</body> aka locator('foreignobject').filter({ hasText: 'Maule 6,66%' }).locator('body')\n    7) <body>…</body> aka locator('#app body').filter({ hasText: 'Libertador General Bernardo O' })\n    8) <body>…</body> aka locator('#app body').filter({ hasText: 'Los Lagos 5,12%' })\n    9) <body>…</body> aka locator('#app body').filter({ hasText: 'Coquimbo 4,42%' })\n    10) <body>…</body> aka locator('#app body').filter({ hasText: 'Antofagasta 3,23%' })\n    ...\n\nCall log:\n  - waiting for locator('body')\n"
+    },
+    {
+      "url": "https://presupuestoabierto.gob.cl/municipalities/9/9118?view=providers",
+      "status": 200,
+      "title": "Presupuesto Abierto - Gobierno de Chile",
+      "finalUrl": "https://presupuestoabierto.gob.cl/municipalities/9/9118?view=providers",
+      "error": "Error: locator.innerText: Error: strict mode violation: locator('body') resolved to 101 elements:\n    1) <body>…</body> aka locator('body').filter({ hasText: 'Presupuesto Abierto: Conoce' })\n    2) <body>…</body> aka locator('body').nth(1)\n    3) <body>…</body> aka locator('body').nth(2)\n    4) <body>…</body> aka locator('body').nth(3)\n    5) <body>…</body> aka locator('body').nth(4)\n    6) <body>…</body> aka locator('body').nth(5)\n    7) <body>…</body> aka locator('g:nth-child(6) > .foreignObject > body')\n    8) <body>…</body> aka locator('g:nth-child(7) > .foreignObject > body')\n    9) <body>…</body> aka locator('g:nth-child(8) > .foreignObject > body')\n    10) <body>…</body> aka locator('g:nth-child(9) > .foreignObject > body')\n    ...\n\nCall log:\n  - waiting for locator('body')\n"
+    },
+    {
+      "url": "https://presupuestoabierto.gob.cl/municipalities/5/5803?view=general",
+      "status": 200,
+      "title": "Presupuesto Abierto - Gobierno de Chile",
+      "finalUrl": "https://presupuestoabierto.gob.cl/municipalities/5/5803?view=general",
+      "error": "Error: locator.innerText: Error: strict mode violation: locator('body') resolved to 18 elements:\n    1) <body>…</body> aka locator('body').filter({ hasText: 'Presupuesto Abierto: Conoce' })\n    2) <body>…</body> aka locator('foreignobject').filter({ hasText: 'CONSTRUCCION 18,94%' }).locator('body')\n    3) <body>…</body> aka locator('foreignobject').filter({ hasText: 'SUMINISTRO DE AGUA;' }).locator('body')\n    4) <body>…</body> aka locator('foreignobject').filter({ hasText: 'SUMINISTRO DE ELECTRICIDAD;' }).locator('body')\n    5) <body>…</body> aka locator('foreignobject').filter({ hasText: 'COMERCIO AL POR MAYOR Y AL' }).locator('body')\n    6) <body>…</body> aka locator('foreignobject').filter({ hasText: 'INFORMACION Y COMUNICACIONES' }).locator('body')\n    7) <body>…</body> aka locator('#app body').filter({ hasText: '* 12,09%' })\n    8) <body>…</body> aka locator('#app body').filter({ hasText: 'ACTIVIDADES DE ATENCION DE LA' })\n    9) <body>…</body> aka locator('g:nth-child(8) > .foreignObject > body')\n    10) <body>…</body> aka locator('g:nth-child(9) > .foreignObject > body')\n    ...\n\nCall log:\n  - waiting for locator('body')\n"
+    }
+  ],
+  "calls": [
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/municipalities",
+      "resourceType": "document",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/6bdc2d8.js",
+      "resourceType": "script",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/9811603.js",
+      "resourceType": "script",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/4d56076.js",
+      "resourceType": "script",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/1a6e91a.js",
+      "resourceType": "script",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/e244368.js",
+      "resourceType": "script",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/13c157e.js",
+      "resourceType": "script",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/fe63a1f.js",
+      "resourceType": "script",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/c807bdc.js",
+      "resourceType": "script",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/cf60e80.js",
+      "resourceType": "script",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/img/info.adf3e19.svg",
+      "resourceType": "image",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/img/logo-black.b59c6c5.svg",
+      "resourceType": "image",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/img/logo-footer.49aaaae.svg",
+      "resourceType": "image",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/img/dipres.226752c.svg",
+      "resourceType": "image",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/img/hacienda.ec2dc81.svg",
+      "resourceType": "image",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/img/treemap.db640f9.png",
+      "resourceType": "image",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/data/municipios?metric=devengo&group-by=[%22periodo%22]&where={%22periodo%22:2026}",
+      "resourceType": "xhr",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://api.presupuestoabierto.gob.cl/",
+      "resourceType": "xhr",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/data/municipios?distinct=[%22periodo%22]&order-by=[%22periodo%22]",
+      "resourceType": "xhr",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/data/municipios?group-by=[%22region%22,%22comuna%22]&select=[%22nombre_region%22,%22nombre_comuna%22]&where={%22periodo%22:2026}",
+      "resourceType": "xhr",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/img/loader.6b5e117.svg",
+      "resourceType": "image",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/1587b6c.js",
+      "resourceType": "script",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/e4327ff.js",
+      "resourceType": "script",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/5552e5a.js",
+      "resourceType": "script",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/dc09adf.js",
+      "resourceType": "script",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/c86041a.js",
+      "resourceType": "script",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "POST",
+      "url": "https://www.google-analytics.com/j/collect?v=1&_v=j102&a=890790309&t=pageview&_s=1&dl=https%3A%2F%2Fpresupuestoabierto.gob.cl%2Fmunicipalities&dp=%2Fmunicipalities&ul=en-us%40posix&dt=Presupuesto%20Abierto%20-%20Gobierno%20de%20Chile&sr=1280x720&vp=1280x720&_u=aEBAAEABEAAAACAAI~&jid=1640820391&gjid=328479630&cid=1834829967.1790965561&tid=UA-125651199-1&_gid=176772477.1790965561&_r=1&_slc=1&z=68695800",
+      "resourceType": "xhr",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "POST",
+      "url": "https://www.google-analytics.com/g/collect?v=2&tid=G-RH7E56TGZS&gtm=45je69u2v9173949260za200zb9173948057zd9173948057xf1&_p=1790965559648&gcd=13l3l3l3l1l1&npa=0&dma=0&are=1&cid=1834829967.1790965561&frm=0&ngs=1&pscdl=noapi&rcb=12&sr=1280x720&uaa=x86&uab=64&uafvl=HeadlessChrome%3B141.0.7390.37%7CNot%253FA_Brand%3B8.0.0.0%7CChromium%3B141.0.7390.37&uam=&uamb=0&uap=Windows&uapv=&uaw=0&ul=en-us%40posix&_s=1&tag_exp=115938466~115938469~118012009~118897920~118897930~120213116~120385423~120420414~120469145~120469153~121280971&dt=municipalities-region-comuna&dp=%2Fmunicipalities&dl=https%3A%2F%2Fpresupuestoabierto.gob.cl%2Fmunicipalities&sid=1790965561&sct=1&seg=0&en=page_view&_fv=1&_ss=1&_ee=1&tfd=2262",
+      "resourceType": "fetch",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "POST",
+      "url": "https://www.google-analytics.com/g/collect?v=2&tid=G-HSTGRVMVN4&gtm=45je69u2v9124411428za20gxf1&_p=1790965559648&gcd=13l3l3l3l2l1&npa=0&dma=0&_eu=EBAI&are=1&cid=1834829967.1790965561&frm=0&ir=1&ngs=1&pscdl=noapi&rcb=17&sr=1280x720&uaa=x86&uab=64&uafvl=HeadlessChrome%3B141.0.7390.37%7CNot%253FA_Brand%3B8.0.0.0%7CChromium%3B141.0.7390.37&uam=&uamb=0&uap=Windows&uapv=&uaw=0&ul=en-us%40posix&_s=1&tag_exp=115938466~115938469~118897920~118897930~120213116~120385422~120469145~120469153~121280971&dl=https%3A%2F%2Fpresupuestoabierto.gob.cl%2Fmunicipalities&dp=%2Fmunicipalities&dt=Presupuesto%20Abierto%20-%20Gobierno%20de%20Chile&sid=1790965561&sct=1&seg=0&en=page_view&_fv=1&_ss=1&_ee=1&tfd=2375",
+      "resourceType": "fetch",
+      "postData": null
+    },
+    {
+      "kind": "response",
+      "status": 200,
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/data/municipios?distinct=[%22periodo%22]&order-by=[%22periodo%22]",
+      "contentType": "text/json; charset=utf-8",
+      "sample": "[{\"periodo\":2017},{\"periodo\":2018},{\"periodo\":2019},{\"periodo\":2020},{\"periodo\":2021},{\"periodo\":2022},{\"periodo\":2023},{\"periodo\":2024},{\"periodo\":2025},{\"periodo\":2026}]"
+    },
+    {
+      "kind": "response",
+      "status": 200,
+      "url": "https://api.presupuestoabierto.gob.cl/",
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "kind": "response",
+      "status": 200,
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/data/municipios?metric=devengo&group-by=[%22periodo%22]&where={%22periodo%22:2026}",
+      "contentType": "text/json; charset=utf-8",
+      "sample": "[{\"periodo\":2026,\"count\":1461975,\"sum\":2463902164580}]"
+    },
+    {
+      "kind": "response",
+      "status": 200,
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/data/municipios?distinct=[%22periodo%22]&order-by=[%22periodo%22]",
+      "contentType": "text/json; charset=utf-8",
+      "sample": "[{\"periodo\":2017},{\"periodo\":2018},{\"periodo\":2019},{\"periodo\":2020},{\"periodo\":2021},{\"periodo\":2022},{\"periodo\":2023},{\"periodo\":2024},{\"periodo\":2025},{\"periodo\":2026}]"
+    },
+    {
+      "kind": "response",
+      "status": 200,
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/data/municipios?group-by=[%22region%22,%22comuna%22]&select=[%22nombre_region%22,%22nombre_comuna%22]&where={%22periodo%22:2026}",
+      "contentType": "text/json; charset=utf-8",
+      "sample": "[{\"region\":\"1\",\"comuna\":\"1101\",\"count\":4995,\"sum\":22894213387,\"nombre_region\":\"Tarapacá\",\"nombre_comuna\":\"Iquique\"},{\"region\":\"1\",\"comuna\":\"1107\",\"count\":6441,\"sum\":8166079906,\"nombre_region\":\"Tarapacá\",\"nombre_comuna\":\"Alto Hospicio\"},{\"region\":\"1\",\"comuna\":\"1401\",\"count\":3697,\"sum\":3770734655,\"nombre_region\":\"Tarapacá\",\"nombre_comuna\":\"Pozo Almonte\"},{\"region\":\"1\",\"comuna\":\"1402\",\"count\":1196,\"sum\":1325239704,\"nombre_region\":\"Tarapacá\",\"nombre_comuna\":\"Camiña\"},{\"region\":\"1\",\"comuna\":\"1403\",\"count\":737,\"sum\":1136072875,\"nombre_region\":\"Tarapacá\",\"nombre_comuna\":\"Colchane\"},{\"region\":\"1\",\"comuna\":\"1404\",\"count\":1841,\"sum\":1971436680,\"nombre_region\":\"Tarapacá\",\"nombre_comuna\":\"Huara\"},{\"region\":\"1\",\"comuna\":\"1405\",\"count\":1904,\"sum\":3059553129,\"nombre_region\":\"Tarapacá\",\"nombre_comuna\":\"Pica\"},{\"region\":\"10\",\"comuna\":\"10101\",\"count\":20449,\"sum\":20560552877,\"nombre_region\":\"Los Lagos\",\"nombre_comuna\":\"Puerto Montt\"},{\"region\":\"10\",\"comuna\":\"10102\",\"count\":3509,\"sum\":4390567340,\"nombre_region\":\"Los Lagos\",\"nombre_comuna\":\"Calbuco\"},{\"region\":\"10\",\"comuna\":\"10103\",\"count\":1444,\"sum\":1330923193,\"nombre_region\":\"Los Lagos\",\"nombre_comuna\":\"Cochamó\"},{\"region\":\"10\",\"comuna\":\"10104\",\"count\":1743,\"sum\":1706503895,\"nombre_region\":\"Los Lagos\",\"nombre_comuna\":\"Fresia\"},{\"region\":\"10\",\"comuna\":\"10105\",\"count\":2147,\"sum\":1339905375,\"nombre_region\":\"Los Lagos\",\"nombre_comuna\":\"Frutillar\"},{\"region\":\"10\",\"comuna\":\"10106\",\"count\":4580,\"sum\":3954209105,\"nombre_region\":\"Los Lagos\",\"nombre_comuna\":\"Los Muermos\"},{\"region\":\"10\",\"comuna\":\"10107\",\"count\":2149,\"sum\":1308578533,\"nombre_region\":\"Los Lagos\",\"nombre_comuna\":\"Llanquihue\"},{\"region\":\"10\",\"comuna\":\"10108\",\"count\":5101,\"sum\":3625165393,\"nombre_region\":\"Los Lagos\",\"nombre_comuna\":\"Maullín\"},{\"region\":\"10\",\"comuna\":\"10109\",\"count\":8820,\"sum\":9322381684,\"nombre_region\":\"Los Lagos\",\"nombre_comuna\":\"Puerto Varas\"},{\"region\":\"10\",\"comuna\":\"10201\",\"count\":3388,\"sum\":7368499181,\"nombre_region\":\"Los Lagos\",\"nombre_comuna\":\"Castro\"},{\"region\":\"10\",\"comuna\":\"10202\",\"count\":3869,\"sum\":6144936451,\"nombre_region\":\"Los Lagos\",\"nombre_comuna\":\"Ancud\"},{\"region\":\"10\",\"comuna\":\"10203\",\"count\":2190,\"sum\":2785305779,\"nombre_region\":\"Los Lagos\",\"nombre_comuna\":\"Chonchi\"},{\"region\":\"10\",\"comuna\":\"10204\",\"count\":1542,\"sum\":1670437024,\"nombre_region\":\"Los Lagos\",\"nombre_comuna\":\"Curaco de Vélez\"},{\"region\":\"10\",\"comuna\":\"10205\",\"count\":3514,\"sum\":3609890495,\"nombre_region\":\"Los Lagos\",\"nombre_comuna\":\"Dalcahue\"},{\"region\":\"10\",\"comuna\":\"10206\",\"count\":1177,\"sum\":1807830789,\"nombre_region\":\"Los Lagos\",\"nombre_comuna\":\"Puqueldón\"},{\"region\":\"10\",\"comuna\":\"10207\",\"count\":1393,\"sum\":1726841966,\"nombre_region\":\"Los Lagos\",\"nombre_comuna\":\"Queilén\"},{\"region\":\"10\",\"comuna\":\"10208\",\"count\":2100,\"sum\":3820857040,\"nombre_region\":\"Los Lagos\",\"nombre_comuna\":\"Quellón\"},{\"region\":\"10\",\"comuna\":\"10209\",\"count\":3154,\"sum\":2147549038,\"nombre_region\":\"Los Lagos\",\"nombre_comuna\":\"Quemchi\"},{\"region\":\"10\",\"comuna\":\"10210\",\"count\":1276,\"sum\":1901200537"
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/municipalities/9/9118?view=providers",
+      "resourceType": "document",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "POST",
+      "url": "https://www.google-analytics.com/g/collect?v=2&tid=G-RH7E56TGZS&gtm=45je69u2v9173949260za200zb9173948057zd9173948057xf1&_p=1790965559648&gcd=13l3l3l3l1l1&npa=0&dma=0&_eu=AAAAAAQ&are=1&cid=1834829967.1790965561&frm=0&ngs=1&pscdl=noapi&rcb=12&sr=1280x720&uaa=x86&uab=64&uafvl=HeadlessChrome%3B141.0.7390.37%7CNot%253FA_Brand%3B8.0.0.0%7CChromium%3B141.0.7390.37&uam=&uamb=0&uap=Windows&uapv=&uaw=0&ul=en-us%40posix&_s=2&tag_exp=115938466~115938469~118012009~118897920~118897930~120213116~120385423~120420414~120469145~120469153~121280971&sid=1790965561&sct=1&seg=0&dl=https%3A%2F%2Fpresupuestoabierto.gob.cl%2Fmunicipalities&dt=Presupuesto%20Abierto%20-%20Gobierno%20de%20Chile&en=user_engagement&_et=1533&tfd=3797",
+      "resourceType": "fetch",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "POST",
+      "url": "https://www.google.com/g/collect?v=2&tid=G-RH7E56TGZS&gtm=45je69u2v9173949260za200zb9173948057zd9173948057xf1&_p=1790965559648&gcd=13l3l3l3l1l1&npa=0&dma=0&_eu=AAAAAAQ&are=1&cid=1834829967.1790965561&frm=0&ngs=1&pscdl=noapi&rcb=12&sr=1280x720&uaa=x86&uab=64&uafvl=HeadlessChrome%3B141.0.7390.37%7CNot%253FA_Brand%3B8.0.0.0%7CChromium%3B141.0.7390.37&uam=&uamb=0&uap=Windows&uapv=&uaw=0&ul=en-us%40posix&_s=2&tag_exp=115938466~115938469~118012009~118897920~118897930~120213116~120385423~120420414~120469145~120469153~121280971&sid=1790965561&sct=1&seg=0&dl=https%3A%2F%2Fpresupuestoabierto.gob.cl%2Fmunicipalities&dt=Presupuesto%20Abierto%20-%20Gobierno%20de%20Chile&en=user_engagement&_et=1533&tfd=3797&gaf=1",
+      "resourceType": "fetch",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/data/municipios?group-by=[%22region%22,%22comuna%22]&where=%7B%22region%22:%229%22,%22comuna%22:%229118%22%7D&select=[%22municipalidad%22,%22nombre_region%22,%22nombre_comuna%22]",
+      "resourceType": "xhr",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/municipalities-page-info/9/9118",
+      "resourceType": "xhr",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "POST",
+      "url": "https://www.google-analytics.com/j/collect?v=1&_v=j102&a=1081236403&t=pageview&_s=1&dl=https%3A%2F%2Fpresupuestoabierto.gob.cl%2Fmunicipalities%2F9%2F9118%3Fview%3Dproviders&dp=%2Fmunicipalities%2F9%2F9118%3Fview%3Dproviders&ul=en-us%40posix&dt=Presupuesto%20Abierto%20-%20Gobierno%20de%20Chile&sr=1280x720&vp=1280x720&_u=SACAAEABEAAAACAAI~&jid=&gjid=&cid=1834829967.1790965561&tid=UA-125651199-1&_gid=176772477.1790965561&_slc=1&z=1727671099",
+      "resourceType": "xhr",
+      "postData": null
+    },
+    {
+      "kind": "response",
+      "status": 200,
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/municipalities-page-info/9/9118",
+      "contentType": "application/json; charset=utf-8",
+      "sample": "{\"comuna\":\"9118\",\"nombre\":\"Toltén\",\"url\":\"http://www.tolten.cl\",\"url_transparencia\":\"https://www.portaltransparencia.cl/PortalPdT/directorio-de-organismos-regulados/?org=MU323\"}"
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/_nuxt/img/bubble.15e5e2d.png",
+      "resourceType": "image",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/data/municipios?where=%7B%22region%22:%229%22,%22comuna%22:%229118%22,%22periodo%22:2026%7D&group-by=%22tipo_documento%22",
+      "resourceType": "xhr",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/data/municipios?group-by=[%22beneficiario%22]&where={%22region%22:%229%22,%22comuna%22:%229118%22,%22periodo%22:2026}&select=[%22nombre_beneficiario%22]&order-by=[%22sum%22,%22desc%22]&limit=500",
+      "resourceType": "xhr",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/data/municipios?where=%7B%22region%22:%229%22,%22comuna%22:%229118%22,%22periodo%22:2026%7D&sum=%22devengo%22",
+      "resourceType": "xhr",
+      "postData": null
+    },
+    {
+      "kind": "response",
+      "status": 200,
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/data/municipios?group-by=[%22region%22,%22comuna%22]&where=%7B%22region%22:%229%22,%22comuna%22:%229118%22%7D&select=[%22municipalidad%22,%22nombre_region%22,%22nombre_comuna%22]",
+      "contentType": "text/json; charset=utf-8",
+      "sample": "[{\"region\":\"9\",\"comuna\":\"9118\",\"count\":3475,\"sum\":2320932426,\"municipalidad\":\"69191400-3\",\"nombre_region\":\"La Araucanía\",\"nombre_comuna\":\"Toltén\"}]"
+    },
+    {
+      "kind": "response",
+      "status": 200,
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/data/municipios?distinct=[%22periodo%22]&order-by=[%22periodo%22]",
+      "contentType": "text/json; charset=utf-8",
+      "sample": "[{\"periodo\":2017},{\"periodo\":2018},{\"periodo\":2019},{\"periodo\":2020},{\"periodo\":2021},{\"periodo\":2022},{\"periodo\":2023},{\"periodo\":2024},{\"periodo\":2025},{\"periodo\":2026}]"
+    },
+    {
+      "kind": "response",
+      "status": 200,
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/data/municipios?where=%7B%22region%22:%229%22,%22comuna%22:%229118%22,%22periodo%22:2026%7D&group-by=%22tipo_documento%22",
+      "contentType": "text/json; charset=utf-8",
+      "sample": "[{\"tipo_documento\":\"Factura Electrónica\",\"count\":2849,\"sum\":2353595065},{\"tipo_documento\":\"Factura No Afecta o Exenta Electrónica\",\"count\":328,\"sum\":202453780},{\"tipo_documento\":\"Nota de Crédito Electrónica\",\"count\":296,\"sum\":-235125493},{\"tipo_documento\":\"Nota de Débito Electrónica\",\"count\":2,\"sum\":9074}]"
+    },
+    {
+      "kind": "response",
+      "status": 200,
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/data/municipios?group-by=[%22beneficiario%22]&where={%22region%22:%229%22,%22comuna%22:%229118%22,%22periodo%22:2026}&select=[%22nombre_beneficiario%22]&order-by=[%22sum%22,%22desc%22]&limit=500",
+      "contentType": "text/json; charset=utf-8",
+      "sample": "[{\"beneficiario\":\"76989207-9\",\"nombre_beneficiario\":\"COMERCIALIZADORA INDUSTRIAL SALVALLE LIMITADA\",\"count\":14,\"sum\":660432494},{\"beneficiario\":\"78400140-7\",\"nombre_beneficiario\":\"SOC COMERCIAL NUEVA TOLTEN LIMITADA\",\"count\":279,\"sum\":237365594},{\"beneficiario\":\"76722830-9\",\"nombre_beneficiario\":\"TRANSPORTES Y SERVICIOS GENERALES LIMITADA\",\"count\":3,\"sum\":155559352},{\"beneficiario\":\"13607768-6\",\"nombre_beneficiario\":\"*\",\"count\":6,\"sum\":111064950},{\"beneficiario\":\"76263763-4\",\"nombre_beneficiario\":\"COMERCIAL Y SUPERMERCADO PACHI PAP LIMITADA\",\"count\":136,\"sum\":84441908},{\"beneficiario\":\"76699945-K\",\"nombre_beneficiario\":\"DISTRIBUIDORA Y COMERCIALIZADORA TENTEN VILU SPA\",\"count\":2,\"sum\":64481010},{\"beneficiario\":\"77763415-1\",\"nombre_beneficiario\":\"*\",\"count\":2,\"sum\":60498741},{\"beneficiario\":\"76215637-7\",\"nombre_beneficiario\":\"AGUAS ARAUCANIA S.A.\",\"count\":34,\"sum\":51419903},{\"beneficiario\":\"7496027-8\",\"nombre_beneficiario\":\"*\",\"count\":80,\"sum\":49317314},{\"beneficiario\":\"76073164-1\",\"nombre_beneficiario\":\"EMPRESA ELECTRICA DE LA FRONTERA S.A.\",\"count\":345,\"sum\":47760159},{\"beneficiario\":\"96525030-1\",\"nombre_beneficiario\":\"CAS CHILE S A DE I\",\"count\":25,\"sum\":38057883},{\"beneficiario\":\"76674820-1\",\"nombre_beneficiario\":\"PROYECTOS DE INGENIERIA AMBIENTAL GEOCICLOS LIMITADA\",\"count\":2,\"sum\":36519315},{\"beneficiario\":\"96756060-K\",\"nombre_beneficiario\":\"COMUNICACION Y TELEFONIA RURAL S A\",\"count\":364,\"sum\":33600005},{\"beneficiario\":\"76690477-7\",\"nombre_beneficiario\":\"CONSTRUCTORA MONTE ROBLE LIMITADA\",\"count\":2,\"sum\":29323236},{\"beneficiario\":\"9524309-6\",\"nombre_beneficiario\":\"*\",\"count\":21,\"sum\":25211900},{\"beneficiario\":\"77814774-2\",\"nombre_beneficiario\":\"*\",\"count\":3,\"sum\":22424868},{\"beneficiario\":\"76896247-2\",\"nombre_beneficiario\":\"PRODUCCION DE EVENTOS EDGARDO DAVID OSORIO PEREIRA E.I.R.L.\",\"count\":17,\"sum\":20455771},{\"beneficiario\":\"76210177-7\",\"nombre_beneficiario\":\"MAURICIO LADRON DE GUEVARA LIMITADA\",\"count\":10,\"sum\":19626099},{\"beneficiario\":\"76141853-K\",\"nombre_beneficiario\":\"INCHCAPE CAMIONES Y BUSES CHILE S.A.\",\"count\":3,\"sum\":19404197},{\"beneficiario\":\"76073162-5\",\"nombre_beneficiario\":\"SOCIEDAD AUSTRAL DE ELECTRICIDAD S.A.\",\"count\":92,\"sum\":19007567},{\"beneficiario\":\"76007279-6\",\"nombre_beneficiario\":\"CONSTRUCTORA SANTA MONICA LIMITADA\",\"count\":3,\"sum\":16524627},{\"beneficiario\":\"77641694-0\",\"nombre_beneficiario\":\"POCK SPA\",\"count\":1,\"sum\":16375853},{\"beneficiario\":\"71548100-6\",\"nombre_beneficiario\":\"COMITE DE AGUA POTABLE RURAL DE NUEVA QUEULE\",\"count\":93,\"sum\":15409455},{\"beneficiario\":\"85184600-K\",\"nombre_beneficiario\":\"CRUZ Y CIA LTDA\",\"count\":15,\"sum\":14047963},{\"beneficiario\":\"14512931-1\",\"nombre_beneficiario\":\"*\",\"count\":10,\"sum\":13279250},{\"beneficiario\":\"76899535-4\",\"nombre_beneficiario\":\"TRANSPORTES SAN MARTIN LIMITADA\",\"count\":12,\"sum\":13155931},{\"beneficiario\":\"77798868-9\",\"nombre_beneficiario\":\"*\",\"count\":2,\"sum\":12750000},{\"beneficiario\":\"77150088-9\",\"nombre_beneficiario\":\"R&B INGENIERIA; REPUESTOS Y SERVICIOS SPA\",\"count\":1"
+    },
+    {
+      "kind": "response",
+      "status": 200,
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/data/municipios?where=%7B%22region%22:%229%22,%22comuna%22:%229118%22,%22periodo%22:2026%7D&sum=%22devengo%22",
+      "contentType": "text/json; charset=utf-8",
+      "sample": "[{\"periodo\":2026,\"region\":\"9\",\"nombre_region\":\"La Araucanía\",\"provincia\":\"91\",\"nombre_provincia\":\"Cautín\",\"comuna\":\"9118\",\"nombre_comuna\":\"Toltén\",\"nombre_municipalidad\":\"Municipalidad de Toltén\",\"municipalidad\":\"69191400-3\",\"cod_tipo_doc\":33,\"tipo_documento\":\"Factura Electrónica\",\"fecha_documento\":\"2026-08-04\",\"devengo\":26505,\"devengo_original\":26505,\"beneficiario\":\"59116230-6\",\"nombre_beneficiario\":\"IMPORT MUSIC LATIN AMERICA S.A. AGENCIA EN CHILE\",\"rubro_economico\":\"COMERCIO AL POR MAYOR Y AL POR MENOR; REPARACION DE VEHICULOS AUTOMOTORES Y MOTOCICLETAS\",\"subrubro_economico\":\"VENTA AL POR MAYOR NO ESPECIALIZADA\",\"actividad_economica\":\"VENTA AL POR MAYOR NO ESPECIALIZADA\",\"deuda_flotante\":0,\"mini_glosa_tramo\":\"PEQUEÑA \",\"glosa_tamano_segun_ventas\":\"PEQUEÑA 3 10.000,01 UF a 25.000 UF.\",\"glosa_tramo_completa\":\"PEQUEÑA 3 10.000,01 UF a 25.000 UF.\",\"sum\":2320932426}]"
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://presupuestoabierto.gob.cl/municipalities/5/5803?view=general",
+      "resourceType": "document",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "POST",
+      "url": "https://www.google-analytics.com/g/collect?v=2&tid=G-RH7E56TGZS&gtm=45je69u2v9173949260za200zb9173948057zd9173948057xf1&_p=1790965562996&gcd=13l3l3l3l1l1&npa=0&dma=0&_eu=AAAAAAQ&are=1&cid=1834829967.1790965561&frm=0&ngs=1&pscdl=noapi&rcb=18&sr=1280x720&uaa=x86&uab=64&uafvl=HeadlessChrome%3B141.0.7390.37%7CNot%253FA_Brand%3B8.0.0.0%7CChromium%3B141.0.7390.37&uam=&uamb=0&uap=Windows&uapv=&uaw=0&ul=en-us%40posix&tag_exp=115938466~115938468~118897920~118897930~120213116~120385423~120469145~120469153~121280970&dt=municipalities-region-comuna&dl=https%3A%2F%2Fpresupuestoabierto.gob.cl%2Fmunicipalities%2F9%2F9118%3Fview%3Dproviders&sid=1790965561&sct=1&seg=1&_s=1&tfd=1533",
+      "resourceType": "fetch",
+      "postData": "en=page_view&_ee=1&_et=1&dp=%2Fmunicipalities%2F9%2F9118\r\nen=user_engagement&_et=1241&dt=Presupuesto%20Abierto%20-%20Gobierno%20de%20Chile"
+    },
+    {
+      "kind": "request",
+      "method": "POST",
+      "url": "https://www.google-analytics.com/g/collect?v=2&tid=G-HSTGRVMVN4&gtm=45je69u2v9124411428za20gxf1&_p=1790965562996&gcd=13l3l3l3l2l1&npa=0&dma=0&_eu=EBAIAAQ&are=1&cid=1834829967.1790965561&frm=0&ir=1&ngs=1&pscdl=noapi&rcb=7&sr=1280x720&uaa=x86&uab=64&uafvl=HeadlessChrome%3B141.0.7390.37%7CNot%253FA_Brand%3B8.0.0.0%7CChromium%3B141.0.7390.37&uam=&uamb=0&uap=Windows&uapv=&uaw=0&ul=en-us%40posix&_s=1&tag_exp=115616986~115938466~115938468~118897920~118897930~119793972~120213116~120385423~120469145~120469153~121280970&dl=https%3A%2F%2Fpresupuestoabierto.gob.cl%2Fmunicipalities%2F9%2F9118%3Fview%3Dproviders&dp=%2Fmunicipalities%2F9%2F9118%3Fview%3Dproviders&dt=Presupuesto%20Abierto%20-%20Gobierno%20de%20Chile&sid=1790965561&sct=1&seg=1&en=page_view&_ee=1&tfd=1534",
+      "resourceType": "fetch",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "POST",
+      "url": "https://www.google.com/g/collect?v=2&tid=G-HSTGRVMVN4&gtm=45je69u2v9124411428za20gxf1&_p=1790965562996&gcd=13l3l3l3l2l1&npa=0&dma=0&_eu=EBAIAAQ&are=1&cid=1834829967.1790965561&frm=0&ir=1&ngs=1&pscdl=noapi&rcb=7&sr=1280x720&uaa=x86&uab=64&uafvl=HeadlessChrome%3B141.0.7390.37%7CNot%253FA_Brand%3B8.0.0.0%7CChromium%3B141.0.7390.37&uam=&uamb=0&uap=Windows&uapv=&uaw=0&ul=en-us%40posix&_s=1&tag_exp=115616986~115938466~115938468~118897920~118897930~119793972~120213116~120385423~120469145~120469153~121280970&dl=https%3A%2F%2Fpresupuestoabierto.gob.cl%2Fmunicipalities%2F9%2F9118%3Fview%3Dproviders&dp=%2Fmunicipalities%2F9%2F9118%3Fview%3Dproviders&dt=Presupuesto%20Abierto%20-%20Gobierno%20de%20Chile&sid=1790965561&sct=1&seg=1&en=page_view&_ee=1&tfd=1534&gaf=1",
+      "resourceType": "fetch",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "POST",
+      "url": "https://www.google.com/g/collect?v=2&tid=G-RH7E56TGZS&gtm=45je69u2v9173949260za200zb9173948057zd9173948057xf1&_p=1790965562996&gcd=13l3l3l3l1l1&npa=0&dma=0&_eu=AAAAAAQ&are=1&cid=1834829967.1790965561&frm=0&ngs=1&pscdl=noapi&rcb=18&sr=1280x720&uaa=x86&uab=64&uafvl=HeadlessChrome%3B141.0.7390.37%7CNot%253FA_Brand%3B8.0.0.0%7CChromium%3B141.0.7390.37&uam=&uamb=0&uap=Windows&uapv=&uaw=0&ul=en-us%40posix&tag_exp=115938466~115938468~118897920~118897930~120213116~120385423~120469145~120469153~121280970&dt=municipalities-region-comuna&dl=https%3A%2F%2Fpresupuestoabierto.gob.cl%2Fmunicipalities%2F9%2F9118%3Fview%3Dproviders&sid=1790965561&sct=1&seg=1&_s=1&tfd=1533&gaf=1",
+      "resourceType": "fetch",
+      "postData": "en=page_view&_ee=1&_et=1&dp=%2Fmunicipalities%2F9%2F9118\r\nen=user_engagement&_et=1241&dt=Presupuesto%20Abierto%20-%20Gobierno%20de%20Chile"
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/data/municipios?group-by=[%22region%22,%22comuna%22]&where=%7B%22region%22:%225%22,%22comuna%22:%225803%22%7D&select=[%22municipalidad%22,%22nombre_region%22,%22nombre_comuna%22]",
+      "resourceType": "xhr",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/municipalities-page-info/5/5803",
+      "resourceType": "xhr",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "POST",
+      "url": "https://www.google-analytics.com/j/collect?v=1&_v=j102&a=33700862&t=pageview&_s=1&dl=https%3A%2F%2Fpresupuestoabierto.gob.cl%2Fmunicipalities%2F5%2F5803%3Fview%3Dgeneral&dp=%2Fmunicipalities%2F5%2F5803%3Fview%3Dgeneral&ul=en-us%40posix&dt=Presupuesto%20Abierto%20-%20Gobierno%20de%20Chile&sr=1280x720&vp=1280x720&_u=SACAAEABEAAAACAAI~&jid=&gjid=&cid=1834829967.1790965561&tid=UA-125651199-1&_gid=176772477.1790965561&_slc=1&z=490407359",
+      "resourceType": "xhr",
+      "postData": null
+    },
+    {
+      "kind": "response",
+      "status": 200,
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/municipalities-page-info/5/5803",
+      "contentType": "application/json; charset=utf-8",
+      "sample": "{\"comuna\":\"5803\",\"nombre\":\"Olmué\",\"url\":\"http://www.muniolmue.cl\",\"url_transparencia\":\"https://www.portaltransparencia.cl/PortalPdT/directorio-de-organismos-regulados/?org=MU190\"}"
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/data/municipios?where=%7B%22periodo%22:2026,%22region%22:%225%22,%22comuna%22:%225803%22%7D&group-by=%22tipo_documento%22",
+      "resourceType": "xhr",
+      "postData": null
+    },
+    {
+      "kind": "request",
+      "method": "GET",
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/data/municipios?group-by=[%22rubro_economico%22,%22subrubro_economico%22,%22actividad_economica%22]&where={%22periodo%22:2026,%22region%22:%225%22,%22comuna%22:%225803%22}",
+      "resourceType": "xhr",
+      "postData": null
+    },
+    {
+      "kind": "response",
+      "status": 200,
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/data/municipios?group-by=[%22region%22,%22comuna%22]&where=%7B%22region%22:%225%22,%22comuna%22:%225803%22%7D&select=[%22municipalidad%22,%22nombre_region%22,%22nombre_comuna%22]",
+      "contentType": "text/json; charset=utf-8",
+      "sample": "[{\"region\":\"5\",\"comuna\":\"5803\",\"count\":2954,\"sum\":2123906828,\"municipalidad\":\"69061200-3\",\"nombre_region\":\"Valparaíso\",\"nombre_comuna\":\"Olmué\"}]"
+    },
+    {
+      "kind": "response",
+      "status": 200,
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/data/municipios?where=%7B%22periodo%22:2026,%22region%22:%225%22,%22comuna%22:%225803%22%7D&group-by=%22tipo_documento%22",
+      "contentType": "text/json; charset=utf-8",
+      "sample": "[{\"tipo_documento\":\"Factura Electrónica\",\"count\":2740,\"sum\":1833274185},{\"tipo_documento\":\"Factura No Afecta o Exenta Electrónica\",\"count\":144,\"sum\":425499354},{\"tipo_documento\":\"Nota de Crédito Electrónica\",\"count\":70,\"sum\":-134866711}]"
+    },
+    {
+      "kind": "response",
+      "status": 200,
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/data/municipios?distinct=[%22periodo%22]&order-by=[%22periodo%22]",
+      "contentType": "text/json; charset=utf-8",
+      "sample": "[{\"periodo\":2017},{\"periodo\":2018},{\"periodo\":2019},{\"periodo\":2020},{\"periodo\":2021},{\"periodo\":2022},{\"periodo\":2023},{\"periodo\":2024},{\"periodo\":2025},{\"periodo\":2026}]"
+    },
+    {
+      "kind": "response",
+      "status": 200,
+      "url": "https://api.presupuestoabierto.gob.cl/api/v1/data/municipios?group-by=[%22rubro_economico%22,%22subrubro_economico%22,%22actividad_economica%22]&where={%22periodo%22:2026,%22region%22:%225%22,%22comuna%22:%225803%22}",
+      "contentType": "text/json; charset=utf-8",
+      "sample": "[{\"rubro_economico\":\"*\",\"subrubro_economico\":\"*\",\"actividad_economica\":\"*\",\"count\":308,\"sum\":256860846},{\"rubro_economico\":\"INFORMACION Y COMUNICACIONES\",\"subrubro_economico\":\"OTRAS ACTIVIDADES DE TELECOMUNICACIONES\",\"actividad_economica\":\"OTRAS ACTIVIDADES DE TELECOMUNICACIONES N.C.P.\",\"count\":31,\"sum\":14305955},{\"rubro_economico\":\"INDUSTRIA MANUFACTURERA\",\"subrubro_economico\":\"FABRICACION DE OTROS PRODUCTOS ELABORADOS DE METAL; ACTIVIDADES DE SERVICIOS DE TRABAJO DE METALES\",\"actividad_economica\":\"FABRICACION DE OTROS PRODUCTOS ELABORADOS DE METAL N.C.P.\",\"count\":4,\"sum\":1152444},{\"rubro_economico\":\"COMERCIO AL POR MAYOR Y AL POR MENOR; REPARACION DE VEHICULOS AUTOMOTORES Y MOTOCICLETAS\",\"subrubro_economico\":\"VENTA AL POR MENOR EN COMERCIOS NO ESPECIALIZADOS\",\"actividad_economica\":\"OTRAS ACTIVIDADES DE VENTA AL POR MENOR EN COMERCIOS NO ESPECIALIZADOS N.C.P.\",\"count\":4,\"sum\":1761175},{\"rubro_economico\":\"ACTIVIDADES PROFESIONALES; CIENTIFICAS Y TECNICAS\",\"subrubro_economico\":\"INVESTIGACIONES Y DESARROLLO EXPERIMENTAL EN EL CAMPO DE LAS CIENCIAS SOCIALES Y LAS HUMANIDADES\",\"actividad_economica\":\"INVESTIGACIONES Y DESARROLLO EXPERIMENTAL EN EL CAMPO DE LAS CIENCIAS SOCIALES Y LAS HUMANIDADES\",\"count\":1,\"sum\":56520},{\"rubro_economico\":\"ACTIVIDADES DE ATENCION DE LA SALUD HUMANA Y DE ASISTENCIA SOCIAL\",\"subrubro_economico\":\"ACTIVIDADES DE HOSPITALES PUBLICOS Y PRIVADOS\",\"actividad_economica\":\"ACTIVIDADES DE HOSPITALES Y CLINICAS PRIVADAS\",\"count\":8,\"sum\":26283170},{\"rubro_economico\":\"COMERCIO AL POR MAYOR Y AL POR MENOR; REPARACION DE VEHICULOS AUTOMOTORES Y MOTOCICLETAS\",\"subrubro_economico\":\"VENTA AL POR MAYOR DE ENSERES DOMESTICOS\",\"actividad_economica\":\"VENTA AL POR MAYOR DE PRODUCTOS FARMACEUTICOS Y MEDICINALES\",\"count\":377,\"sum\":37062379},{\"rubro_economico\":\"OTRAS ACTIVIDADES DE SERVICIOS\",\"subrubro_economico\":\"ACTIVIDADES DE OTRAS ASOCIACIONES\",\"actividad_economica\":\"ACTIVIDADES DE OTRAS ASOCIACIONES N.C.P.\",\"count\":5,\"sum\":31177153},{\"rubro_economico\":\"ACTIVIDADES DE ATENCION DE LA SALUD HUMANA Y DE ASISTENCIA SOCIAL\",\"subrubro_economico\":\"ACTIVIDADES DE MEDICOS Y ODONTOLOGOS\",\"actividad_economica\":\"CENTROS MEDICOS PRIVADOS (ESTABLECIMIENTOS DE ATENCION AMBULATORIA)\",\"count\":17,\"sum\":17398452},{\"rubro_economico\":\"SUMINISTRO DE AGUA; EVACUACION DE AGUAS RESIDUALES; GESTION DE DESECHOS Y DESCONTAMINACION\",\"subrubro_economico\":\"CAPTACION; TRATAMIENTO Y DISTRIBUCION DE AGUA\",\"actividad_economica\":\"CAPTACION; TRATAMIENTO Y DISTRIBUCION DE AGUA\",\"count\":80,\"sum\":72671971},{\"rubro_economico\":\"ACTIVIDADES PROFESIONALES; CIENTIFICAS Y TECNICAS\",\"subrubro_economico\":\"ACTIVIDADES DE CONSULTORIA DE GESTION\",\"actividad_economica\":\"ACTIVIDADES DE CONSULTORIA DE GESTION\",\"count\":12,\"sum\":7908949},{\"rubro_economico\":\"COMERCIO AL POR MAYOR Y AL POR MENOR; REPARACION DE VEHICULOS AUTOMOTORES Y MOTOCICLETAS\",\"subrubro_economico\":\"OTRAS ACTIVIDADES DE VENTA AL POR MAYOR ESPECIALIZADA\",\"actividad_economica\":\"VENTA AL POR MAYOR DE MATERIALES DE CONSTRUCCION; ARTI"
+    }
+  ]
+}
